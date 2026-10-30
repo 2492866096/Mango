@@ -1,39 +1,145 @@
-## Telegram messenger for Android
+<div align="center">
 
-[Telegram](https://telegram.org) is a messaging app with a focus on speed and security. It’s superfast, simple and free.
-This repo contains the official source code for [Telegram App for Android](https://play.google.com/store/apps/details?id=org.telegram.messenger).
+# 🥭 Mango Client · 芒果客户端
 
-## Creating your Telegram Application
+**面向 Android 的 Telegram 第三方增强客户端**  
+**An independent, enhanced Telegram client for Android**
 
-We welcome all developers to use our API and source code to create applications on our platform.
-There are several things we require from **all developers** for the moment.
+[![License: GPL v2](https://img.shields.io/badge/License-GPL--2.0-blue.svg)](LICENSE)
+![Platform](https://img.shields.io/badge/Platform-Android-brightgreen)
+![Version](https://img.shields.io/badge/Version-4.8%20(7008)-orange)
 
-1. [**Obtain your own api_id**](https://core.telegram.org/api/obtaining_api_id) for your application.
-2. Please **do not** use the name Telegram for your app — or make sure your users understand that it is unofficial.
-3. Kindly **do not** use our standard logo (white paper plane in a blue circle) as your app's logo.
-3. Please study our [**security guidelines**](https://core.telegram.org/mtproto/security_guidelines) and take good care of your users' data and privacy.
-4. Please remember to publish **your** code too in order to comply with the licences.
+[简体中文](#-简体中文) · [English](#-english) · [源码 / Source](https://github.com/2492866096/Mango) · [版本发布 / Releases](https://github.com/2492866096/Mango/releases) · [问题反馈 / Issues](https://github.com/2492866096/Mango/issues)
 
-### API, Protocol documentation
+</div>
 
-Telegram API manuals: https://core.telegram.org/api
+---
 
-MTproto protocol manuals: https://core.telegram.org/mtproto
+## 🇨🇳 简体中文
 
-### Compilation Guide
+### 项目简介
 
-**Note**: In order to support [reproducible builds](https://core.telegram.org/reproducible-builds), this repo contains dummy release.keystore,  google-services.json and filled variables inside BuildVars.java. Before publishing your own APKs please make sure to replace all these files with your own.
+**芒果客户端（Mango Client）** 是基于 Telegram Android 源码开发的独立第三方客户端，重点改善消息处理效率、聊天管理、媒体体验、界面定制和隐私控制。项目开放源代码，方便用户了解实现方式，也欢迎开发者审查、反馈与贡献。
 
-You will require Android Studio 3.4, Android NDK rev. 20 and Android SDK 8.1
+> **非官方声明：** 芒果客户端不是 Telegram 官方应用，也不隶属于 Telegram。Telegram 名称及相关商标归其相应权利人所有。
 
-1. Download the Telegram source code from https://github.com/DrKLO/Telegram ( git clone https://github.com/DrKLO/Telegram.git )
-2. Copy your release.keystore into TMessagesProj/config
-3. Fill out RELEASE_KEY_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_STORE_PASSWORD in gradle.properties to access your  release.keystore
-4.  Go to https://console.firebase.google.com/, create two android apps with application IDs org.telegram.messenger and org.telegram.messenger.beta, turn on firebase messaging and download google-services.json, which should be copied to the same folder as TMessagesProj.
-5. Open the project in the Studio (note that it should be opened, NOT imported).
-6. Fill out values in TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java – there’s a link for each of the variables showing where and which data to obtain.
-7. You are ready to compile Telegram.
+### ✨ 核心功能
 
-### Localization
+| 分类 | 主要能力 |
+| --- | --- |
+| 💬 消息与聊天 | 消息管理、历史定位、关键词提醒、发送前确认、快捷操作 |
+| 📁 文件与媒体 | 下载体验优化、媒体筛选、文件清理与保存辅助工具 |
+| 🔐 隐私与安全 | 隐私设置增强、风险提醒、可自定义的交互行为 |
+| 🌐 网络与代理 | 代理与连接管理、网络体验相关增强 |
+| 🎨 个性与效率 | 界面定制、扩展中心、设置搜索及多种效率工具 |
 
-We moved all translations to https://translations.telegram.org/en/android/. Please use it.
+功能随版本变化，具体以客户端内设置、版本更新记录及源码实现为准；部分功能可能受 Telegram 服务端规则、系统权限和网络环境限制。
+
+### 📦 下载与版本
+
+- **当前源码版本：** `4.8 (7008)`
+- **Android 包名：** `app.mango.im`
+- **源码：** [GitHub · Mango](https://github.com/2492866096/Mango)
+- **APK / 版本更新：** [GitHub Releases](https://github.com/2492866096/Mango/releases)
+
+> Releases 页面中的安装包需要由项目维护者单独发布；仓库公开源码不代表已经发布 APK。请优先从可信的项目发布渠道获取安装包，并核对版本及签名信息。
+
+### 🛠️ 源码构建
+
+本仓库包含 Gradle 工程、`TMessagesProj`、`TMessagesProj_App`、JNI 与所需的第三方源码。主要步骤如下：
+
+1. 使用 Android Studio **Open** 仓库根目录（不要只打开 `TMessagesProj`）。
+2. 配置 Android SDK；根据 `TMessagesProj/build.gradle` 安装匹配的 NDK / CMake 版本。
+3. 使用项目支持的 JDK（源码包构建说明提及 JDK 17 / 21），完成 Gradle Sync。
+4. 按需配置自己的 Telegram API 凭据、Google 服务配置及签名信息；不要把真实密钥提交到公开仓库。
+5. 在满足项目依赖与配置的环境下构建 Debug：
+
+```bash
+./gradlew :TMessagesProj_App:assembleDebug
+```
+
+Debug 产物通常位于：
+
+```text
+TMessagesProj_App/build/outputs/apk/debug/
+```
+
+Release 构建命令：
+
+```bash
+./gradlew :TMessagesProj_App:assembleRelease
+```
+
+Release 构建还需要你自己的签名文件与相应 Gradle 配置。仓库中用于开源展示的 Google API Key 已替换为占位符，相关服务在正确配置前可能无法工作。**这里提供的是构建入口说明，不代表已验证任意开发环境均能直接编译通过。**
+
+更多细节见 [`mango_build_readme.txt`](mango_build_readme.txt)，但请勿照搬其中涉及发布签名密钥的历史打包说明，应以你自己的安全签名配置为准。
+
+### 🔏 隐私与安全
+
+芒果客户端的部分增强功能设计为在设备本地运行。公开源码是为了提高可审查性，但不等于已经完成第三方安全审计。
+
+- Telegram 消息与媒体通信仍需要连接 Telegram 服务及你所选择的网络路径或代理。
+- 使用翻译、外部链接、更新检查或其他联网功能时，可能发生相应网络请求，具体行为请以源码和功能设置为准。
+- 不要在 Issues、日志或提交记录中公开手机号、会话、API Key、Bot Token、代理凭据、签名文件或其他私人数据。
+- 欢迎通过源码审查与 Issues 提出可复现的安全或隐私问题。
+
+### 📜 开源许可与致谢
+
+本仓库基于 [Telegram Android](https://github.com/DrKLO/Telegram) 的开放源码开发，保留了上游及第三方组件的版权和许可证文件。仓库根目录附有 [`LICENSE`](LICENSE)（GNU GPL v2）；第三方组件可能适用不同许可证，以其各自文件为准。
+
+重新分发、修改或编译本项目时，请遵守适用许可证、保留必要的版权声明，并按许可证要求提供对应源码。项目使用自己的应用名称和视觉标识，不代表 Telegram 官方认可或背书。
+
+### 🤝 参与项目
+
+欢迎提出 Bug、改进建议和 Pull Request：
+
+- [Issues：反馈问题或建议](https://github.com/2492866096/Mango/issues)
+- [Pull Requests：提交改进](https://github.com/2492866096/Mango/pulls)
+- [Telegram 交流群](https://t.me/AKUOD)
+
+提交问题前请先检查是否已有相同反馈，并尽量提供系统版本、客户端版本、复现步骤及已脱敏的日志。
+
+---
+
+## 🌍 English
+
+### About
+
+**Mango Client** is an independent, third-party Android client built on Telegram's open-source Android codebase. It focuses on more efficient messaging, chat management, media handling, interface customization, and privacy controls.
+
+The source code is published for transparency, review, and community contributions. **Mango Client is not an official Telegram app and is not affiliated with Telegram.**
+
+### ✨ Highlights
+
+| Area | Features |
+| --- | --- |
+| 💬 Messaging | Chat and message management, history navigation, keyword alerts, send confirmations, quick actions |
+| 📁 Media & Files | Download-related improvements, media filtering, file organization and cleanup tools |
+| 🔐 Privacy & Safety | Additional privacy settings, risk reminders, customizable interaction behavior |
+| 🌐 Connectivity | Proxy and network management enhancements |
+| 🎨 Customization | UI customization, an extension center, settings search, and productivity tools |
+
+Availability varies by release, Android version, server-side behavior, and user settings.
+
+### 📦 Download & Versions
+
+- **Source version:** `4.8 (7008)`
+- **Android application ID:** `app.mango.im`
+- **Source code:** [GitHub repository](https://github.com/2492866096/Mango)
+- **APK releases:** [GitHub Releases](https://github.com/2492866096/Mango/releases)
+
+> APK files are published separately by the maintainers. An open-source repository does not necessarily contain downloadable release binaries.
+
+### 🛠️ Building from Source
+
+1. Open the **repository root** in Android Studio.
+2. Install the required Android SDK, NDK, and CMake versions as specified by the Gradle project.
+3. Configure a compatible JDK and allow Gradle to sync dependencies.
+4. Provide your **own** API credentials, service configuration, and signing materials where required. Do not commit secrets.
+5. Build a Debug APK:
+
+```bash
+./gradlew :TMessagesProj_App:assembleDebug
+```
+
+For a release build, configure your own signing cred
