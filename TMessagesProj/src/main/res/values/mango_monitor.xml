@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoPerformanceTitle">Performance monitor</string>
+    <string name="MangoPerformanceMemory">App memory</string>
+    <string name="MangoPerformanceBattery">Battery status</string>
+    <string name="MangoPerformanceBatteryLevel">Battery level</string>
+    <string name="MangoPerformanceBatteryCurrent">Battery current</string>
+    <string name="MangoPerformanceBatteryTemperature">Battery temperature</string>
+    <string name="MangoPerformanceCharging">Charging status</string>
+    <string name="MangoPerformanceChargingNow">Charging</string>
+    <string name="MangoPerformanceNotCharging">Not charging</string>
+    <string name="MangoPerformanceFullyCharged">Fully charged</string>
+    <string name="MangoPerformanceCache">App cache</string>
+    <string name="MangoPerformanceCacheGrowth">Cache change since opening</string>
+    <string name="MangoPerformanceBackgroundTasks">Background tasks</string>
+    <string name="MangoPerformanceBackgroundProcesses">Background processes</string>
+    <string name="MangoPerformancePendingSends">Pending outgoing messages</string>
+    <string name="MangoPerformanceDownloads">Active downloads</string>
+    <string name="MangoPerformanceAppState">App state</string>
+    <string name="MangoPerformanceForeground">Foreground</string>
+    <string name="MangoPerformanceBackground">Background</string>
+    <string name="MangoPerformanceNoData">Unavailable</string>
+    <string name="MangoPerformanceUpdated">Updated %1$s</string>
+    <string name="MangoPerformanceBatteryDisclaimer">Battery readings are provided by Android for the device and are not an exact measurement of this app’s power use.</string>
+    <string name="MangoPerformanceRefresh">Refresh</string>
+    <string name="MangoDownloadHudTitle">Download speed</string>
+    <string name="MangoDownloadHudEnabled">Show floating download speed</string>
+    <string name="MangoDownloadHudSpeed">%1$s/s · %2$d tasks</string>
+    <string name="MangoDownloadHudIdle">No active downloads</string>
+    <string name="MangoPerformanceSummary">View memory, battery, cache and background tasks</string>
+    <string name="MangoDownloadSpeedHudTitle">Show floating download speed</string>
+</resources>

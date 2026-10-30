@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">حظر الكلمات المحددة</string>
+    <string name="MangoKeywordSelectHint">اضغط مطولًا على النص لتحديد عبارة، ثم اضغط على إضافة كلمة محظورة. يمكنك اختيار 5 عبارات كحد أقصى؛ اضغط على عبارة محددة لإزالتها. يؤدي التأكيد إلى تفعيل تصفية الكلمات الرئيسية.</string>
+    <string name="MangoKeywordSelectedCount">الكلمات الرئيسية المحددة (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">حظر الكلمات الرئيسية المحددة</string>
+    <string name="MangoKeywordBlocked">تمت إضافة الكلمات الرئيسية وتفعيل التصفية</string>
+    <string name="MangoBroadcastTitle">إرسال جماعي إلى المحادثات الخاصة</string>
+    <string name="MangoBroadcastInfo">أرسل الرسالة نفسها إلى المحادثات الخاصة الموجودة في هذا الحساب. بعد التأكيد، ستُرسل رسالة كل 3 ثوانٍ بصمت في الخلفية. تُستثنى المجموعات والقنوات والبوتات والمستخدمون المحذوفون أو المحظورون ومن يطلبون رسومًا لاستقبال الرسائل.</string>
+    <string name="MangoBroadcastMessage">نص الرسالة</string>
+    <string name="MangoBroadcastLoad">تحميل المحادثات ومراجعتها</string>
+    <string name="MangoBroadcastConfirm">هل تريد الإرسال إلى %1$d مستخدمًا؟ ستُرسل الرسائل كل 3 ثوانٍ في الخلفية.</string>
+    <string name="MangoBroadcastNoTargets">لا توجد محادثات خاصة مؤهلة للإرسال.</string>
+    <string name="MangoBroadcastLoadFailed">تعذّر تحميل جميع المحادثات. حاول مرة أخرى.</string>
+    <string name="MangoBroadcastProgress">تم تقديم %1$d / %2$d؛ تم تخطي %3$d</string>
+    <string name="MangoBroadcastWaiting">بانتظار الاتصال</string>
+    <string name="MangoBroadcastPaused">متوقف مؤقتًا. أكّد للمتابعة مع المستلمين المتبقين.</string>
+    <string name="MangoBroadcastCompleted">اكتملت المهمة. تحقق من حالة التسليم في كل محادثة.</string>
+    <string name="MangoBroadcastCancelled">تم الإلغاء. لن تتأثر الرسائل التي سبق تقديمها للإرسال.</string>
+    <string name="MangoBroadcastResume">المتابعة مع المستلمين المتبقين</string>
+    <string name="MangoBroadcastFailed">تعذّر البدء. تم حفظ التقدم.</string>
+    <string name="MangoBroadcastReview">المراجعة قبل الإرسال</string>
+    <string name="MangoBroadcastCancelConfirm">هل تريد إلغاء الإرسال إلى المستلمين المتبقين؟</string>
+</resources>

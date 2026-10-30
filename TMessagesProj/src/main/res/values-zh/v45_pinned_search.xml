@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoPinSearchChannel">置顶到搜索栏</string>
+    <string name="MangoUnpinSearchChannel">取消搜索置顶</string>
+    <string name="MangoPinnedSearchStatus">已置顶</string>
+    <string name="MangoPinnedAndRecentSearch">置顶与最近搜索</string>
+</resources>

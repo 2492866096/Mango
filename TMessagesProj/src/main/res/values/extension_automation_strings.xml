@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DailyMessageTasksTitle">Daily message tasks</string>
+    <string name="DailyMessageTasksOnlineWarning">Automatic tasks require this account to be connected, the app in the foreground and the screen on. Online random mode waits 15–90 seconds during the selected daily window, then attempts one message per day. If you leave before it runs, it retries a random wait when you return within the window. Fixed-time mode skips missed times. A manual send counts as today’s run; repeated manual sends are allowed. Check the chat for delivery and bot check-in results.</string>
+    <string name="DailyMessageTasksAdd">Add daily task</string>
+    <string name="DailyMessageTasksEmpty">Choose a group or bot, a message (such as /checkin), and an online random window or fixed daily time. Tasks belong to this account on this device.</string>
+    <string name="DailyMessageTasksAutomatic">Run automatically every day</string>
+    <string name="DailyMessageTasksManual">Manual only</string>
+    <string name="DailyMessageTasksSendNow">Send now</string>
+    <string name="DailyMessageTasksEnable">Enable automatic sending</string>
+    <string name="DailyMessageTasksDisable">Disable automatic sending</string>
+    <string name="DailyMessageTasksLastAttempt">Last attempt: %1$s — %2$s</string>
+    <string name="DailyMessageTasksSendConfirm">Send the following message to %1$s now? This also counts as today’s run. Repeated manual sends will send the message again.\n\n%2$s</string>
+    <string name="DailyMessageTasksDeleteConfirm">Delete the daily task for %1$s?</string>
+    <string name="DailyMessageTasksQueued">Added to the send queue; check the chat for delivery</string>
+    <string name="DailyMessageTasksOffline">Connect this account before sending.</string>
+    <string name="DailyMessageTasksInvalidTarget">Choose a group you can write to or a bot. Deleted chats and channels are not supported.</string>
+    <string name="DailyMessageTasksInvalidText">Enter a message of 1–4096 characters.</string>
+    <string name="DailyMessageTasksPaidTarget">This chat requires paid messages. Send from the chat manually.</string>
+    <string name="DailyMessageTasksStorageError">Could not save this task. No new message was queued.</string>
+    <string name="DailyMessageTasksEdit">Daily task settings</string>
+    <string name="DailyMessageTasksTarget">Group or bot</string>
+    <string name="DailyMessageTasksChoose">Choose</string>
+    <string name="DailyMessageTasksText">Message text</string>
+    <string name="DailyMessageTasksTime">Daily time (device local time)</string>
+    <string name="ExtensionAutomationSelectOne">Select exactly one supported chat.</string>
+    <string name="PresenceSimulationTitle">Timed presence and typing</string>
+    <string name="PresenceSimulationLimits">Telegram does not allow clients to set an arbitrary last-seen date or time. These controls temporarily request online/offline status while this app is running. Visibility depends on Telegram privacy rules and other logged-in devices; activity may still reveal that you are online.</string>
+    <string name="PresenceSimulationMode">Temporary presence</string>
+    <string name="PresenceSimulationNormal">Use normal settings</string>
+    <string name="PresenceSimulationOnline">Online while app is active</string>
+    <string name="PresenceSimulationOffline">Request offline status</string>
+    <string name="PresenceSimulationModeInfo">Choose a duration from 1 to 60 minutes. The online option temporarily overrides Hide online status and requires the app to be active. At the end, your normal privacy settings apply again. Temporary presence is cleared when the app restarts.</string>
+    <string name="PresenceSimulationMinutes">%1$d min</string>
+    <string name="PresenceSimulationTarget">Typing destination</string>
+    <string name="PresenceSimulationAction">Typing status</string>
+    <string name="PresenceSimulationDuration">Duration</string>
+    <string name="PresenceSimulationDurationInfo">Enter a duration from 1 to 60 minutes.</string>
+    <string name="PresenceSimulationTyping">Typing a message</string>
+    <string name="PresenceSimulationRecording">Recording a voice message</string>
+    <string name="PresenceSimulationSticker">Choosing a sticker</string>
+    <string name="PresenceSimulationStart">Start status</string>
+    <string name="PresenceSimulationStop">Stop status</string>
+    <string name="PresenceSimulationTypingInfo">Sends a real temporary activity indicator to the selected chat every few seconds. No message, recording or sticker is created. Stops when the duration ends, you leave the app, the screen turns off, or Hide typing status is enabled. Telegram decides whether recipients see the indicator.</string>
+    <string name="PresenceSimulationUnable">Choose a writable chat, connect this account and turn off Hide typing status first.</string>
+</resources>

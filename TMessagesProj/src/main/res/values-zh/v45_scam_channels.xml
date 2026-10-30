@@ -1,0 +1,5 @@
+<resources>
+    <string name="MangoScamChannelWarningTitle">⚠ 检测到该频道存在风险</string>
+    <string name="MangoScamChannelWarning">频道：%1$s\nID：%2$s\n\n与频道互动前请谨慎核实。</string>
+    <string name="MangoScamChannelProfile">打开频道</string>
+</resources>

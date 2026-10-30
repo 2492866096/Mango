@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoHistoryCalendar">按日期查找</string>
+    <string name="MangoHistoryCalendarHint">点选日期，定位当天或附近消息</string>
+</resources>

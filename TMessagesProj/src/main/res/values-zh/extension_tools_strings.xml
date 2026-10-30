@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ExtensionToolsHeader">聊天工具</string>
+    <string name="ExtensionPersonalWallpapers">我的壁纸</string>
+    <string name="ExtensionDailyMessages">每日定时消息</string>
+    <string name="ExtensionQuickForwardAccount">快速转发前先选择发送账号</string>
+    <string name="ExtensionQuickForwardAccountInfo">开启后，长按消息操作按钮时先选择发送账号，再从该账号的用户或群组中选择目标。</string>
+    <string name="QuickForwardUnsupported">无法将此消息转发到所选账号。媒体文件可能需要先下载到本机。</string>
+    <string name="ExtensionPresence">在线状态与伪输入</string>
+    <string name="ExtensionMessageActions">消息菜单与双击操作</string>
+</resources>

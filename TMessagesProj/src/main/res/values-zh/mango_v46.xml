@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">选词屏蔽</string>
+    <string name="MangoKeywordSelectHint">长按正文选中词句，点击“添加屏蔽词”，最多5个；点词条可移除。提交后自动开启关键词屏蔽。</string>
+    <string name="MangoKeywordSelectedCount">已选关键词（%1$d/%2$d）</string>
+    <string name="MangoKeywordBlockSelected">屏蔽所选关键词</string>
+    <string name="MangoKeywordBlocked">已添加关键词并开启屏蔽</string>
+    <string name="MangoBroadcastTitle">私聊批量发送</string>
+    <string name="MangoBroadcastInfo">向当前账号聊过天的用户发送同一条消息。确认后每3秒提交一条，后台静默执行；不含群组、频道、机器人、已删除/已屏蔽或需付费的用户。</string>
+    <string name="MangoBroadcastMessage">群发内容</string>
+    <string name="MangoBroadcastLoad">加载会话并确认</string>
+    <string name="MangoBroadcastConfirm">确认向 %1$d 位用户发送？每条间隔3秒，在后台执行。</string>
+    <string name="MangoBroadcastNoTargets">没有可发送的私聊用户。</string>
+    <string name="MangoBroadcastLoadFailed">会话加载未完成，请重试。</string>
+    <string name="MangoBroadcastProgress">已提交 %1$d / %2$d，已跳过 %3$d</string>
+    <string name="MangoBroadcastWaiting">等待网络连接</string>
+    <string name="MangoBroadcastPaused">任务已暂停，确认后可继续剩余用户。</string>
+    <string name="MangoBroadcastCompleted">任务已完成，发送结果请查看对应会话。</string>
+    <string name="MangoBroadcastCancelled">任务已取消，已提交的消息不受影响。</string>
+    <string name="MangoBroadcastResume">继续剩余任务</string>
+    <string name="MangoBroadcastFailed">任务启动失败，进度已保留。</string>
+    <string name="MangoBroadcastReview">发送前确认</string>
+    <string name="MangoBroadcastCancelConfirm">取消剩余的群发任务？</string>
+</resources>

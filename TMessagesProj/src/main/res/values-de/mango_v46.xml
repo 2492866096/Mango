@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">Ausgewählte Wörter blockieren</string>
+    <string name="MangoKeywordSelectHint">Halte den Text gedrückt, um einen Ausdruck auszuwählen, und tippe auf Blockiertes Schlüsselwort hinzufügen. Wähle bis zu 5 aus; tippe auf einen ausgewählten Ausdruck, um ihn zu entfernen. Durch Bestätigen wird der Schlüsselwortfilter aktiviert.</string>
+    <string name="MangoKeywordSelectedCount">Ausgewählte Schlüsselwörter (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">Ausgewählte Schlüsselwörter blockieren</string>
+    <string name="MangoKeywordBlocked">Schlüsselwörter hinzugefügt und Filter aktiviert</string>
+    <string name="MangoBroadcastTitle">Rundnachricht an private Chats</string>
+    <string name="MangoBroadcastInfo">Sende dieselbe Nachricht an bestehende private Unterhaltungen dieses Kontos. Nach der Bestätigung wird alle 3 Sekunden eine Nachricht still im Hintergrund übermittelt. Gruppen, Kanäle, Bots, gelöschte oder blockierte Nutzer sowie Nutzer, die Geld für den Empfang von Nachrichten verlangen, sind ausgeschlossen.</string>
+    <string name="MangoBroadcastMessage">Nachricht</string>
+    <string name="MangoBroadcastLoad">Unterhaltungen laden und prüfen</string>
+    <string name="MangoBroadcastConfirm">An %1$d Nutzer senden? Die Nachrichten werden alle 3 Sekunden im Hintergrund übermittelt.</string>
+    <string name="MangoBroadcastNoTargets">Keine geeigneten privaten Unterhaltungen vorhanden.</string>
+    <string name="MangoBroadcastLoadFailed">Nicht alle Unterhaltungen konnten geladen werden. Bitte versuche es erneut.</string>
+    <string name="MangoBroadcastProgress">Übermittelt: %1$d / %2$d; übersprungen: %3$d</string>
+    <string name="MangoBroadcastWaiting">Warten auf Verbindung</string>
+    <string name="MangoBroadcastPaused">Pausiert. Bestätige, um mit den verbleibenden Empfängern fortzufahren.</string>
+    <string name="MangoBroadcastCompleted">Abgeschlossen. Prüfe den Zustellstatus in den einzelnen Chats.</string>
+    <string name="MangoBroadcastCancelled">Abgebrochen. Bereits übermittelte Nachrichten sind nicht betroffen.</string>
+    <string name="MangoBroadcastResume">Mit verbleibenden Empfängern fortfahren</string>
+    <string name="MangoBroadcastFailed">Start fehlgeschlagen. Der Fortschritt wurde gespeichert.</string>
+    <string name="MangoBroadcastReview">Vor dem Senden prüfen</string>
+    <string name="MangoBroadcastCancelConfirm">Den Versand an die verbleibenden Empfänger abbrechen?</string>
+</resources>

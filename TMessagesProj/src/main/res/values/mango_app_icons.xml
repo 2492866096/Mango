@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoAppIconGalaxy">Galaxy</string>
+    <string name="MangoAppIconPink">Pink</string>
+    <string name="MangoAppIconGold">Gold</string>
+    <string name="MangoAppIconMoon">Moon</string>
+    <string name="MangoAppIconSpeed">Speed</string>
+    <string name="MangoAppIconNeon">Neon</string>
+</resources>

@@ -1,0 +1,14 @@
+<resources>
+    <string name="MangoConfirmSendTitle">Confirm sending message</string>
+    <string name="MangoConfirmVoiceTitle">Confirm sending voice recording</string>
+    <string name="MangoConfirmBotTitle">Confirm sending bot command</string>
+    <string name="MangoConfirmSendRecipient">Send to %1$s?</string>
+    <string name="MangoSendPhotoAsSticker">Send photo as sticker</string>
+    <string name="MangoStickerConversionFailed">Could not convert this photo to a sticker. Your selection was kept.</string>
+    <string name="MangoLargeFileTitle">Large file</string>
+    <string name="MangoLargeFileInfo">Size: %1$s\nEstimated upload: about %2$s at 1 MiB/s. Actual time depends on your connection.\nCompression creates a ZIP file; photos and videos may not become smaller.</string>
+    <string name="MangoSendOriginal">Send original</string>
+    <string name="MangoCompressAndSend">Compress and send</string>
+    <string name="MangoCompressionFailed">Compression failed. The original file was not sent.</string>
+    <string name="MangoPreparingFile">Preparing file…</string>
+</resources>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MessageManagementTitle">消息管理中心</string>
+    <string name="MessageManagementTab">消息管理</string>
+    <string name="MessageManagementBottomTab">底部显示消息管理中心</string>
+    <string name="MessageManagementInfo">在消息菜单中选择标签，或长按消息后点击标签图标，可批量添加标签。标签仅保存在本机的当前账号中。点击记录可跳转原消息，长按记录可修改或清除标签。</string>
+    <string name="MessageManagementEmpty">此分类暂无已标记的消息。</string>
+    <string name="MessageManagementAll">全部标签</string>
+    <string name="MessageManagementFilter">按标签筛选</string>
+    <string name="MessageManagementUnavailable">这条消息已删除或暂时无法访问。你仍可清除它的本地标签。</string>
+    <string name="MessageManagementNetworkError">暂时无法检查消息，请检查网络后重试。</string>
+    <string name="MessageManagementLoading">正在打开消息…</string>
+    <string name="MessageTags">消息标签</string>
+    <string name="MessageTagsClear">清除标签</string>
+    <string name="MessageTagsUpdated">消息标签已更新</string>
+    <string name="MessageTagImportant">重要</string>
+    <string name="MessageTagTodo">待处理</string>
+    <string name="MessageTagReply">待回复</string>
+    <string name="MessageTagFavorite">收藏</string>
+    <string name="MessageTagPrivateMessage">私密消息</string>
+    <string name="MessageActionSettings">消息快捷操作</string>
+    <string name="MessageDoubleTapAction">双击消息操作</string>
+    <string name="MessageDoubleTapReaction">点赞／快捷表情</string>
+    <string name="MessageDoubleTapNone">不执行操作</string>
+    <string name="MessageDoubleTapInfo">可选择点赞／快捷表情、回复或不执行操作。点赞使用现有默认快捷表情，并遵循群组的表情权限。</string>
+    <string name="MessageMenuOrder">消息菜单排序</string>
+    <string name="MessageMenuMove">移动到位置</string>
+    <string name="MessageMenuReset">恢复默认排序</string>
+    <string name="MessageMenuOrderInfo">点击操作并选择位置，复制、转发、收藏、待处理将在可用时按此顺序显示。收藏和待处理是消息管理中心的本地标签。</string>
+    <string name="MessageTagsBatchInfo">此处勾选或取消的标签会应用到所有选中消息，未修改的标签保留原状。清除标签会移除所有选中消息的标签。</string>
+</resources>

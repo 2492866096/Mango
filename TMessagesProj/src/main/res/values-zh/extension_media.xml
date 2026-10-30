@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoHideStickerTime">贴纸不显示时间</string>
+    <string name="MangoHideStickerTimeInfo">隐藏静态、动态及视频贴纸的时间和发送状态，保留表情回应。</string>
+    <string name="ExtensionAudioAutoPlayNext">自动播放下一个音频</string>
+    <string name="ExtensionAudioAutoPlayNextInfo">音乐、语音和视频消息播放结束后自动播放下一条。关闭后播完当前内容即停止，仍可手动切换。</string>
+    <string name="BuiltinProxyRestoredOffline">已恢复并启用保存的内置代理。本次未能下载订阅，请在网络恢复后再次更新。</string>
+    <string name="CustomWallpaperImport">添加自己的内置壁纸</string>
+    <string name="CustomWallpaperImportInfo">将图片导入此设备的壁纸库，与内置壁纸一起展示。切换背景后仍可再次选择，长按导入的壁纸可删除。</string>
+    <string name="CustomWallpaperImportFailed">无法保存这张壁纸，请检查可用存储空间或选择其他图片。</string>
+    <string name="CustomWallpaperDeleteInfo">从壁纸库中删除这张图片？当前聊天背景将保留。</string>
+</resources>

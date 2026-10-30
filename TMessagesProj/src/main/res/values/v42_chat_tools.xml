@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoMediaFilter">Media quick filter</string>
+    <string name="MangoFilterPhotos">Photos only</string>
+    <string name="MangoFilterVideos">Videos only</string>
+    <string name="MangoFilterGifs">GIFs only</string>
+    <string name="MangoFilterVoice">Voice messages only</string>
+    <string name="MangoFilterFiles">Files only</string>
+    <string name="MangoFilterLinks">Links only</string>
+    <string name="MangoDownloadReady">Downloaded: %1$s · %2$s — Open / Share / Save</string>
+</resources>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DeviceInfoRootTerminal">Root terminal</string>
+    <string name="DeviceInfoRootTerminalUnlocked">Root terminal activated</string>
+    <string name="RootTerminalInfo">Commands run only after su grants root (uid=0). One command at a time; output is limited to 64 KB and execution to 60 seconds. Commands are stopped when you leave this page. No command history is saved.</string>
+    <string name="RootTerminalRun">Run with root</string>
+    <string name="RootTerminalChecking">Requesting root access…</string>
+    <string name="RootTerminalNoRoot">Root access unavailable or denied; command was not executed.</string>
+    <string name="RootTerminalTimedOut">Stopped: 60-second timeout</string>
+    <string name="RootTerminalCancelled">Command stopped</string>
+    <string name="RootTerminalFinished">Finished with exit code %1$d</string>
+    <string name="RootTerminalTruncated">Output exceeded 64 KB and was truncated.</string>
+    <string name="DailyMessageTasksMode">Trigger mode</string>
+    <string name="DailyMessageTasksRandomMode">Random while online</string>
+    <string name="DailyMessageTasksFixedMode">Fixed daily time</string>
+    <string name="DailyMessageTasksWindowStart">Random window starts</string>
+    <string name="DailyMessageTasksWindowEnd">Random window ends</string>
+    <string name="DailyMessageTasksRandomInfo">Within this window, an active connected session waits a random 15–90 seconds before sending once that day. Leaving the app pauses the task; returning within the window schedules another random wait. The daily limit and chosen delay survive app restarts. The time window must fall within one calendar day.</string>
+    <string name="DailyMessageTasksInvalidWindow">The window end must be at or after its start.</string>
+    <string name="DuplicateFilesTitle">Duplicate file cleaner</string>
+    <string name="DuplicateFilesInfo">Scan this app’s downloaded media, public media folders and app-specific downloads. Files are compared by size and SHA-256, not names. Temporary, encrypted, recently written and active-transfer files are skipped. The oldest identical copy is kept by default; uncheck a file to keep it and select another copy instead. Long-press a file to preview it. This only removes local copies, so cloud media may download again.</string>
+    <string name="DuplicateFilesScan">Scan duplicate files</string>
+    <string name="DuplicateFilesScanning">Scanning…</string>
+    <string name="DuplicateFilesSummary">Found %1$d duplicate groups; examined %2$d files, skipped %3$d.</string>
+    <string name="DuplicateFilesPartial">Partial results: scanning was cancelled or reached the 100,000-file limit.</string>
+    <string name="DuplicateFilesGroup">Duplicate group %1$d</string>
+    <string name="DuplicateFilesSmartSelect">Smart selection (keep one per group)</string>
+    <string name="DuplicateFilesClean">Clean selected duplicates</string>
+    <string name="DuplicateFilesCleaning">Rechecking and cleaning…</string>
+    <string name="DuplicateFilesSelect">Select duplicate copies to delete.</string>
+    <string name="DuplicateFilesKeepOne">Keep at least one copy in each group.</string>
+    <string name="DuplicateFilesConfirm">Delete %1$d local duplicate files (%2$s)? At least one unchanged identical copy will be retained in each group. Changed or busy files will be skipped. Review the selected paths before continuing.</string>
+    <string name="DuplicateFilesDone">Removed %1$d copies (%2$s); skipped %3$d. Rescan to refresh results.</string>
+    <string name="DuplicateFilesPreviewUnavailable">No viewer is available for this file.</string>
+    <string name="DuplicateFilesModeDuplicates">Duplicate files</string>
+    <string name="DuplicateFilesModeLarge">Large files</string>
+    <string name="DuplicateFilesLargeInfo">Find large files by size (100 MB minimum by default), sorted largest first. Select files individually and confirm deletion; only local copies are removed. Downloads/uploads in progress, files covered by retention rules, and recently written files are skipped.</string>
+    <string name="DuplicateFilesLargeSummary">Found %1$d large files (≥ %2$s); scanned %3$d files and skipped %4$d.</string>
+    <string name="DuplicateFilesLargeSelect">Select all large files</string>
+    <string name="DuplicateFilesLargeConfirm">Delete the selected %1$d local large files (%2$s)? This cannot be undone; cloud messages are unaffected. Review the selection before continuing.</string>
+    <string name="DuplicateFilesLargeDone">Deleted %1$d large files (%2$s); skipped %3$d in-use, changed, or protected files.</string>
+</resources>

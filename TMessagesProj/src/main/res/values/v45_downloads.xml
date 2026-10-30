@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DownloadRetentionTitle">Download retention</string>
+    <string name="DownloadRetentionInfo">Keep local copies of downloaded files for one day, one week, or forever. Expired files are shown for review before you confirm cleanup. Cloud messages and exported copies are not deleted.</string>
+    <string name="DownloadRetentionDefault">All downloads and future downloads</string>
+    <string name="DownloadRetentionOneDay">One day</string>
+    <string name="DownloadRetentionOneWeek">One week</string>
+    <string name="DownloadRetentionForever">Forever</string>
+    <string name="DownloadRetentionClean">Review and clean expired files</string>
+    <string name="DownloadRetentionNothingExpired">No expired files</string>
+    <string name="DownloadRetentionExpiredCount">%1$d expired files</string>
+    <string name="DownloadRetentionListInfo">Tap a file for actions or to change its retention period. A per-file period starts when you set it. The all-files policy starts at each file’s download time. Duplicate-file cleanup remains available separately.</string>
+    <string name="DownloadRetentionExpires">Expires %1$s</string>
+    <string name="DownloadRetentionExpired">Expired · awaiting cleanup</string>
+    <string name="DownloadRetentionEmpty">No completed downloads to manage yet.</string>
+    <string name="DownloadRetentionConfirm">%1$d downloaded files (%2$s) have expired. Only their local copies will be removed after you confirm. You can download them from their messages again.</string>
+    <string name="DownloadRetentionDone">Removed %1$d files (%2$s). Skipped %3$d changed or active files.</string>
+    <string name="DownloadRetentionUpdated">Retention updated</string>
+    <string name="DownloadRetentionExpiredTitle">Downloaded files have expired</string>
+    <string name="DownloadRetentionReview">Review files</string>
+    <string name="DownloadRetentionLater">Later</string>
+    <string name="DownloadQuickOpen">Open</string>
+    <string name="DownloadQuickShare">Share</string>
+    <string name="DownloadQuickSave">Save to a folder</string>
+    <string name="DownloadQuickActionsMissing">The local file is no longer available. Download it again from the message.</string>
+    <string name="DownloadQuickActionsFailed">Could not complete this file action. Try another destination or app.</string>
+    <string name="DownloadQuickSaved">A copy has been saved to the selected location.</string>
+</resources>

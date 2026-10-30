@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">चुने हुए शब्द ब्लॉक करें</string>
+    <string name="MangoKeywordSelectHint">वाक्यांश चुनने के लिए टेक्स्ट को देर तक दबाएँ, फिर ब्लॉक किया जाने वाला कीवर्ड जोड़ें पर टैप करें। अधिकतम 5 चुन सकते हैं; हटाने के लिए चुने हुए वाक्यांश पर टैप करें। पुष्टि करने पर कीवर्ड फ़िल्टर चालू हो जाएगा।</string>
+    <string name="MangoKeywordSelectedCount">चुने हुए कीवर्ड (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">चुने हुए कीवर्ड ब्लॉक करें</string>
+    <string name="MangoKeywordBlocked">कीवर्ड जोड़ दिए गए और फ़िल्टर चालू कर दिया गया</string>
+    <string name="MangoBroadcastTitle">निजी चैट में सामूहिक संदेश</string>
+    <string name="MangoBroadcastInfo">इस खाते की मौजूदा निजी बातचीत में एक ही संदेश भेजें। पुष्टि के बाद हर 3 सेकंड में एक संदेश चुपचाप बैकग्राउंड में भेजने के लिए प्रस्तुत होगा। समूह, चैनल, बॉट, हटाए गए या ब्लॉक किए गए उपयोगकर्ता और संदेश प्राप्त करने के लिए शुल्क लेने वाले उपयोगकर्ता शामिल नहीं होंगे।</string>
+    <string name="MangoBroadcastMessage">संदेश</string>
+    <string name="MangoBroadcastLoad">बातचीत लोड करें और समीक्षा करें</string>
+    <string name="MangoBroadcastConfirm">%1$d उपयोगकर्ताओं को भेजें? हर 3 सेकंड में एक संदेश बैकग्राउंड में भेजने के लिए प्रस्तुत होगा।</string>
+    <string name="MangoBroadcastNoTargets">भेजने योग्य कोई निजी बातचीत नहीं है।</string>
+    <string name="MangoBroadcastLoadFailed">सभी बातचीत लोड नहीं हो सकीं। फिर से कोशिश करें।</string>
+    <string name="MangoBroadcastProgress">प्रस्तुत %1$d / %2$d; छोड़े गए %3$d</string>
+    <string name="MangoBroadcastWaiting">कनेक्शन की प्रतीक्षा है</string>
+    <string name="MangoBroadcastPaused">रुका हुआ है। बाकी प्राप्तकर्ताओं के लिए जारी रखने की पुष्टि करें।</string>
+    <string name="MangoBroadcastCompleted">पूरा हुआ। डिलीवरी की स्थिति हर चैट में देखें।</string>
+    <string name="MangoBroadcastCancelled">रद्द कर दिया गया। पहले से प्रस्तुत संदेश प्रभावित नहीं होंगे।</string>
+    <string name="MangoBroadcastResume">बाकी प्राप्तकर्ताओं के लिए जारी रखें</string>
+    <string name="MangoBroadcastFailed">शुरू नहीं हो सका। प्रगति सुरक्षित रखी गई है।</string>
+    <string name="MangoBroadcastReview">भेजने से पहले समीक्षा करें</string>
+    <string name="MangoBroadcastCancelConfirm">बाकी प्राप्तकर्ताओं को भेजना रद्द करें?</string>
+</resources>

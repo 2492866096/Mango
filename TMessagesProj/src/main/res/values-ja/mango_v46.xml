@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">選択した語句をブロック</string>
+    <string name="MangoKeywordSelectHint">本文を長押しして語句を選び、「ブロックするキーワードを追加」をタップしてください。最大5件まで選べます。選択済みの語句をタップすると削除できます。確定するとキーワードフィルターが有効になります。</string>
+    <string name="MangoKeywordSelectedCount">選択済みキーワード（%1$d/%2$d）</string>
+    <string name="MangoKeywordBlockSelected">選択したキーワードをブロック</string>
+    <string name="MangoKeywordBlocked">キーワードを追加し、フィルターを有効にしました</string>
+    <string name="MangoBroadcastTitle">個人チャットへ一斉送信</string>
+    <string name="MangoBroadcastInfo">このアカウントの既存の個人チャットに同じメッセージを送信します。確認後、3秒ごとに1件ずつバックグラウンドで通知せずに送信処理します。グループ、チャンネル、ボット、削除済み・ブロック済みのユーザー、メッセージの送信に料金が必要なユーザーは対象外です。</string>
+    <string name="MangoBroadcastMessage">メッセージ内容</string>
+    <string name="MangoBroadcastLoad">チャットを読み込んで確認</string>
+    <string name="MangoBroadcastConfirm">%1$d人のユーザーに送信しますか？バックグラウンドで3秒ごとに1件ずつ送信処理します。</string>
+    <string name="MangoBroadcastNoTargets">送信対象の個人チャットがありません。</string>
+    <string name="MangoBroadcastLoadFailed">すべてのチャットを読み込めませんでした。もう一度お試しください。</string>
+    <string name="MangoBroadcastProgress">送信処理済み %1$d / %2$d、スキップ %3$d</string>
+    <string name="MangoBroadcastWaiting">接続を待機中</string>
+    <string name="MangoBroadcastPaused">一時停止中です。確認すると残りの宛先への送信を再開できます。</string>
+    <string name="MangoBroadcastCompleted">完了しました。配信状況は各チャットで確認してください。</string>
+    <string name="MangoBroadcastCancelled">キャンセルしました。送信処理済みのメッセージには影響しません。</string>
+    <string name="MangoBroadcastResume">残りの宛先への送信を再開</string>
+    <string name="MangoBroadcastFailed">開始できませんでした。進捗は保存されています。</string>
+    <string name="MangoBroadcastReview">送信前の確認</string>
+    <string name="MangoBroadcastCancelConfirm">残りの宛先への送信をキャンセルしますか？</string>
+</resources>

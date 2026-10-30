@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ExtensionToolsHeader">Chat tools</string>
+    <string name="ExtensionPersonalWallpapers">My wallpapers</string>
+    <string name="ExtensionDailyMessages">Daily scheduled messages</string>
+    <string name="ExtensionQuickForwardAccount">Choose the sending account before quick forwarding</string>
+    <string name="ExtensionQuickForwardAccountInfo">When enabled, long-press the message action, choose an account first, then choose a recipient from that account.</string>
+    <string name="QuickForwardUnsupported">This message could not be forwarded to the selected account. The media may need to be downloaded first.</string>
+    <string name="ExtensionPresence">Online status and typing</string>
+    <string name="ExtensionMessageActions">Message menu and double tap</string>
+</resources>

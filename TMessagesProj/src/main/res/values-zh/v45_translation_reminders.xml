@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoSendTranslateTitle">发送前翻译</string>
+    <string name="MangoSendTranslateTo">翻译成%1$s并发送</string>
+    <string name="MangoSendTranslateChoose">选择目标语言</string>
+    <string name="MangoSendTranslateWorking">正在翻译…</string>
+    <string name="MangoSendTranslateLanguageSaved">发送翻译目标语言已设为：%1$s</string>
+    <string name="MangoSendTranslateFailed">翻译失败，原文草稿已保留</string>
+    <string name="MangoSendTranslateDraftChanged">草稿已更改，译文没有发送</string>
+    <string name="MangoMessageReminderMenu">消息稍后提醒</string>
+    <string name="MangoMessageReminderOneHour">一小时后提醒</string>
+    <string name="MangoMessageReminderTomorrow">明天 9:00 提醒</string>
+    <string name="MangoMessageReminderCustomTime">自定义日期和时间</string>
+    <string name="MangoMessageReminderEditTime">修改提醒时间</string>
+    <string name="MangoMessageReminderCurrentTime">当前提醒时间：%1$s</string>
+    <string name="MangoMessageReminderChooseDate">选择日期</string>
+    <string name="MangoMessageReminderChooseTime">选择提醒时间</string>
+    <string name="MangoMessageReminderFutureTime">请选择有效的未来日期和时间</string>
+    <string name="MangoMessageReminderSavedAt">已设置在 %1$s 提醒</string>
+    <string name="MangoMessageReminderCancel">取消提醒</string>
+    <string name="MangoMessageReminderSaved">消息提醒已设置</string>
+    <string name="MangoMessageReminderRemoved">消息提醒已取消</string>
+    <string name="MangoMessageReminderFailed">设置提醒失败</string>
+    <string name="MangoMessageReminderTitle">消息提醒</string>
+    <string name="MangoMessageReminderOpenMessage">点击跳转到原消息</string>
+</resources>

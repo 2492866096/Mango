@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoPerformanceTitle">芒果性能监控</string>
+    <string name="MangoPerformanceMemory">客户端内存</string>
+    <string name="MangoPerformanceBattery">设备电池状态</string>
+    <string name="MangoPerformanceBatteryLevel">电量</string>
+    <string name="MangoPerformanceBatteryCurrent">电池电流</string>
+    <string name="MangoPerformanceBatteryTemperature">电池温度</string>
+    <string name="MangoPerformanceCharging">充电状态</string>
+    <string name="MangoPerformanceChargingNow">正在充电</string>
+    <string name="MangoPerformanceNotCharging">未充电</string>
+    <string name="MangoPerformanceFullyCharged">已充满</string>
+    <string name="MangoPerformanceCache">客户端缓存</string>
+    <string name="MangoPerformanceCacheGrowth">打开页面以来的缓存变化</string>
+    <string name="MangoPerformanceBackgroundTasks">后台任务</string>
+    <string name="MangoPerformanceBackgroundProcesses">后台进程</string>
+    <string name="MangoPerformancePendingSends">待发送消息</string>
+    <string name="MangoPerformanceDownloads">正在下载</string>
+    <string name="MangoPerformanceAppState">客户端状态</string>
+    <string name="MangoPerformanceForeground">前台</string>
+    <string name="MangoPerformanceBackground">后台</string>
+    <string name="MangoPerformanceNoData">暂不可用</string>
+    <string name="MangoPerformanceUpdated">更新于 %1$s</string>
+    <string name="MangoPerformanceBatteryDisclaimer">电池数据由 Android 提供，反映设备状态，不代表本客户端的精确耗电量。</string>
+    <string name="MangoPerformanceRefresh">刷新</string>
+    <string name="MangoDownloadHudTitle">下载速度</string>
+    <string name="MangoDownloadHudEnabled">显示下载速度悬浮窗</string>
+    <string name="MangoDownloadHudSpeed">%1$s/秒 · %2$d 个任务</string>
+    <string name="MangoDownloadHudIdle">当前没有下载任务</string>
+    <string name="MangoPerformanceSummary">查看内存、电池、缓存和后台任务</string>
+    <string name="MangoDownloadSpeedHudTitle">显示下载速度悬浮窗</string>
+</resources>

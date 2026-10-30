@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoHistoryCalendar">Find by date</string>
+    <string name="MangoHistoryCalendarHint">Choose a day to find nearby messages</string>
+</resources>

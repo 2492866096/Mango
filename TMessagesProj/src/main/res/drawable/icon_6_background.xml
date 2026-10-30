@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Extend the supplied image texture; do not add a solid black outer frame. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@mipmap/icon_6_background_texture"
+    android:gravity="fill"
+    android:filter="true" />

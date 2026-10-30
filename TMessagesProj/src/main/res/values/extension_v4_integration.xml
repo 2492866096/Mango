@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="V4MessageEcho">Repeat message</string>
+    <string name="V4EchoAdd">Add automatic repeat chat</string>
+    <string name="V4EchoInfo">Choose a conversation to repeat new incoming messages under your name. Runs only while the app is in the foreground, the screen is on and the account is connected. At most one message every 3 seconds per chat. Tap a selected chat to stop. You can also long press an incoming message and choose Repeat message. Expiring, protected and paid content is excluded.</string>
+    <string name="V4EchoQueued">Repeat added to the send queue</string>
+    <string name="V4EchoUnavailable">Cannot repeat this message right now</string>
+    <string name="V4RecalledSave">Save recalled messages locally</string>
+    <string name="V4RecalledArchive">Saved recalled messages</string>
+    <string name="V4RecalledInfo">When enabled, saves messages already cached on this device when a recall arrives. Stored separately for each account. Reopening a chat restores saved messages while anti-recall is enabled. Turning saving off stops new copies but keeps the archive. Expiring and secret-chat messages are excluded. The archive shows the latest 2,000 messages.</string>
+    <string name="V4RecalledClearConfirm">Delete all recalled message copies for this account?</string>
+    <string name="V4BatchLeaveEntry">Leave multiple groups or channels</string>
+    <string name="V4DuplicateEntry">Find and clean duplicate files</string>
+    <string name="V4MemorialEntry">Message memorial</string>
+    <string name="V4StatisticsEntry">Interaction frequency</string>
+    <string name="V4ScamEntry">Scam keyword hints</string>
+    <string name="V4CaptureMemorial">Save read-only memorial</string>
+</resources>

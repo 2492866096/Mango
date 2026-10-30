@@ -1,0 +1,14 @@
+<resources>
+    <string name="MangoConfirmSendTitle">确认发送消息</string>
+    <string name="MangoConfirmVoiceTitle">确认发送语音录音</string>
+    <string name="MangoConfirmBotTitle">确认发送机器人指令</string>
+    <string name="MangoConfirmSendRecipient">发送给 %1$s？</string>
+    <string name="MangoSendPhotoAsSticker">图片作为贴纸发送</string>
+    <string name="MangoStickerConversionFailed">图片转换贴纸失败，已保留所选图片。</string>
+    <string name="MangoLargeFileTitle">大文件发送提醒</string>
+    <string name="MangoLargeFileInfo">文件大小：%1$s\n预计上传：约 %2$s（按 1 MiB/秒估算），实际时间取决于网络。\n压缩将生成 ZIP 文件；图片和视频可能无法明显缩小。</string>
+    <string name="MangoSendOriginal">发送原文件</string>
+    <string name="MangoCompressAndSend">压缩后发送</string>
+    <string name="MangoCompressionFailed">压缩失败，未发送原文件。</string>
+    <string name="MangoPreparingFile">正在处理文件…</string>
+</resources>

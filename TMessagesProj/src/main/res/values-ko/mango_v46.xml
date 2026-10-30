@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">선택한 단어 차단</string>
+    <string name="MangoKeywordSelectHint">본문을 길게 눌러 문구를 선택한 후 차단 키워드 추가를 누르세요. 최대 5개까지 선택할 수 있으며, 선택한 문구를 누르면 제거됩니다. 확인하면 키워드 필터가 켜집니다.</string>
+    <string name="MangoKeywordSelectedCount">선택한 키워드 (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">선택한 키워드 차단</string>
+    <string name="MangoKeywordBlocked">키워드를 추가하고 필터를 켰습니다</string>
+    <string name="MangoBroadcastTitle">개인 대화에 일괄 전송</string>
+    <string name="MangoBroadcastInfo">이 계정의 기존 개인 대화에 같은 메시지를 보냅니다. 확인 후 3초마다 한 건씩 백그라운드에서 조용히 전송을 요청합니다. 그룹, 채널, 봇, 삭제되거나 차단된 사용자, 메시지를 보내려면 요금을 지불해야 하는 사용자는 제외됩니다.</string>
+    <string name="MangoBroadcastMessage">메시지 내용</string>
+    <string name="MangoBroadcastLoad">대화를 불러오고 확인</string>
+    <string name="MangoBroadcastConfirm">%1$d명에게 보낼까요? 백그라운드에서 3초마다 한 건씩 전송을 요청합니다.</string>
+    <string name="MangoBroadcastNoTargets">전송할 수 있는 개인 대화가 없습니다.</string>
+    <string name="MangoBroadcastLoadFailed">모든 대화를 불러오지 못했습니다. 다시 시도하세요.</string>
+    <string name="MangoBroadcastProgress">전송 요청 %1$d / %2$d, 건너뜀 %3$d</string>
+    <string name="MangoBroadcastWaiting">연결 대기 중</string>
+    <string name="MangoBroadcastPaused">일시 중지되었습니다. 확인하면 나머지 수신자에게 계속 보낼 수 있습니다.</string>
+    <string name="MangoBroadcastCompleted">완료되었습니다. 전송 결과는 각 대화에서 확인하세요.</string>
+    <string name="MangoBroadcastCancelled">취소되었습니다. 이미 전송을 요청한 메시지는 영향을 받지 않습니다.</string>
+    <string name="MangoBroadcastResume">나머지 수신자에게 계속 보내기</string>
+    <string name="MangoBroadcastFailed">시작하지 못했습니다. 진행 상태는 저장되었습니다.</string>
+    <string name="MangoBroadcastReview">보내기 전 확인</string>
+    <string name="MangoBroadcastCancelConfirm">나머지 수신자에게 보내기를 취소할까요?</string>
+</resources>

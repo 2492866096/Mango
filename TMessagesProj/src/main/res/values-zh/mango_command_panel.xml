@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoCommandPanelSearchHint">搜索命令、设置或操作…</string>
+    <string name="MangoCommandPanelCommonActions">常用操作</string>
+    <string name="MangoCommandPanelProxySummary">连接设置</string>
+    <string name="MangoCommandPanelAccountSummary">账号管理</string>
+    <string name="MangoCommandPanelPrivacySummary">管理隐私选项和权限</string>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoAppIconGalaxy">星空</string>
+    <string name="MangoAppIconPink">粉色</string>
+    <string name="MangoAppIconGold">黑金</string>
+    <string name="MangoAppIconMoon">月夜</string>
+    <string name="MangoAppIconSpeed">极速</string>
+    <string name="MangoAppIconNeon">霓虹</string>
+</resources>

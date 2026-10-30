@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoUnifiedInbox">Unified inbox</string>
+    <string name="MangoUnifiedTab">Inbox</string>
+    <string name="MangoUnifiedBottomTab">Show unified inbox tab</string>
+    <string name="MangoUnifiedUnread">Unread only</string>
+    <string name="MangoUnifiedInfo">Latest messages from chats across all signed-in accounts, ordered by time. Tap a chat to switch to its account and open it.</string>
+    <string name="MangoUnifiedEmpty">No matching chats. Use Load more to fetch older chats.</string>
+    <string name="MangoUnifiedAccount">Account: %1$s</string>
+    <string name="MangoUnifiedUnreadCount">%1$d unread</string>
+    <string name="MangoUnifiedLoadMore">Load more chats from all accounts</string>
+    <string name="MangoUnifiedOpenChat">Open chat</string>
+    <string name="MangoRestrictionTitleSetting">Restriction dialog title</string>
+</resources>

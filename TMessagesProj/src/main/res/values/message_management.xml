@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MessageManagementTitle">Message center</string>
+    <string name="MessageManagementTab">Tags</string>
+    <string name="MessageManagementBottomTab">Show message center in bottom bar</string>
+    <string name="MessageManagementInfo">Use the message menu, or long-press a message and tap the tag icon. Tags are saved only on this device for the current account. Tap a message to open it; long-press to change its tags.</string>
+    <string name="MessageManagementEmpty">No tagged messages in this category.</string>
+    <string name="MessageManagementAll">All tags</string>
+    <string name="MessageManagementFilter">Filter by tag</string>
+    <string name="MessageManagementUnavailable">This message is unavailable or has been deleted. You can still remove its local tags.</string>
+    <string name="MessageManagementNetworkError">Unable to check this message. Check your connection and try again.</string>
+    <string name="MessageManagementLoading">Opening message…</string>
+    <string name="MessageTags">Message tags</string>
+    <string name="MessageTagsClear">Clear tags</string>
+    <string name="MessageTagsUpdated">Message tags updated</string>
+    <string name="MessageTagImportant">Important</string>
+    <string name="MessageTagTodo">To do</string>
+    <string name="MessageTagReply">To reply</string>
+    <string name="MessageTagFavorite">Favorite</string>
+    <string name="MessageTagPrivateMessage">Private message</string>
+    <string name="MessageActionSettings">Message actions</string>
+    <string name="MessageDoubleTapAction">Double-tap action</string>
+    <string name="MessageDoubleTapReaction">Quick reaction</string>
+    <string name="MessageDoubleTapNone">No action</string>
+    <string name="MessageDoubleTapInfo">Choose a quick reaction, reply, or no action. Quick reaction uses your existing default reaction and follows the chat’s reaction permissions.</string>
+    <string name="MessageMenuOrder">Message menu order</string>
+    <string name="MessageMenuMove">Move to position</string>
+    <string name="MessageMenuReset">Reset order</string>
+    <string name="MessageMenuOrderInfo">Tap an action and choose its position. Copy, Forward, Favorite and To do follow this order wherever they are available. Favorite and To do are private local tags in the message center.</string>
+    <string name="MessageTagsBatchInfo">Only the tags you change here are applied to every selected message. Other tags stay as they are. Clear tags removes all tags from the selection.</string>
+</resources>

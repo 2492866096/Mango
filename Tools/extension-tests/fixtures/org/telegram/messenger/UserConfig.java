@@ -1,0 +1,1 @@
+package org.telegram.messenger; public class UserConfig {public static int selectedAccount; public static int[] getActivatedAccounts(){return new int[]{0};}}

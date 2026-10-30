@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="BuiltinProxyVisibleName">内置 · %1$s</string>
+    <string name="ChannelBatchLeaveTitle">批量退出频道</string>
+    <string name="ChannelBatchLeaveInfo">选择频道或群组，确认后依次退出，包含已归档会话。自己创建的频道或群组需先转让所有权，此处不可选择。</string>
+    <string name="ChannelBatchLeaveScope">显示范围</string>
+    <string name="ChannelBatchLeaveChannels">频道</string>
+    <string name="ChannelBatchLeaveGroups">群组</string>
+    <string name="ChannelBatchLeaveAll">频道和群组</string>
+    <string name="ChannelBatchLeaveRefresh">刷新已加入列表</string>
+    <string name="ChannelBatchLeaveLoadFailed">完整列表加载失败（%1$s），当前展示已加载会话。点击刷新可重试。</string>
+    <string name="ChannelBatchLeaveSelectVisible">全选当前显示</string>
+    <string name="ChannelBatchLeaveDeselectVisible">取消当前全选</string>
+    <string name="ChannelBatchLeaveSelected">退出已选（%1$d）</string>
+    <string name="ChannelBatchLeaveStop">停止后续退出</string>
+    <string name="ChannelBatchLeaveRunningInfo">正在逐项退出，离开页面后可返回查看结果。停止后，已提交的当前请求仍会完成。</string>
+    <string name="ChannelBatchLeaveSummary">已退出：%1$d · 失败：%2$d · 已停止：%3$d</string>
+    <string name="ChannelBatchLeaveRetry">重试失败项目（%1$d）</string>
+    <string name="ChannelBatchLeaveEmpty">没有匹配的已加入会话。</string>
+    <string name="ChannelBatchLeaveDone">已退出</string>
+    <string name="ChannelBatchLeaveFailed">退出失败：%1$s</string>
+    <string name="ChannelBatchLeaveWorking">正在退出…</string>
+    <string name="ChannelBatchLeaveCancelled">已停止</string>
+    <string name="ChannelBatchLeaveQueued">等待退出</string>
+    <string name="ChannelBatchLeaveOwner">创建者 · 请先转让所有权</string>
+    <string name="ChannelBatchLeaveMore">…另有 %1$d 个</string>
+    <string name="ChannelBatchLeaveConfirm">确认退出以下 %1$d 个频道或群组？退出私密会话后，再次加入可能需要新的邀请。</string>
+    <string name="ChannelBatchLeaveConfirmButton">确认退出</string>
+</resources>

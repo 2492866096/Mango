@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">Bloquer les mots sélectionnés</string>
+    <string name="MangoKeywordSelectHint">Appuyez longuement sur le texte pour sélectionner une expression, puis touchez Ajouter un mot-clé bloqué. Vous pouvez en choisir jusqu’à 5 ; touchez une expression sélectionnée pour la retirer. La validation active le filtrage par mots-clés.</string>
+    <string name="MangoKeywordSelectedCount">Mots-clés sélectionnés (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">Bloquer les mots-clés sélectionnés</string>
+    <string name="MangoKeywordBlocked">Mots-clés ajoutés et filtrage activé</string>
+    <string name="MangoBroadcastTitle">Diffusion aux discussions privées</string>
+    <string name="MangoBroadcastInfo">Envoyez le même message aux discussions privées existantes de ce compte. Après confirmation, un message est soumis toutes les 3 secondes, silencieusement en arrière-plan. Les groupes, canaux, bots, utilisateurs supprimés ou bloqués et ceux qui facturent la réception de messages sont exclus.</string>
+    <string name="MangoBroadcastMessage">Message</string>
+    <string name="MangoBroadcastLoad">Charger les discussions et vérifier</string>
+    <string name="MangoBroadcastConfirm">Envoyer à %1$d utilisateurs ? Les messages seront soumis toutes les 3 secondes en arrière-plan.</string>
+    <string name="MangoBroadcastNoTargets">Aucune discussion privée admissible.</string>
+    <string name="MangoBroadcastLoadFailed">Impossible de charger toutes les discussions. Veuillez réessayer.</string>
+    <string name="MangoBroadcastProgress">Soumis : %1$d / %2$d ; ignorés : %3$d</string>
+    <string name="MangoBroadcastWaiting">En attente de connexion</string>
+    <string name="MangoBroadcastPaused">En pause. Confirmez pour reprendre avec les destinataires restants.</string>
+    <string name="MangoBroadcastCompleted">Terminé. Consultez chaque discussion pour connaître l’état de livraison.</string>
+    <string name="MangoBroadcastCancelled">Annulé. Les messages déjà soumis ne sont pas affectés.</string>
+    <string name="MangoBroadcastResume">Reprendre avec les destinataires restants</string>
+    <string name="MangoBroadcastFailed">Impossible de démarrer. La progression a été conservée.</string>
+    <string name="MangoBroadcastReview">Vérifier avant l’envoi</string>
+    <string name="MangoBroadcastCancelConfirm">Annuler l’envoi aux destinataires restants ?</string>
+</resources>

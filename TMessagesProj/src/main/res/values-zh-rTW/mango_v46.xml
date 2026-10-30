@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">選詞封鎖</string>
+    <string name="MangoKeywordSelectHint">長按內文選取詞句，點選「新增封鎖詞」，最多5個；點選詞條可移除。提交後自動啟用關鍵字封鎖。</string>
+    <string name="MangoKeywordSelectedCount">已選關鍵字（%1$d/%2$d）</string>
+    <string name="MangoKeywordBlockSelected">封鎖所選關鍵字</string>
+    <string name="MangoKeywordBlocked">已新增關鍵字並啟用封鎖</string>
+    <string name="MangoBroadcastTitle">私人聊天批次傳送</string>
+    <string name="MangoBroadcastInfo">向目前帳號曾聊過天的使用者傳送同一則訊息。確認後每3秒提交一則，在背景靜默執行；不包含群組、頻道、機器人、已刪除／已封鎖或傳訊需付費的使用者。</string>
+    <string name="MangoBroadcastMessage">批次傳送內容</string>
+    <string name="MangoBroadcastLoad">載入對話並確認</string>
+    <string name="MangoBroadcastConfirm">確認向 %1$d 位使用者傳送？每則間隔3秒，在背景執行。</string>
+    <string name="MangoBroadcastNoTargets">沒有可傳送的私人聊天使用者。</string>
+    <string name="MangoBroadcastLoadFailed">對話載入未完成，請重試。</string>
+    <string name="MangoBroadcastProgress">已提交 %1$d / %2$d，已略過 %3$d</string>
+    <string name="MangoBroadcastWaiting">等待網路連線</string>
+    <string name="MangoBroadcastPaused">工作已暫停，確認後可繼續傳送給剩餘使用者。</string>
+    <string name="MangoBroadcastCompleted">工作已完成，傳送結果請查看各別對話。</string>
+    <string name="MangoBroadcastCancelled">工作已取消，已提交的訊息不受影響。</string>
+    <string name="MangoBroadcastResume">繼續剩餘工作</string>
+    <string name="MangoBroadcastFailed">工作啟動失敗，進度已保留。</string>
+    <string name="MangoBroadcastReview">傳送前確認</string>
+    <string name="MangoBroadcastCancelConfirm">取消剩餘的批次傳送工作？</string>
+</resources>

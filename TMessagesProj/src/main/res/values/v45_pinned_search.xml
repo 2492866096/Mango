@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoPinSearchChannel">Pin in search</string>
+    <string name="MangoUnpinSearchChannel">Unpin from search</string>
+    <string name="MangoPinnedSearchStatus">Pinned</string>
+    <string name="MangoPinnedAndRecentSearch">Pinned and recent searches</string>
+</resources>

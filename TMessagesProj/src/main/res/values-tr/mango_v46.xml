@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">Seçili sözcükleri engelle</string>
+    <string name="MangoKeywordSelectHint">Bir ifade seçmek için metne uzun basın, ardından Engellenecek anahtar sözcük ekle düğmesine dokunun. En fazla 5 ifade seçebilirsiniz; kaldırmak için seçili ifadeye dokunun. Onaylamak, anahtar sözcük filtresini etkinleştirir.</string>
+    <string name="MangoKeywordSelectedCount">Seçili anahtar sözcükler (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">Seçili anahtar sözcükleri engelle</string>
+    <string name="MangoKeywordBlocked">Anahtar sözcükler eklendi ve filtre etkinleştirildi</string>
+    <string name="MangoBroadcastTitle">Özel sohbetlere toplu gönderim</string>
+    <string name="MangoBroadcastInfo">Bu hesaptaki mevcut özel sohbetlere aynı mesajı gönderin. Onaydan sonra her 3 saniyede bir mesaj arka planda sessizce gönderime sunulur. Gruplar, kanallar, botlar, silinmiş veya engellenmiş kullanıcılar ve mesaj almak için ücret isteyen kullanıcılar dahil edilmez.</string>
+    <string name="MangoBroadcastMessage">Mesaj</string>
+    <string name="MangoBroadcastLoad">Sohbetleri yükle ve incele</string>
+    <string name="MangoBroadcastConfirm">%1$d kullanıcıya gönderilsin mi? Mesajlar arka planda her 3 saniyede bir gönderime sunulacak.</string>
+    <string name="MangoBroadcastNoTargets">Gönderim yapılabilecek özel sohbet yok.</string>
+    <string name="MangoBroadcastLoadFailed">Tüm sohbetler yüklenemedi. Lütfen tekrar deneyin.</string>
+    <string name="MangoBroadcastProgress">Gönderime sunulan: %1$d / %2$d; atlanan: %3$d</string>
+    <string name="MangoBroadcastWaiting">Bağlantı bekleniyor</string>
+    <string name="MangoBroadcastPaused">Duraklatıldı. Kalan alıcılara devam etmek için onaylayın.</string>
+    <string name="MangoBroadcastCompleted">Tamamlandı. Teslim durumunu ilgili sohbetlerden kontrol edin.</string>
+    <string name="MangoBroadcastCancelled">İptal edildi. Daha önce gönderime sunulan mesajlar etkilenmez.</string>
+    <string name="MangoBroadcastResume">Kalan alıcılara devam et</string>
+    <string name="MangoBroadcastFailed">Başlatılamadı. İlerleme korundu.</string>
+    <string name="MangoBroadcastReview">Göndermeden önce incele</string>
+    <string name="MangoBroadcastCancelConfirm">Kalan alıcılara gönderim iptal edilsin mi?</string>
+</resources>

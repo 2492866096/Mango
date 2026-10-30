@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoMediaFilter">媒体快速筛选</string>
+    <string name="MangoFilterPhotos">只看图片</string>
+    <string name="MangoFilterVideos">只看视频</string>
+    <string name="MangoFilterGifs">只看 GIF</string>
+    <string name="MangoFilterVoice">只看语音</string>
+    <string name="MangoFilterFiles">只看文件</string>
+    <string name="MangoFilterLinks">只看链接</string>
+    <string name="MangoDownloadReady">下载完成：%1$s · %2$s · 打开／分享／保存</string>
+</resources>

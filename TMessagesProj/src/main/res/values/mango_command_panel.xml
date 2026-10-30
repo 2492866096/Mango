@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoCommandPanelSearchHint">Search commands, settings or actions…</string>
+    <string name="MangoCommandPanelCommonActions">Common actions</string>
+    <string name="MangoCommandPanelProxySummary">Connection settings</string>
+    <string name="MangoCommandPanelAccountSummary">Account management</string>
+    <string name="MangoCommandPanelPrivacySummary">Manage privacy controls and permissions</string>
+</resources>

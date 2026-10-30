@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoScamUsersEnabled">Enable flagged user and channel alerts</string>
+    <string name="MangoScamUsersInfo">The built-in list is enabled by default. Checks people in private chats, channels themselves, and visible user or channel senders in groups by exact username or permanent ID, including photos and stickers. Each person or channel is shown once per chat visit; returning to the chat allows another alert. The list updates every 2 hours or manually, then checks the current chat again. Failed updates retain the last list.</string>
+    <string name="MangoScamUsersSource">Risk list URL</string>
+    <string name="MangoScamUsersUnconfigured">No list URL configured. User and channel matching is inactive.</string>
+    <string name="MangoScamUsersCount">List entries</string>
+    <string name="MangoScamUsersNoCache">No downloaded list yet.</string>
+    <string name="MangoScamUsersFormat">HTTPS plain text URL. One user ID, username, or channel ID per line, for example:\n7637374698\n@didb431\n@channel_name\n-1001234567890\nchannel:1234567890\n\nUsernames without @ also work. Channel IDs use the -100 prefix or channel:rawID to keep them separate from positive user IDs. The earlier username/ID format also works. An empty file clears the list. Clear the URL to disable this source.</string>
+    <string name="MangoScamUsersRestoreSource">Restore built-in list URL</string>
+    <string name="MangoScamUsersInvalidUrl">Enter a valid HTTPS URL</string>
+    <string name="MangoScamUsersWarningTitle">⚠ This user is on the risk list</string>
+    <string name="MangoScamUsersWarning">User: %1$s\nPermanent ID: %2$s\n\nBe cautious with transactions. Open the profile to block or report.</string>
+    <string name="MangoScamUsersProfile">Open user profile</string>
+    <string name="MangoNotificationRulesTitle">Keyword notification rules</string>
+    <string name="MangoNotifyAll">All messages</string>
+    <string name="MangoNotifyMentions">Mentions only</string>
+    <string name="MangoNotifyKeywords">Keywords only</string>
+    <string name="MangoNotifyEither">Mentions or keywords</string>
+    <string name="MangoNotifyInherit">Use global rule</string>
+    <string name="MangoNotifyGlobal">Global default</string>
+    <string name="MangoNotifyMode">Notify when</string>
+    <string name="MangoNotifyKeywordsEdit">Edit keywords</string>
+    <string name="MangoNotifyInfo">Filters new message notifications without hiding messages. Conversation rules override the global rule. Existing mute settings still apply.</string>
+    <string name="MangoNotifyChatRule">Configure a conversation</string>
+    <string name="MangoNotifyKeywordInfo">One keyword per line. Any matching keyword triggers a notification. Case insensitive, up to 200 keywords.</string>
+</resources>

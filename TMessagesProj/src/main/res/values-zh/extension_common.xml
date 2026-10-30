@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="Save">保存</string>
+    <string name="Cancel">取消</string>
+    <string name="Delete">删除</string>
+    <string name="DeleteAll">全部删除</string>
+    <string name="OK">确定</string>
+    <string name="Loading">正在加载…</string>
+    <string name="NoMessages">暂无消息</string>
+    <string name="Search">搜索</string>
+    <string name="SelectAll">全选</string>
+    <string name="Retry">重试</string>
+    <string name="Done">完成</string>
+    <string name="Close">关闭</string>
+</resources>

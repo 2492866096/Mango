@@ -1,0 +1,1 @@
+package android.app; public class Activity { public static final int MODE_PRIVATE=0; public android.content.SharedPreferences getSharedPreferences(String n,int m){return org.telegram.messenger.MessagesController.getGlobalMainSettings();} }

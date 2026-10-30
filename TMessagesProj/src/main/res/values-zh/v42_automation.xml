@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoScamUsersEnabled">启用诈骗用户与频道提醒</string>
+    <string name="MangoScamUsersInfo">已内置名单来源，默认开启。私聊检测对方，频道检测频道本身，群聊检测可见消息的用户或频道发言者，按用户名或永久 ID 精确匹配；照片、贴纸同样支持。每次进入聊天，同一用户或频道只提醒一次，重新进入可再次提醒。名单每 2 小时检查更新，也可手动更新；更新后自动检查当前聊天，下载失败保留上次名单。</string>
+    <string name="MangoScamUsersSource">设置名单直链</string>
+    <string name="MangoScamUsersUnconfigured">尚未设置名单直链，暂不检测诈骗用户与频道。</string>
+    <string name="MangoScamUsersCount">名单条目</string>
+    <string name="MangoScamUsersNoCache">暂无已下载名单。</string>
+    <string name="MangoScamUsersFormat">填写 HTTPS 文本直链，一行一个用户 ID、用户名或频道 ID，例如：\n7637374698\n@didb431\n@channel_name\n-1001234567890\nchannel:1234567890\n\n用户名可以不带 @。频道数字 ID 使用 -100 前缀或 channel:原始ID，与用户正数 ID 区分；也兼容“用户名/ID”格式。空白文件用于清空名单，清空直链可停用此来源。</string>
+    <string name="MangoScamUsersRestoreSource">恢复内置名单直链</string>
+    <string name="MangoScamUsersInvalidUrl">请填写有效的 HTTPS 直链</string>
+    <string name="MangoScamUsersWarningTitle">⚠ 检测到该用户存在诈骗风险</string>
+    <string name="MangoScamUsersWarning">用户：%1$s\n永久 ID：%2$s\n\n建议谨慎交易，可打开资料选择拉黑或举报。</string>
+    <string name="MangoScamUsersProfile">打开用户资料</string>
+    <string name="MangoNotificationRulesTitle">关键词独立通知规则</string>
+    <string name="MangoNotifyAll">所有消息</string>
+    <string name="MangoNotifyMentions">只提醒提及我</string>
+    <string name="MangoNotifyKeywords">只提醒指定关键词</string>
+    <string name="MangoNotifyEither">提及我或指定关键词</string>
+    <string name="MangoNotifyInherit">跟随全局规则</string>
+    <string name="MangoNotifyGlobal">全局默认</string>
+    <string name="MangoNotifyMode">提醒条件</string>
+    <string name="MangoNotifyKeywordsEdit">编辑关键词</string>
+    <string name="MangoNotifyInfo">规则仅筛选新消息通知，不影响聊天消息。会话单独设置优先于全局规则；原有静音设置仍有效。</string>
+    <string name="MangoNotifyChatRule">设置指定会话规则</string>
+    <string name="MangoNotifyKeywordInfo">每行一个关键词，包含任一词即可提醒。忽略英文大小写；支持最多 200 个关键词。</string>
+</resources>

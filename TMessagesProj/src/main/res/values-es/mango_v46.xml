@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">Bloquear palabras seleccionadas</string>
+    <string name="MangoKeywordSelectHint">Mantén pulsado el texto para seleccionar una frase y toca Añadir palabra clave bloqueada. Puedes elegir hasta 5; toca una frase seleccionada para quitarla. Al confirmar, se activa el filtro de palabras clave.</string>
+    <string name="MangoKeywordSelectedCount">Palabras clave seleccionadas (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">Bloquear palabras clave seleccionadas</string>
+    <string name="MangoKeywordBlocked">Palabras clave añadidas y filtro activado</string>
+    <string name="MangoBroadcastTitle">Difusión a chats privados</string>
+    <string name="MangoBroadcastInfo">Envía el mismo mensaje a las conversaciones privadas existentes de esta cuenta. Tras confirmar, se enviará un mensaje cada 3 segundos de forma silenciosa en segundo plano. Se excluyen grupos, canales, bots, usuarios eliminados o bloqueados y quienes cobran por recibir mensajes.</string>
+    <string name="MangoBroadcastMessage">Mensaje</string>
+    <string name="MangoBroadcastLoad">Cargar conversaciones y revisar</string>
+    <string name="MangoBroadcastConfirm">¿Enviar a %1$d usuarios? Los mensajes se enviarán cada 3 segundos en segundo plano.</string>
+    <string name="MangoBroadcastNoTargets">No hay conversaciones privadas aptas para el envío.</string>
+    <string name="MangoBroadcastLoadFailed">No se pudieron cargar todas las conversaciones. Inténtalo de nuevo.</string>
+    <string name="MangoBroadcastProgress">Enviados %1$d / %2$d; omitidos %3$d</string>
+    <string name="MangoBroadcastWaiting">Esperando conexión</string>
+    <string name="MangoBroadcastPaused">En pausa. Confirma para continuar con los destinatarios restantes.</string>
+    <string name="MangoBroadcastCompleted">Finalizado. Consulta el estado de entrega en cada chat.</string>
+    <string name="MangoBroadcastCancelled">Cancelado. Los mensajes ya enviados no se ven afectados.</string>
+    <string name="MangoBroadcastResume">Continuar con los destinatarios restantes</string>
+    <string name="MangoBroadcastFailed">No se pudo iniciar. Se ha guardado el progreso.</string>
+    <string name="MangoBroadcastReview">Revisar antes de enviar</string>
+    <string name="MangoBroadcastCancelConfirm">¿Cancelar el envío a los destinatarios restantes?</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoUnifiedInbox">跨账号统一消息</string>
+    <string name="MangoUnifiedTab">汇总</string>
+    <string name="MangoUnifiedBottomTab">显示跨账号汇总标签</string>
+    <string name="MangoUnifiedUnread">仅看未读</string>
+    <string name="MangoUnifiedInfo">按时间汇总所有已登录账号的聊天最新消息。点击后会切换到所属账号并打开对应会话。</string>
+    <string name="MangoUnifiedEmpty">暂无符合条件的会话，可点击加载更多获取更早的会话。</string>
+    <string name="MangoUnifiedAccount">账号：%1$s</string>
+    <string name="MangoUnifiedUnreadCount">%1$d 条未读</string>
+    <string name="MangoUnifiedLoadMore">加载所有账号的更多会话</string>
+    <string name="MangoUnifiedOpenChat">打开会话</string>
+    <string name="MangoRestrictionTitleSetting">限制提示标题</string>
+</resources>

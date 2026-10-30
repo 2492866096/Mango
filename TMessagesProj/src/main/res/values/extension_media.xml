@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoHideStickerTime">Hide sticker timestamps</string>
+    <string name="MangoHideStickerTimeInfo">Hide the timestamp and delivery status on static, animated and video stickers. Reactions remain visible.</string>
+    <string name="ExtensionAudioAutoPlayNext">Automatically play next audio</string>
+    <string name="ExtensionAudioAutoPlayNextInfo">Continue to the next song, voice message or video message after playback ends. Turn off to stop after the current item; manual playback controls remain available.</string>
+    <string name="BuiltinProxyRestoredOffline">The saved built-in proxies have been restored and enabled. The subscription could not be downloaded; try updating again when the network is available.</string>
+    <string name="CustomWallpaperImport">Add your own built-in wallpaper</string>
+    <string name="CustomWallpaperImportInfo">Import an image into this device’s wallpaper library. It stays available alongside the built-in wallpapers, even after you change backgrounds. Long press an imported wallpaper to remove it.</string>
+    <string name="CustomWallpaperImportFailed">Could not save this wallpaper. Please check available storage and choose another image.</string>
+    <string name="CustomWallpaperDeleteInfo">Remove this image from your wallpaper library? Your current chat background will be kept.</string>
+</resources>

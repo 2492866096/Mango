@@ -1,0 +1,5 @@
+<resources>
+    <string name="MangoScamChannelWarningTitle">⚠ This channel is on the risk list</string>
+    <string name="MangoScamChannelWarning">Channel: %1$s\nID: %2$s\n\nReview the channel carefully before interacting.</string>
+    <string name="MangoScamChannelProfile">Open channel</string>
+</resources>

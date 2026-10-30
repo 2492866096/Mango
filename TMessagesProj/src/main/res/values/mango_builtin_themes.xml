@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoBuiltinThemes">Built-in themes</string>
+    <string name="MangoBuiltinThemeOption">Theme %1$d</string>
+    <string name="MangoBuiltinThemesInfo">Choose one of the three themes to preview and apply it in Telegram. An Internet connection is needed to import a theme. Applied themes remain available in the theme list.</string>
+    <string name="MangoBuiltinThemesOffline">Connect to Telegram to preview and import this theme. Previously applied themes can still be selected from the theme list while offline.</string>
+</resources>

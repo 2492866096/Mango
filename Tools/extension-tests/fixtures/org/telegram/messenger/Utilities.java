@@ -1,0 +1,1 @@
+package org.telegram.messenger; import java.util.*; public class Utilities { public interface Callback<T>{void run(T v);} public static class Queue {public ArrayList<Runnable> tasks=new ArrayList<>(); public void postRunnable(Runnable r){tasks.add(r);} public void drain(){while(!tasks.isEmpty()) tasks.remove(0).run();}} public static Queue globalQueue=new Queue();}

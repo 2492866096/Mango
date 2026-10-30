@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">Block selected words</string>
+    <string name="MangoKeywordSelectHint">Long-press to select a phrase, then tap Add blocked keyword. Choose up to 5; tap a selected phrase to remove it. Submitting enables keyword filtering.</string>
+    <string name="MangoKeywordSelectedCount">Selected keywords (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">Block selected keywords</string>
+    <string name="MangoKeywordBlocked">Keywords added and filtering enabled</string>
+    <string name="MangoBroadcastTitle">Broadcast to private chats</string>
+    <string name="MangoBroadcastInfo">Send the same message to existing private conversations on this account. After confirmation, submit one message every 3 seconds silently in the background. Groups, channels, bots, deleted, blocked and paid-message users are excluded.</string>
+    <string name="MangoBroadcastMessage">Message</string>
+    <string name="MangoBroadcastLoad">Load conversations and review</string>
+    <string name="MangoBroadcastConfirm">Send to %1$d users? Messages will be submitted every 3 seconds in the background.</string>
+    <string name="MangoBroadcastNoTargets">No eligible private conversations.</string>
+    <string name="MangoBroadcastLoadFailed">Could not load all conversations. Please try again.</string>
+    <string name="MangoBroadcastProgress">Submitted %1$d / %2$d; skipped %3$d</string>
+    <string name="MangoBroadcastWaiting">Waiting for connection</string>
+    <string name="MangoBroadcastPaused">Paused. Confirm to resume the remaining recipients.</string>
+    <string name="MangoBroadcastCompleted">Finished. Check individual chats for delivery status.</string>
+    <string name="MangoBroadcastCancelled">Cancelled. Messages already submitted are not affected.</string>
+    <string name="MangoBroadcastResume">Resume remaining recipients</string>
+    <string name="MangoBroadcastFailed">Could not start. Progress has been retained.</string>
+    <string name="MangoBroadcastReview">Review before sending</string>
+    <string name="MangoBroadcastCancelConfirm">Cancel the remaining recipients?</string>
+</resources>

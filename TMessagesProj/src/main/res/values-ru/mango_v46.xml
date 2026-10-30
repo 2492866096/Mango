@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoKeywordSelect">Блокировать выбранные слова</string>
+    <string name="MangoKeywordSelectHint">Нажмите и удерживайте текст, чтобы выбрать фразу, затем нажмите «Добавить блокируемое слово». Можно выбрать до 5 фраз; нажмите на выбранную фразу, чтобы убрать её. После подтверждения включится фильтр по ключевым словам.</string>
+    <string name="MangoKeywordSelectedCount">Выбранные ключевые слова (%1$d/%2$d)</string>
+    <string name="MangoKeywordBlockSelected">Блокировать выбранные ключевые слова</string>
+    <string name="MangoKeywordBlocked">Ключевые слова добавлены, фильтрация включена</string>
+    <string name="MangoBroadcastTitle">Рассылка в личные чаты</string>
+    <string name="MangoBroadcastInfo">Отправьте одинаковое сообщение в существующие личные чаты этого аккаунта. После подтверждения сообщения будут передаваться на отправку каждые 3 секунды без уведомлений в фоновом режиме. Группы, каналы, боты, удалённые и заблокированные пользователи, а также пользователи с платными сообщениями исключены.</string>
+    <string name="MangoBroadcastMessage">Текст сообщения</string>
+    <string name="MangoBroadcastLoad">Загрузить чаты и проверить</string>
+    <string name="MangoBroadcastConfirm">Отправить %1$d пользователям? Сообщения будут передаваться на отправку каждые 3 секунды в фоновом режиме.</string>
+    <string name="MangoBroadcastNoTargets">Нет подходящих личных чатов.</string>
+    <string name="MangoBroadcastLoadFailed">Не удалось загрузить все чаты. Попробуйте ещё раз.</string>
+    <string name="MangoBroadcastProgress">Передано на отправку: %1$d / %2$d; пропущено: %3$d</string>
+    <string name="MangoBroadcastWaiting">Ожидание подключения</string>
+    <string name="MangoBroadcastPaused">Приостановлено. Подтвердите продолжение для оставшихся получателей.</string>
+    <string name="MangoBroadcastCompleted">Завершено. Статус доставки можно проверить в каждом чате.</string>
+    <string name="MangoBroadcastCancelled">Отменено. Сообщения, уже переданные на отправку, не затронуты.</string>
+    <string name="MangoBroadcastResume">Продолжить для оставшихся получателей</string>
+    <string name="MangoBroadcastFailed">Не удалось запустить. Прогресс сохранён.</string>
+    <string name="MangoBroadcastReview">Проверить перед отправкой</string>
+    <string name="MangoBroadcastCancelConfirm">Отменить отправку оставшимся получателям?</string>
+</resources>

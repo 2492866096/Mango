@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="V4MessageEcho">消息跟发</string>
+    <string name="V4EchoAdd">添加自动跟发会话</string>
+    <string name="V4EchoInfo">选择会话后，以自己的身份跟发新收到的消息。自动跟发需要应用在前台、屏幕点亮且账号在线，每个会话最多每 3 秒跟发一条。点击已选会话可关闭。也可以长按消息手动跟发。限时、受保护和付费内容不参与跟发。</string>
+    <string name="V4EchoQueued">跟发已加入发送队列</string>
+    <string name="V4EchoUnavailable">当前无法跟发此消息</string>
+    <string name="V4RecalledSave">本地保存撤回消息</string>
+    <string name="V4RecalledArchive">本地撤回消息</string>
+    <string name="V4RecalledInfo">开启后，在收到撤回时保存本机已缓存的消息内容，按账号独立存储。开启拦截撤回时，重新进入聊天可恢复显示。关闭此开关会停止新增保存，已有副本可在本地撤回消息中清空。密聊和限时消息不保存，列表展示最近 2000 条。</string>
+    <string name="V4RecalledClearConfirm">清空此账号保存的全部撤回消息副本？</string>
+    <string name="V4BatchLeaveEntry">批量退出群组与频道</string>
+    <string name="V4DuplicateEntry">重复文件检测与清理</string>
+    <string name="V4MemorialEntry">消息纪念堂</string>
+    <string name="V4StatisticsEntry">互动频率统计</string>
+    <string name="V4ScamEntry">反诈骗关键词提示</string>
+    <string name="V4CaptureMemorial">保存只读纪念快照</string>
+</resources>

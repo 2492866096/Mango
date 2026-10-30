@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DownloadRetentionTitle">文件保留期限</string>
+    <string name="DownloadRetentionInfo">下载文件的本地副本可保留一天、一周或永久。到期后先提示，确认后才清理；不会删除云端消息或你另存的副本。</string>
+    <string name="DownloadRetentionDefault">全部已下载及今后下载的文件</string>
+    <string name="DownloadRetentionOneDay">保留一天</string>
+    <string name="DownloadRetentionOneWeek">保留一周</string>
+    <string name="DownloadRetentionForever">永久保留</string>
+    <string name="DownloadRetentionClean">查看并清理到期文件</string>
+    <string name="DownloadRetentionNothingExpired">暂无到期文件</string>
+    <string name="DownloadRetentionExpiredCount">%1$d 个文件已到期</string>
+    <string name="DownloadRetentionListInfo">点击文件可打开、分享、另存或设置单个文件的保留期限。单个设置从设置时开始计时；全部设置从各文件下载时开始计时。重复文件清理仍可单独使用。</string>
+    <string name="DownloadRetentionExpires">%1$s 到期</string>
+    <string name="DownloadRetentionExpired">已到期 · 等待确认清理</string>
+    <string name="DownloadRetentionEmpty">暂无可管理的已下载文件。</string>
+    <string name="DownloadRetentionConfirm">%1$d 个下载文件（%2$s）已到期。确认清理后只删除本地副本，仍可回到原消息重新下载。</string>
+    <string name="DownloadRetentionDone">已清理 %1$d 个文件（%2$s），跳过 %3$d 个正在使用或已变化的文件。</string>
+    <string name="DownloadRetentionUpdated">已更新文件保留期限</string>
+    <string name="DownloadRetentionExpiredTitle">下载文件已到期</string>
+    <string name="DownloadRetentionReview">查看文件</string>
+    <string name="DownloadRetentionLater">稍后处理</string>
+    <string name="DownloadQuickOpen">打开</string>
+    <string name="DownloadQuickShare">分享</string>
+    <string name="DownloadQuickSave">保存到指定目录</string>
+    <string name="DownloadQuickActionsMissing">本地文件已不存在，请从原消息重新下载。</string>
+    <string name="DownloadQuickActionsFailed">文件操作未完成，请换个位置或应用重试。</string>
+    <string name="DownloadQuickSaved">已将副本保存到选择的位置。</string>
+</resources>

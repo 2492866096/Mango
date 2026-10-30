@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="BuiltinProxyVisibleName">Built-in · %1$s</string>
+    <string name="ChannelBatchLeaveTitle">Batch leave channels</string>
+    <string name="ChannelBatchLeaveInfo">Select channels or groups, then confirm once to leave. Archived chats are included. Owned chats require ownership transfer first and cannot be selected here.</string>
+    <string name="ChannelBatchLeaveScope">Show</string>
+    <string name="ChannelBatchLeaveChannels">Channels</string>
+    <string name="ChannelBatchLeaveGroups">Groups</string>
+    <string name="ChannelBatchLeaveAll">Channels and groups</string>
+    <string name="ChannelBatchLeaveRefresh">Refresh membership list</string>
+    <string name="ChannelBatchLeaveLoadFailed">The full list could not be loaded (%1$s). Cached entries are shown. Tap refresh to retry.</string>
+    <string name="ChannelBatchLeaveSelectVisible">Select all shown</string>
+    <string name="ChannelBatchLeaveDeselectVisible">Deselect all shown</string>
+    <string name="ChannelBatchLeaveSelected">Leave selected (%1$d)</string>
+    <string name="ChannelBatchLeaveStop">Stop remaining exits</string>
+    <string name="ChannelBatchLeaveRunningInfo">Exits run one at a time. You can leave this page and return to view results. Stopping leaves any in-flight request to finish.</string>
+    <string name="ChannelBatchLeaveSummary">Left: %1$d · Failed: %2$d · Stopped: %3$d</string>
+    <string name="ChannelBatchLeaveRetry">Retry failed exits (%1$d)</string>
+    <string name="ChannelBatchLeaveEmpty">No matching memberships.</string>
+    <string name="ChannelBatchLeaveDone">Left successfully</string>
+    <string name="ChannelBatchLeaveFailed">Failed: %1$s</string>
+    <string name="ChannelBatchLeaveWorking">Leaving…</string>
+    <string name="ChannelBatchLeaveCancelled">Stopped</string>
+    <string name="ChannelBatchLeaveQueued">Waiting</string>
+    <string name="ChannelBatchLeaveOwner">Owner · transfer ownership before leaving</string>
+    <string name="ChannelBatchLeaveMore">…and %1$d more</string>
+    <string name="ChannelBatchLeaveConfirm">Leave these %1$d channels or groups? Private chats may require a new invitation to rejoin.</string>
+    <string name="ChannelBatchLeaveConfirmButton">Confirm and leave</string>
+</resources>
