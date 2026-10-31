@@ -2,7 +2,6 @@ package org.telegram.ui;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 
-import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
@@ -13,8 +12,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
@@ -29,7 +28,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.ShapeDrawable;
 import android.hardware.Camera;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
@@ -48,6 +46,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.graphics.ColorUtils;
 import androidx.dynamicanimation.animation.FloatValueHolder;
@@ -64,16 +63,15 @@ import com.google.zxing.RGBLuminanceSource;
 import com.google.zxing.Result;
 import com.google.zxing.ResultPoint;
 import com.google.zxing.common.GlobalHistogramBinarizer;
+import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeReader;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
-import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MrzRecognizer;
 import org.telegram.messenger.R;
-import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.camera.CameraController;
@@ -94,6 +92,7 @@ import org.telegram.ui.Components.LinkSpanDrawable;
 import org.telegram.ui.Components.TypefaceSpan;
 import org.telegram.ui.Components.URLSpanNoUnderline;
 
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -152,6 +151,13 @@ public class CameraScanActivity extends BaseFragment {
     private BarcodeDetector visionQrReader = null;
 
     private boolean needGalleryButton;
+    private volatile boolean scannerDestroyed;
+    private volatile boolean galleryBusy;
+    private int galleryGeneration;
+    private boolean galleryResultDelivered;
+    private QrGalleryPickerFragment galleryPicker;
+    private static final int GALLERY_REQUEST_CODE = 7341;
+    private static final int MAX_GALLERY_QR_SIZE = 2048;
 
     private int currentType;
 
@@ -185,6 +191,10 @@ public class CameraScanActivity extends BaseFragment {
     }
 
     public static BottomSheet showAsSheet(Activity parentActivity, boolean gallery, int type, CameraScanActivityDelegate cameraDelegate) {
+        return showAsSheet(parentActivity, gallery, type, cameraDelegate, false);
+    }
+
+    public static BottomSheet showAsSheet(Activity parentActivity, boolean gallery, int type, CameraScanActivityDelegate cameraDelegate, boolean openGalleryOnShow) {
         if (parentActivity == null) {
             return null;
         }
@@ -218,6 +228,9 @@ public class CameraScanActivity extends BaseFragment {
                 setApplyBottomPadding(false);
                 setApplyBottomPadding(false);
                 setOnDismissListener(dialog -> fragment.onFragmentDestroy());
+                if (gallery && openGalleryOnShow) {
+                    fragment.fragmentView.post(fragment::openGalleryPicker);
+                }
             }
 
             @Override
@@ -275,6 +288,10 @@ public class CameraScanActivity extends BaseFragment {
 
     @Override
     public void onFragmentDestroy() {
+        scannerDestroyed = true;
+        galleryGeneration++;
+        clearGalleryPicker();
+        AndroidUtilities.cancelRunOnUIThread(requestShot);
         super.onFragmentDestroy();
         destroy(false, null);
         if (getParentActivity() != null) {
@@ -616,7 +633,7 @@ public class CameraScanActivity extends BaseFragment {
             titleTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             recognizedMrzView.setTypeface(Typeface.MONOSPACE);
         } else {
-            if (needGalleryButton) {
+            if (needGalleryButton && currentType != TYPE_QR_LOGIN) {
                 //titleTextView.setText(LocaleController.getString(R.string.WalletScanCode));
             } else {
                 if (currentType == TYPE_QR || currentType == TYPE_QR_WEB_BOT) {
@@ -661,7 +678,7 @@ public class CameraScanActivity extends BaseFragment {
             }
             recognizedMrzView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
             recognizedMrzView.setPadding(dp(10), 0, dp(10), dp(10));
-            if (needGalleryButton) {
+            if (needGalleryButton && currentType != TYPE_QR_LOGIN) {
                 //recognizedMrzView.setText(LocaleController.getString(R.string.WalletScanCodeNotFound));
             } else {
                 recognizedMrzView.setText(LocaleController.getString(R.string.AuthAnotherClientNotFound));
@@ -674,61 +691,8 @@ public class CameraScanActivity extends BaseFragment {
                 galleryButton.setImageResource(R.drawable.qr_gallery);
                 galleryButton.setBackgroundDrawable(Theme.createSelectorDrawableFromDrawables(Theme.createCircleDrawable(dp(60), 0x22ffffff), Theme.createCircleDrawable(dp(60), 0x44ffffff)));
                 viewGroup.addView(galleryButton);
-                galleryButton.setOnClickListener(currentImage -> {
-                    if (getParentActivity() == null) {
-                        return;
-                    }
-                    final Activity activity = getParentActivity();
-                    if (Build.VERSION.SDK_INT >= 33) {
-                        if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-                            activity.requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
-                            return;
-                        }
-                    } else if (Build.VERSION.SDK_INT >= 23) {
-                        if (activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                            activity.requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, BasePermissionsActivity.REQUEST_CODE_EXTERNAL_STORAGE);
-                            return;
-                        }
-                    }
-                    PhotoAlbumPickerActivity fragment = new PhotoAlbumPickerActivity(PhotoAlbumPickerActivity.SELECT_TYPE_QR, false, false, null);
-                    fragment.setMaxSelectedPhotos(1, false);
-                    fragment.setAllowSearchImages(false);
-                    fragment.setDelegate(new PhotoAlbumPickerActivity.PhotoAlbumPickerActivityDelegate() {
-                        @Override
-                        public void didSelectPhotos(ArrayList<SendMessagesHelper.SendingMediaInfo> photos, boolean notify, int scheduleDate) {
-                            try {
-                                if (!photos.isEmpty()) {
-                                    SendMessagesHelper.SendingMediaInfo info = photos.get(0);
-                                    if (info.path != null) {
-                                        Point screenSize = AndroidUtilities.getRealScreenSize();
-                                        Bitmap bitmap = ImageLoader.loadBitmap(info.path, null, screenSize.x, screenSize.y, true);
-                                        QrResult res = tryReadQr(null, null, 0, 0, 0, bitmap);
-                                        if (res != null) {
-                                            if (delegate != null) {
-                                                delegate.didFindQr(res.text);
-                                            }
-                                            removeSelfFromStack();
-                                        }
-                                    }
-                                }
-                            } catch (Throwable e) {
-                                FileLog.e(e);
-                            }
-                        }
-
-                        @Override
-                        public void startPhotoSelectActivity() {
-                            try {
-                                Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-                                photoPickerIntent.setType("image/*");
-                                getParentActivity().startActivityForResult(photoPickerIntent, 11);
-                            } catch (Exception e) {
-                                FileLog.e(e);
-                            }
-                        }
-                    });
-                    presentFragment(fragment);
-                });
+                galleryButton.setContentDescription(LocaleController.getString(R.string.MangoQrGallery));
+                galleryButton.setOnClickListener(currentImage -> openGalleryPicker());
             }
 
             flashButton = new ImageView(context);
@@ -826,7 +790,7 @@ public class CameraScanActivity extends BaseFragment {
     }
 
     private void initCameraView() {
-        if (fragmentView == null || !CameraView.isCameraAllowed()) {
+        if (scannerDestroyed || fragmentView == null || !CameraView.isCameraAllowed()) {
             return;
         }
         CameraController.getInstance().initCamera(null);
@@ -988,23 +952,211 @@ public class CameraScanActivity extends BaseFragment {
         return recognizedPoints;
     }
 
-    @Override
-    public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
-        if (resultCode == Activity.RESULT_OK && requestCode == 11 && data != null && data.getData() != null) {
+    /** A temporary result owner works for sheets and for non-LaunchActivity hosts. */
+    public static class QrGalleryPickerFragment extends android.app.Fragment {
+        private CameraScanActivity scanner;
+        private boolean launched;
+
+        @Override
+        public void onResume() {
+            super.onResume();
+            // A process-restored picker has no live scanner; never launch it again.
+            if (scanner == null) {
+                removePicker();
+                return;
+            }
+            if (launched) return;
+            launched = true;
             try {
-                Point screenSize = AndroidUtilities.getRealScreenSize();
-                Bitmap bitmap = ImageLoader.loadBitmap(null, data.getData(), screenSize.x, screenSize.y, true);
-                QrResult res = tryReadQr(null, null, 0, 0, 0, bitmap);
-                if (res != null) {
-                    if (delegate != null) {
-                        delegate.didFindQr(res.text);
-                    }
-                    finishFragment();
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("image/*");
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivityForResult(intent, GALLERY_REQUEST_CODE);
+            } catch (Exception e) {
+                FileLog.e(e);
+                deliver(Activity.RESULT_CANCELED, null, true);
+            }
+        }
+
+        @Override
+        public void onActivityResult(int requestCode, int resultCode, Intent data) {
+            super.onActivityResult(requestCode, resultCode, data);
+            if (requestCode == GALLERY_REQUEST_CODE) deliver(resultCode, data, false);
+        }
+
+        private void deliver(int resultCode, Intent data, boolean failed) {
+            CameraScanActivity owner = scanner;
+            scanner = null;
+            removePicker();
+            if (owner != null) owner.onGalleryResult(resultCode, data, failed);
+        }
+
+        private void removePicker() {
+            try {
+                if (getFragmentManager() != null) {
+                    getFragmentManager().beginTransaction().remove(this).commitAllowingStateLoss();
                 }
-            } catch (Throwable e) {
+            } catch (IllegalStateException e) {
                 FileLog.e(e);
             }
         }
+    }
+
+    private void openGalleryPicker() {
+        Activity activity = getParentActivity();
+        if (activity == null || scannerDestroyed || galleryBusy || recognized || qrLoading) return;
+        galleryBusy = true;
+        galleryResultDelivered = false;
+        galleryGeneration++;
+        AndroidUtilities.cancelRunOnUIThread(requestShot);
+        galleryButton.setEnabled(false);
+        try {
+            galleryPicker = new QrGalleryPickerFragment();
+            galleryPicker.scanner = this;
+            activity.getFragmentManager().beginTransaction()
+                    .add(galleryPicker, "mango-qr-gallery-" + classGuid).commitAllowingStateLoss();
+        } catch (Exception e) {
+            FileLog.e(e);
+            clearGalleryPicker();
+            resumeAfterGallery(true);
+        }
+    }
+
+    private void clearGalleryPicker() {
+        if (galleryPicker != null) {
+            galleryPicker.scanner = null;
+            galleryPicker.removePicker();
+            galleryPicker = null;
+        }
+    }
+
+    private void onGalleryResult(int resultCode, Intent data, boolean failed) {
+        galleryPicker = null;
+        if (scannerDestroyed || !galleryBusy) return;
+        Uri uri = data == null ? null : data.getData();
+        if (resultCode != Activity.RESULT_OK || uri == null) {
+            resumeAfterGallery(failed);
+            return;
+        }
+        final int generation = galleryGeneration;
+        // A separate decoder avoids concurrent access to the camera's detector.
+        Utilities.globalQueue.postRunnable(() -> {
+            String text = null;
+            Bitmap bitmap = null;
+            try {
+                if (scannerDestroyed) return;
+                bitmap = loadGalleryBitmap(uri);
+                if (bitmap != null) {
+                    text = decodeGalleryQr(bitmap);
+                }
+            } catch (Throwable e) {
+                FileLog.e(e);
+            } finally {
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+            }
+            final String result = text;
+            AndroidUtilities.runOnUIThread(() -> {
+                if (scannerDestroyed || generation != galleryGeneration) return;
+                if (!isValidQrText(result)) {
+                    resumeAfterGallery(true);
+                    return;
+                }
+                processGalleryQr(result, generation);
+            });
+        });
+    }
+
+    private String decodeGalleryQr(Bitmap bitmap) throws com.google.zxing.ReaderException {
+        int width = bitmap.getWidth(), height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+        LuminanceSource source = new RGBLuminanceSource(width, height, pixels);
+        QRCodeReader reader = new QRCodeReader();
+        try {
+            return reader.decode(new BinaryBitmap(new HybridBinarizer(source))).getText();
+        } catch (com.google.zxing.ReaderException first) {
+            reader.reset();
+            return reader.decode(new BinaryBitmap(new HybridBinarizer(source.invert()))).getText();
+        }
+    }
+
+    private Bitmap loadGalleryBitmap(Uri uri) throws Exception {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        try (InputStream stream = ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri)) {
+            if (stream == null) return null;
+            BitmapFactory.decodeStream(stream, null, options);
+        }
+        if (options.outWidth <= 0 || options.outHeight <= 0) return null;
+        options.inSampleSize = 1;
+        while ((long) Math.max(options.outWidth, options.outHeight) > (long) MAX_GALLERY_QR_SIZE * options.inSampleSize) {
+            options.inSampleSize *= 2;
+        }
+        options.inJustDecodeBounds = false;
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        try (InputStream stream = ApplicationLoader.applicationContext.getContentResolver().openInputStream(uri)) {
+            return stream == null ? null : BitmapFactory.decodeStream(stream, null, options);
+        }
+    }
+
+    private boolean isValidQrText(String text) {
+        if (TextUtils.isEmpty(text)) return false;
+        if (currentType != TYPE_QR_LOGIN) return true;
+        // Validate login tokens regardless of whether camera or gallery produced the text.
+        if (!text.startsWith("tg://login?token=")) return false;
+        String token = text.substring("tg://login?token=".length());
+        if (token.isEmpty() || !token.matches("[A-Za-z0-9_+/=-]+")) return false;
+        try {
+            return android.util.Base64.decode(token.replace('/', '_').replace('+', '-'), android.util.Base64.URL_SAFE).length > 0;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
+    private void processGalleryQr(String text, int generation) {
+        recognized = true;
+        recognizedText = text;
+        qrLoading = true;
+        updateRecognized();
+        Runnable complete = () -> AndroidUtilities.runOnUIThread(() -> {
+            if (scannerDestroyed || generation != galleryGeneration || galleryResultDelivered) return;
+            galleryResultDelivered = true;
+            qrLoading = false;
+            if (cameraView != null && cameraView.getCameraSession() != null) {
+                CameraController.getInstance().stopPreview(cameraView.getCameraSession());
+            }
+            try {
+                if (delegate != null) delegate.didFindQr(text);
+            } finally {
+                finishFragment();
+            }
+        });
+        try {
+            // SessionsActivity accepts the token here; didFindQr is only the UI completion.
+            boolean loading = delegate != null && delegate.processQr(text, complete);
+            if (!loading) complete.run();
+        } catch (Exception e) {
+            FileLog.e(e);
+            resumeAfterGallery(true);
+        }
+    }
+
+    private void resumeAfterGallery(boolean showError) {
+        if (scannerDestroyed) return;
+        galleryGeneration++;
+        galleryBusy = false;
+        qrLoading = false;
+        recognized = false;
+        recognizedText = null;
+        if (galleryButton != null) galleryButton.setEnabled(true);
+        updateRecognized();
+        if (showError && getParentActivity() != null) {
+            Toast.makeText(getParentActivity(), LocaleController.getString(R.string.MangoQrInvalid), Toast.LENGTH_SHORT).show();
+        }
+        AndroidUtilities.cancelRunOnUIThread(requestShot);
+        AndroidUtilities.runOnUIThread(requestShot, 250);
     }
 
     public void setDelegate(CameraScanActivityDelegate cameraScanActivityDelegate) {
@@ -1022,7 +1174,7 @@ public class CameraScanActivity extends BaseFragment {
     private final Runnable requestShot = new Runnable() {
         @Override
         public void run() {
-            if (cameraView != null && !recognized && cameraView.getCameraSession() != null) {
+            if (!scannerDestroyed && !galleryBusy && cameraView != null && !recognized && cameraView.getCameraSession() != null) {
                 handler.post(() -> {
                     try {
                         cameraView.focusToPoint(cameraView.getWidth() / 2, cameraView.getHeight() / 2, false);
@@ -1045,7 +1197,7 @@ public class CameraScanActivity extends BaseFragment {
 
     private void onNoQrFound() {
         AndroidUtilities.runOnUIThread(() -> {
-            if (recognizedMrzView.getTag() != null) {
+            if (!scannerDestroyed && recognizedMrzView != null && recognizedMrzView.getTag() != null) {
                 recognizedMrzView.setTag(null);
                 recognizedMrzView.animate().setDuration(200).alpha(0.0f).setInterpolator(CubicBezierInterpolator.DEFAULT).start();
             }
@@ -1055,7 +1207,8 @@ public class CameraScanActivity extends BaseFragment {
     private float averageProcessTime = 0;
     private long processTimesCount = 0;
     public void processShot(Bitmap bitmap) {
-        if (cameraView == null) {
+        if (cameraView == null || scannerDestroyed || galleryBusy) {
+            if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
             return;
         }
         final long from = SystemClock.elapsedRealtime();
@@ -1082,6 +1235,7 @@ public class CameraScanActivity extends BaseFragment {
                 int y = (size.getHeight() - side) / 2;
 
                 QrResult res = tryReadQr(null, size, x, y, side, bitmap);
+                if (scannerDestroyed || galleryBusy) return;
                 if (recognized) {
                     recognizeIndex++;
                 }
@@ -1158,6 +1312,8 @@ public class CameraScanActivity extends BaseFragment {
             }
         } catch (Throwable ignore) {
             onNoQrFound();
+        } finally {
+            if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
         }
         final long to = SystemClock.elapsedRealtime();
         long timeout = to - from;
@@ -1222,6 +1378,7 @@ public class CameraScanActivity extends BaseFragment {
     }
 
     private static PointF[] toPointF(Point[] points, int w, int h) {
+        if (points == null) return null;
         PointF[] out = new PointF[points.length];
         for (int i = 0; i < points.length; ++i) {
             out[i] = new PointF(
@@ -1233,6 +1390,8 @@ public class CameraScanActivity extends BaseFragment {
     }
 
     private QrResult tryReadQr(byte[] data, Size size, int x, int y, int side, Bitmap bitmap) {
+        Bitmap invertedBitmap = null;
+        Bitmap monochromeBitmap = null;
         try {
             String text;
             RectF bounds = new RectF();
@@ -1270,8 +1429,7 @@ public class CameraScanActivity extends BaseFragment {
                         bounds.set(minX, minY, maxX, maxY);
                     }
                 } else if (bitmap != null) {
-                    Bitmap inverted = invert(bitmap);
-                    bitmap.recycle();
+                    Bitmap inverted = invertedBitmap = invert(bitmap);
                     frame = new Frame.Builder().setBitmap(inverted).build();
                     width = inverted.getWidth();
                     height = inverted.getHeight();
@@ -1296,11 +1454,10 @@ public class CameraScanActivity extends BaseFragment {
                             bounds.set(minX, minY, maxX, maxY);
                         }
                     } else {
-                        Bitmap monochrome = monochrome(inverted, 90);
-                        inverted.recycle();
+                        Bitmap monochrome = monochromeBitmap = monochrome(inverted, 90);
                         frame = new Frame.Builder().setBitmap(monochrome).build();
-                        width = inverted.getWidth();
-                        height = inverted.getHeight();
+                        width = monochrome.getWidth();
+                        height = monochrome.getHeight();
                         codes = visionQrReader.detect(frame);
                         if (codes != null && codes.size() > 0) {
                             Barcode code = codes.valueAt(0);
@@ -1379,14 +1536,9 @@ public class CameraScanActivity extends BaseFragment {
                 onNoQrFound();
                 return null;
             }
-            if (needGalleryButton) {
-                Uri uri = Uri.parse(text);
-                String path = uri.getPath().replace("/", "");
-            } else {
-                if (currentType == TYPE_QR_LOGIN && !text.startsWith("tg://login?token=")) {
-                    onNoQrFound();
-                    return null;
-                }
+            if (!isValidQrText(text)) {
+                onNoQrFound();
+                return null;
             }
             QrResult qrResult = new QrResult();
             if (bounds != null) {
@@ -1404,6 +1556,9 @@ public class CameraScanActivity extends BaseFragment {
             return qrResult;
         } catch (Throwable ignore) {
             onNoQrFound();
+        } finally {
+            if (invertedBitmap != null && !invertedBitmap.isRecycled()) invertedBitmap.recycle();
+            if (monochromeBitmap != null && !monochromeBitmap.isRecycled()) monochromeBitmap.recycle();
         }
         return null;
     }

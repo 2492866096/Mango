@@ -4,7 +4,12 @@ import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.lerp;
 
 import android.content.Context;
+import android.view.HapticFeedbackConstants;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
+
+import java.util.ArrayList;
 
 import org.telegram.ui.Components.AnimatedLinearLayout;
 import org.telegram.ui.Components.glass.GlassTabView;
@@ -12,6 +17,172 @@ import org.telegram.ui.Components.glass.GlassTabView;
 import me.vkryl.android.animator.ListAnimator;
 
 public class MainTabsLayout extends AnimatedLinearLayout {
+
+    public interface ReorderListener {
+        void onOrderChanged(int[] order);
+        void onLongPressWithoutMove(View tab);
+    }
+
+    private final ArrayList<View> orderedTabs = new ArrayList<>();
+    private final ArrayList<View> orderBeforeDrag = new ArrayList<>();
+    private ReorderListener reorderListener;
+    private View draggedTab;
+    private boolean dragMoved;
+    private boolean childTouchCancelled;
+    private float touchX, startX, draggedOffsetX;
+    private int pointerId = -1;
+
+    public void setReorderListener(ReorderListener listener) {
+        reorderListener = listener;
+    }
+
+    /** Child indices are stable identities; priorities control only their visual order. */
+    public void setTabOrder(int[] order) {
+        if (draggedTab != null) return;
+        orderedTabs.clear();
+        for (int id : order) {
+            if (id >= 0 && id < getChildCount()) {
+                View tab = getChildAt(id);
+                if (!orderedTabs.contains(tab)) orderedTabs.add(tab);
+            }
+        }
+        for (int id = 0; id < getChildCount(); id++) {
+            View tab = getChildAt(id);
+            if (!orderedTabs.contains(tab)) orderedTabs.add(tab);
+        }
+        applyTabPriorities();
+    }
+
+    private void applyTabPriorities() {
+        for (int i = 0; i < orderedTabs.size(); i++) setPriority(orderedTabs.get(i), i);
+        requestLayout();
+    }
+
+    public boolean startReordering(View tab) {
+        if (tab.getParent() != this || !isViewVisible(tab)) return false;
+        // Accessibility invokes long-click without a touch stream.
+        if (pointerId == -1) {
+            if (reorderListener != null) reorderListener.onLongPressWithoutMove(tab);
+            return true;
+        }
+        draggedTab = tab;
+        startX = touchX;
+        draggedOffsetX = touchX - tab.getX();
+        dragMoved = childTouchCancelled = false;
+        orderBeforeDrag.clear();
+        orderBeforeDrag.addAll(orderedTabs);
+        tab.setTranslationZ(dp(8));
+        tab.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+        return true;
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            pointerId = event.getPointerId(0);
+            touchX = event.getX();
+        }
+        int pointerIndex = event.findPointerIndex(pointerId);
+        if (pointerIndex >= 0) touchX = event.getX(pointerIndex);
+        if (draggedTab != null) {
+            if (!childTouchCancelled) {
+                MotionEvent cancel = MotionEvent.obtain(event);
+                cancel.setAction(MotionEvent.ACTION_CANCEL);
+                super.dispatchTouchEvent(cancel);
+                cancel.recycle();
+                childTouchCancelled = true;
+            }
+            if (event.getActionMasked() == MotionEvent.ACTION_MOVE && pointerIndex >= 0) {
+                if (Math.abs(touchX - startX) > ViewConfiguration.get(getContext()).getScaledTouchSlop()) dragMoved = true;
+                if (dragMoved) moveDraggedTab();
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                finishReordering(false);
+            } else if (event.getActionMasked() == MotionEvent.ACTION_CANCEL
+                    || event.getActionMasked() == MotionEvent.ACTION_POINTER_UP && event.getPointerId(event.getActionIndex()) == pointerId) {
+                finishReordering(true);
+            }
+            return true;
+        }
+        boolean handled = super.dispatchTouchEvent(event);
+        if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL) pointerId = -1;
+        return handled;
+    }
+
+    private void moveDraggedTab() {
+        int from = orderedTabs.indexOf(draggedTab);
+        int target = from;
+        float left = getPaddingLeft();
+        // Use final layout positions, not animated positions, to avoid oscillation.
+        for (int i = 0; i < orderedTabs.size(); i++) {
+            View tab = orderedTabs.get(i);
+            if (!isViewVisible(tab)) continue;
+            float center = left + tab.getMeasuredWidth() / 2f;
+            if (i < from && touchX < center) { target = i; break; }
+            if (i > from && touchX > center) target = i;
+            left += tab.getMeasuredWidth();
+        }
+        if (target != from) {
+            orderedTabs.remove(from);
+            orderedTabs.add(target, draggedTab);
+            applyTabPriorities();
+        }
+        applyDragTransform();
+    }
+
+    private void applyDragTransform() {
+        if (draggedTab == null || !dragMoved) return;
+        float left = Math.max(getPaddingLeft(), Math.min(getWidth() - getPaddingRight() - draggedTab.getWidth(), touchX - draggedOffsetX));
+        draggedTab.setTranslationX(left - draggedTab.getLeft());
+        draggedTab.setScaleX(1.08f);
+        draggedTab.setScaleY(1.08f);
+    }
+
+    private void finishReordering(boolean cancelled) {
+        View tab = draggedTab;
+        boolean moved = dragMoved;
+        draggedTab = null;
+        pointerId = -1;
+        if (tab != null) {
+            tab.setTranslationZ(0);
+            tab.setScaleX(1);
+            tab.setScaleY(1);
+        }
+        if (cancelled) {
+            orderedTabs.clear();
+            orderedTabs.addAll(orderBeforeDrag);
+        }
+        // A drag inside the original slot may not change ListAnimator's target,
+        // so explicitly return the tab to its slot instead of waiting for a frame.
+        if (tab != null) {
+            float left = getPaddingLeft();
+            for (View candidate : orderedTabs) {
+                if (!isViewVisible(candidate)) continue;
+                if (candidate == tab) {
+                    tab.setTranslationX(left - tab.getLeft());
+                    break;
+                }
+                left += candidate.getMeasuredWidth();
+            }
+        }
+        applyTabPriorities();
+        if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+        if (!cancelled && reorderListener != null) {
+            if (moved) {
+                int[] order = new int[orderedTabs.size()];
+                for (int i = 0; i < order.length; i++) order[i] = indexOfChild(orderedTabs.get(i));
+                reorderListener.onOrderChanged(order);
+            } else {
+                reorderListener.onLongPressWithoutMove(tab);
+            }
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        if (draggedTab != null) finishReordering(true);
+        super.onDetachedFromWindow();
+    }
 
     public MainTabsLayout(Context context) {
         super(context);
@@ -24,6 +195,11 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         final int tabHeight = height - getPaddingTop() - getPaddingBottom();
 
         measureTabTexts();
+
+        if (visibleChildCount == 0) {
+            setMeasuredDimension(getPaddingLeft() + getPaddingRight(), height);
+            return;
+        }
 
         final int maxTotalWidthForTabs = width - getPaddingLeft() - getPaddingRight();
         final int minTotalWidthForTabs = Math.min(dp(320), maxTotalWidthForTabs);
@@ -237,6 +413,7 @@ public class MainTabsLayout extends AnimatedLinearLayout {
         view.setAlpha(factor);
         view.setScaleX(s);
         view.setScaleY(s);
+        if (view == draggedTab) applyDragTransform();
     }
 
     @Override

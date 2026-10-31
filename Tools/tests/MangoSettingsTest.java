@@ -1,6 +1,7 @@
 package org.telegram.messenger;
 
 import java.util.ArrayList;
+import org.telegram.ui.Components.MangoDownloadSpeedHud;
 
 public class MangoSettingsTest {
     private static int assertions;
@@ -59,6 +60,19 @@ public class MangoSettingsTest {
         history = MangoSettings.getHistory(0);
         check(history.size() == 200, "history capped at 200");
         check(Integer.valueOf(239).equals(history.get(0).after), "newest changes first");
+        int hudChanges = MangoDownloadSpeedHud.changes[0];
+        MangoSettings.setBoolean(0, MangoDownloadSpeedHud.SETTING_KEY, true);
+        check(MangoDownloadSpeedHud.changes[0] == hudChanges + 1 && MangoDownloadSpeedHud.enabled[0], "HUD receives persisted enabled value");
+        MangoSettings.Change enableHud = MangoSettings.getHistory(0).get(0);
+        MangoSettings.setBoolean(0, MangoDownloadSpeedHud.SETTING_KEY, true);
+        check(MangoDownloadSpeedHud.changes[0] == hudChanges + 1, "no-op HUD edits do not refresh or recurse");
+        MangoSettings.restore(0, enableHud);
+        check(MangoDownloadSpeedHud.changes[0] == hudChanges + 2 && !MangoDownloadSpeedHud.enabled[0], "undo refreshes HUD with restored effective default");
+        MangoSettings.setBoolean(0, MangoDownloadSpeedHud.SETTING_KEY, true);
+        MangoSettings.reset(0);
+        check(MangoDownloadSpeedHud.changes[0] == hudChanges + 4 && !MangoDownloadSpeedHud.enabled[0], "reset immediately notifies HUD of disabled default");
+        MangoSettings.setBoolean(1, MangoDownloadSpeedHud.SETTING_KEY, true);
+        check(MangoDownloadSpeedHud.changes[1] == 1 && MangoDownloadSpeedHud.enabled[1] && !MangoDownloadSpeedHud.enabled[0], "HUD notification preserves owning account");
         System.out.println("Mango settings tests passed: " + assertions + " assertions");
     }
 }

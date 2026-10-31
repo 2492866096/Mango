@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoHideProxyIcon">隐藏代理图标</string>
+    <string name="MangoHideProxyIconInfo">隐藏对话列表右上角的代理图标，可继续在设置中管理代理。</string>
+    <string name="MangoDisablePullSearch">禁止下拉展开搜索框</string>
+    <string name="MangoDisablePullSearchInfo">下拉对话列表时不展开搜索框，仍可点击搜索按钮。</string>
+    <string name="MangoCollapseMessageMenu">折叠消息功能菜单</string>
+    <string name="MangoCollapseMessageMenuInfo">消息菜单默认只显示前半部分，点击更多功能展开其余操作。</string>
+    <string name="MangoMessageMenuMore">更多功能</string>
+    <string name="MangoMessageMenuLess">收起功能</string>
+    <string name="MangoSyncSwitches">同步所有账号的扩展功能开关</string>
+    <string name="MangoSyncSwitchesInfo">开启时将当前账号的功能开关应用到所有已登录账号。开启期间，修改任一账号的开关会同步到其他账号。</string>
+    <string name="MangoSecurityCheck">账号安全检测</string>
+    <string name="MangoSecurityCheckInfo">检查当前账号的手机号可见范围和二级密码，点击对应项目可直接修改。</string>
+    <string name="MangoSecurityPhone">手机号可见范围</string>
+    <string name="MangoSecurityPassword">二级密码（两步验证）</string>
+    <string name="MangoSecurityLoading">正在检查…</string>
+    <string name="MangoSecurityFailed">检查失败，点击重新检查</string>
+    <string name="MangoSecurityRefresh">重新检查</string>
+    <string name="MangoQrGallery">从相册选择二维码</string>
+    <string name="MangoQrInvalid">没有找到可用的登录二维码，请重新选择。</string>
+</resources>

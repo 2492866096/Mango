@@ -6,7 +6,7 @@
     <string name="MenuProxyDisabled">Bağlı değil</string>
     <string name="ConnectingConnectProxy">Proxy\'yi bağla</string>
     <string name="LocalHoldVerificationTitle">Yerel Muhafaza kimlik doğrulaması</string>
-    <string name="LocalHoldVerificationInfo">Bu hesap, Üçüncü taraf Muhafaza kimlik doğrulamasını geçti. Bu sertifika işareti yalnızca bu makinede görüntülenir.</string>
+    <string name="LocalHoldVerificationInfo">Bu hesap, Üçüncü taraf Muhafaza kimlik doğrulamasını geçti.</string>
     <string name="FeedbackSupportChannel">Sorun geri bildirimi müşteri hizmetleri kanalı</string>
     <string name="ContactSoftwareDeveloper">Yazılım geliştiricisiyle iletişime geçin</string>
     <string name="ExtensionFeatures">Genişletme merkezi</string>

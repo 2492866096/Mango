@@ -6,7 +6,7 @@
     <string name="MenuProxyDisabled">未連接</string>
     <string name="ConnectingConnectProxy">連線代理</string>
     <string name="LocalHoldVerificationTitle">本地 Hold 認證</string>
-    <string name="LocalHoldVerificationInfo">該帳號已通過 Hold 第三方認證。此認證標識僅在本機顯示。</string>
+    <string name="LocalHoldVerificationInfo">該帳號已通過 Hold 第三方認證。</string>
     <string name="FeedbackSupportChannel">問題回饋客服通道</string>
     <string name="ContactSoftwareDeveloper">聯繫軟體開發者</string>
     <string name="ExtensionFeatures">擴展中心</string>

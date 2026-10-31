@@ -111,6 +111,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Space;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
@@ -6304,7 +6305,10 @@ public class ChatActivity extends BaseFragment implements
                         boolean updateVisibility = !cell.getMessageObject().deleted && chatListView.getChildAdapterPosition(cell) != RecyclerView.NO_POSITION;
 
                         boolean replaceAnimation = chatListView.isFastScrollAnimationRunning() || (groupedMessages != null && groupedMessages.transitionParams.backgroundChangeBounds);
-                        int top = (replaceAnimation ? child.getTop() : (int) child.getY()) + child.getPaddingTop();
+                        // The receiver belongs to this cell. Walking a connected bubble group
+                        // must never replace its owner: scale, alpha and bottom constraints do not
+                        // belong to the older message at the top of the group.
+                        int top = (int) ((replaceAnimation ? child.getTop() : child.getY()) + cell.getPaddingTopAnimated());
                         if (cell.drawPinnedBottom()) {
                             int p;
                             if (cell.willRemovedAfterAnimation()) {
@@ -6382,8 +6386,9 @@ public class ChatActivity extends BaseFragment implements
                             canvas.restore();
                         }
                         if (cell.drawPinnedTop()) {
+                            ChatMessageCell pinnedCell = cell;
                             int p;
-                            if (cell.willRemovedAfterAnimation()) {
+                            if (pinnedCell.willRemovedAfterAnimation()) {
                                 p = chatScrollHelper.positionToOldView.indexOfValue(child);
                                 if (p >= 0) {
                                     p = chatScrollHelper.positionToOldView.keyAt(p);
@@ -6400,19 +6405,21 @@ public class ChatActivity extends BaseFragment implements
                                     }
                                     tries++;
 
+                                    MessageObject.GroupedMessages pinnedGroup = pinnedCell.getCurrentMessagesGroup();
+                                    MessageObject.GroupedMessagePosition pinnedPosition = pinnedCell.getCurrentPosition();
                                     int prevPosition;
-                                    if (groupedMessages != null && position != null) {
-                                        int idx = groupedMessages.posArray.indexOf(position);
+                                    if (pinnedGroup != null && pinnedPosition != null) {
+                                        int idx = pinnedGroup.posArray.indexOf(pinnedPosition);
                                         if (idx < 0) {
                                             break;
                                         }
-                                        int size = groupedMessages.posArray.size();
-                                        if ((position.flags & MessageObject.POSITION_FLAG_TOP) != 0) {
+                                        int size = pinnedGroup.posArray.size();
+                                        if ((pinnedPosition.flags & MessageObject.POSITION_FLAG_TOP) != 0) {
                                             prevPosition = p + idx + 1;
                                         } else {
                                             prevPosition = p + 1;
                                             for (int a = idx - 1; a >= 0; a--) {
-                                                if (groupedMessages.posArray.get(a).maxY < position.minY) {
+                                                if (pinnedGroup.posArray.get(a).maxY < pinnedPosition.minY) {
                                                     break;
                                                 } else {
                                                     prevPosition++;
@@ -6422,17 +6429,17 @@ public class ChatActivity extends BaseFragment implements
                                     } else {
                                         prevPosition = p + 1;
                                     }
-                                    if (cell.willRemovedAfterAnimation()) {
+                                    if (pinnedCell.willRemovedAfterAnimation()) {
                                         View view = chatScrollHelper.positionToOldView.get(prevPosition);
                                         if (view != null) {
-                                            top = view.getTop() + view.getPaddingTop();
                                             if (view instanceof ChatMessageCell) {
-                                                cell = (ChatMessageCell) view;
-                                                float newTx = cell.getSlidingOffsetX() + cell.getCheckBoxTranslation();
+                                                pinnedCell = (ChatMessageCell) view;
+                                                top = (int) ((replaceAnimation ? pinnedCell.getTop() : pinnedCell.getY()) + pinnedCell.getPaddingTopAnimated());
+                                                float newTx = pinnedCell.getSlidingOffsetX() + pinnedCell.getCheckBoxTranslation();
                                                 if (canUpdateTx && newTx > 0) {
                                                     tx = newTx;
                                                 }
-                                                if (!cell.drawPinnedTop()) {
+                                                if (!pinnedCell.drawPinnedTop()) {
                                                     break;
                                                 } else {
                                                     p = prevPosition;
@@ -6446,14 +6453,14 @@ public class ChatActivity extends BaseFragment implements
                                     } else {
                                         ViewHolder holder = chatListView.findViewHolderForAdapterPosition(prevPosition);
                                         if (holder != null) {
-                                            top = holder.itemView.getTop() + holder.itemView.getPaddingTop();
                                             if (holder.itemView instanceof ChatMessageCell) {
-                                                cell = (ChatMessageCell) holder.itemView;
-                                                float newTx = cell.getSlidingOffsetX() + cell.getCheckBoxTranslation();
+                                                pinnedCell = (ChatMessageCell) holder.itemView;
+                                                top = (int) ((replaceAnimation ? pinnedCell.getTop() : pinnedCell.getY()) + pinnedCell.getPaddingTopAnimated());
+                                                float newTx = pinnedCell.getSlidingOffsetX() + pinnedCell.getCheckBoxTranslation();
                                                 if (canUpdateTx && newTx > 0) {
                                                     tx = newTx;
                                                 }
-                                                if (!cell.drawPinnedTop()) {
+                                                if (!pinnedCell.drawPinnedTop()) {
                                                     break;
                                                 } else {
                                                     p = prevPosition;
@@ -31088,8 +31095,11 @@ public class ChatActivity extends BaseFragment implements
             final boolean showSponsorInfo = !suggestEdit && selectedObject != null && selectedObject.isSponsored() && (selectedObject.sponsoredInfo != null || selectedObject.sponsoredAdditionalInfo != null || selectedObject.sponsoredUrl != null && !selectedObject.sponsoredUrl.startsWith("https://" + getMessagesController().linkPrefix));
             final boolean isReactionsAvailableFinal = !suggestEdit && isReactionsAvailable;
 
+            final int visibleMenuItems = org.telegram.messenger.MessageMenuCollapse.visibleItemCount(
+                    items.size(), org.telegram.messenger.MangoSettings.getBoolean(currentAccount, "collapse_message_menu", false));
+            final boolean collapseMessageMenu = visibleMenuItems < items.size();
             int flags = 0;
-            if (isReactionsViewAvailable || showMessageSeen || showSponsorInfo) {
+            if (isReactionsViewAvailable || showMessageSeen || showSponsorInfo || collapseMessageMenu) {
                 flags |= ActionBarPopupWindow.ActionBarPopupWindowLayout.FLAG_USE_SWIPEBACK;
             }
 
@@ -31754,8 +31764,32 @@ public class ChatActivity extends BaseFragment implements
                         popupLayout.addView(new ActionBarPopupWindow.GapView(contentView.getContext(), themeDelegate), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
                     }
                 }
-                scrimPopupWindowItems = new ActionBarMenuSubItem[items.size()];
+                final LinearLayout overflowItems;
+                final ActionBarMenuSubItem moreItem;
+                final ActionBarMenuSubItem backItem;
+                if (collapseMessageMenu) {
+                    overflowItems = new LinearLayout(getParentActivity());
+                    overflowItems.setOrientation(LinearLayout.VERTICAL);
+                    overflowItems.setMinimumWidth(dp(200));
+                    backItem = new ActionBarMenuSubItem(getParentActivity(), true, false, themeDelegate);
+                    backItem.setTextAndIcon(getString(R.string.MangoMessageMenuLess), R.drawable.msg_arrow_back);
+                    backItem.setOnClickListener(view -> popupLayout.getSwipeBack().closeForeground());
+                    overflowItems.addView(backItem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+                    final ScrollView overflowScroll = new ScrollView(getParentActivity());
+                    overflowScroll.setVerticalScrollBarEnabled(false);
+                    overflowScroll.addView(overflowItems, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                    final int overflowIndex = popupLayout.addViewToSwipeBack(overflowScroll);
+                    moreItem = new ActionBarMenuSubItem(getParentActivity(), false, true, themeDelegate);
+                    moreItem.setTextAndIcon(getString(R.string.MangoMessageMenuMore), R.drawable.msg_arrowright);
+                    moreItem.setOnClickListener(view -> popupLayout.getSwipeBack().openForeground(overflowIndex));
+                } else {
+                    overflowItems = null;
+                    moreItem = null;
+                    backItem = null;
+                }
+                scrimPopupWindowItems = new ActionBarMenuSubItem[items.size() + (collapseMessageMenu ? 2 : 0)];
                 for (int a = 0, N = items.size(); a < N; a++) {
+                    final boolean inOverflow = collapseMessageMenu && a >= visibleMenuItems;
                     ActionBarMenuSubItem cell = new ActionBarMenuSubItem(getParentActivity(), a == 0, a == N - 1, themeDelegate);
                     cell.setMinimumWidth(AndroidUtilities.dp(200));
                     cell.setTextAndIcon(items.get(a), icons.get(a));
@@ -31775,9 +31809,12 @@ public class ChatActivity extends BaseFragment implements
                     }
                     scrimPopupWindowItems[a] = cell;
                     if (option == OPTION_REMOVE_ADS) {
-                        popupLayout.addView(new ActionBarPopupWindow.GapView(contentView.getContext(), themeDelegate), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
+                        View gap = new ActionBarPopupWindow.GapView(contentView.getContext(), themeDelegate);
+                        if (inOverflow) overflowItems.addView(gap, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
+                        else popupLayout.addView(gap, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));
                     }
-                    popupLayout.addView(cell);
+                    if (inOverflow) overflowItems.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+                    else popupLayout.addView(cell);
                     final int i = a;
                     cell.setOnClickListener(v1 -> {
                         if (selectedObject == null || i >= options.size()) {
@@ -31789,6 +31826,11 @@ public class ChatActivity extends BaseFragment implements
                         cell.setVisibility(View.VISIBLE);
                         cell.setOnClickListener(e -> openMessageTranslation(message, groupedMessages, v));
                     }
+                }
+                if (collapseMessageMenu) {
+                    popupLayout.addView(moreItem);
+                    scrimPopupWindowItems[items.size()] = moreItem;
+                    scrimPopupWindowItems[items.size() + 1] = backItem;
                 }
                 if (selectedObject != null && selectedObject.messageOwner != null && selectedObject.messageOwner.video_processing_pending) {
                     popupLayout.addView(new ActionBarPopupWindow.GapView(contentView.getContext(), themeDelegate), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 8));

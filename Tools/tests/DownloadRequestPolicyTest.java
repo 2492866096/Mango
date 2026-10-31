@@ -26,11 +26,33 @@ public final class DownloadRequestPolicyTest {
                 "small queue remains at account baseline");
         check(DownloadRequestPolicy.getMaxActiveDownloads(5) == 5,
                 "large queue remains at account baseline");
+        check(DownloadRequestPolicy.getMaxRequests(1, 4, small, small, false) == 4,
+                "normal preset retains the original request window");
+        check(DownloadRequestPolicy.getMaxRequests(5, 4, small, small, false) == 8,
+                "changing the preset during a download immediately expands its window");
+        check(DownloadRequestPolicy.getMaxRequests(5, 4, 2 * small, small, false) == 4,
+                "new files obtain the same byte budget using larger chunks");
+        check(DownloadRequestPolicy.getMaxRequests(1, 4, 4 * small, small, false) == 1,
+                "disabling boost on a running file reduces the window without changing offsets");
+        check(DownloadRequestPolicy.getMaxRequests(50, 4, small, small, true) == 4,
+                "server small-chunk fallback retains its conservative request count");
+        for (int preset : new int[]{1, 5, 10, 20, 50}) {
+            for (int base : new int[]{32 * 1024, small, large}) {
+                for (int actual : new int[]{base, DownloadRequestPolicy.getAdjustedChunkSize(preset, base, false)}) {
+                    int window = DownloadRequestPolicy.getMaxRequests(preset, 8, actual, base, false);
+                    check(window >= 1 && window <= 16, "boost request count remains bounded");
+                    check((long) window * actual <= 8L * 1024 * 1024,
+                            "boost byte window remains bounded even for experimental large chunks");
+                    check(DownloadRequestPolicy.getAvailableRequestSlots(window, window, window) == 0,
+                            "a setting reduction never refills an already full window");
+                }
+            }
+        }
 
         // Exercise the production slot calculation with concurrent large-file
         // operations and repeated out-of-order responses held for writing.
         int activeFiles = DownloadRequestPolicy.getMaxActiveDownloads(5);
-        int maxRequestsPerFile = DownloadRequestPolicy.getMaxRequests(4);
+        int maxRequestsPerFile = DownloadRequestPolicy.getMaxRequests(50, 4, small, small, false);
         int[] inFlight = new int[activeFiles];
         int[] delayed = new int[activeFiles];
         for (int file = 0; file < activeFiles; file++) {

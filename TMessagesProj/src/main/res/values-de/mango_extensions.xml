@@ -6,7 +6,7 @@
     <string name="MenuProxyDisabled">Nicht verbunden</string>
     <string name="ConnectingConnectProxy">Proxy verbinden</string>
     <string name="LocalHoldVerificationTitle">Local Hold-Zertifizierung</string>
-    <string name="LocalHoldVerificationInfo">Dieses Konto hat die Überprüfung durch Dritte bestanden. Dieses Prüfzeichen wird nur auf dieser Maschine angezeigt.</string>
+    <string name="LocalHoldVerificationInfo">Dieses Konto hat die Überprüfung durch Dritte bestanden.</string>
     <string name="FeedbackSupportChannel">Problem-Feedback-Kundendienstkanal</string>
     <string name="ContactSoftwareDeveloper">Kontaktieren Sie den Softwareentwickler</string>
     <string name="ExtensionFeatures">Erweiterungszentrum</string>

@@ -6,7 +6,7 @@
     <string name="MenuProxyDisabled">غير متصل</string>
     <string name="ConnectingConnectProxy">ربط الوكيل</string>
     <string name="LocalHoldVerificationTitle">مصادقة التعليق المحلية</string>
-    <string name="LocalHoldVerificationInfo">لقد اجتاز هذا الحساب مصادقة الطرف الثالث. يتم عرض علامة الشهادة هذه على هذا الجهاز فقط.</string>
+    <string name="LocalHoldVerificationInfo">لقد اجتاز هذا الحساب مصادقة الطرف الثالث.</string>
     <string name="FeedbackSupportChannel">تعليقات على المشكلات قناة خدمة العملاء</string>
     <string name="ContactSoftwareDeveloper">اتصل بمطور البرامج</string>
     <string name="ExtensionFeatures">مركز الامتداد</string>

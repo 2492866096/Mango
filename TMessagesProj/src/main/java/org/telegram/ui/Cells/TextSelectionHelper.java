@@ -743,8 +743,12 @@ public abstract class TextSelectionHelper<Cell extends TextSelectionHelper.Selec
     }
 
     public static boolean isInterruptedCharacter(char c) {
-        Character.UnicodeScript script = Character.UnicodeScript.of(c);
-        if (script == Character.UnicodeScript.HAN || script == Character.UnicodeScript.HIRAGANA || script == Character.UnicodeScript.KATAKANA || script == Character.UnicodeScript.HANGUL) {
+        // UnicodeScript was added in Android 7.0 (API 24), while this client
+        // supports API 21. Keep CJK glyph selection independent of that class.
+        if (c >= '\u2e80' && c <= '\u9fff' || c >= '\uf900' && c <= '\ufaff'
+                || c >= '\u1100' && c <= '\u11ff' || c >= '\uac00' && c <= '\ud7af'
+                || c >= '\ua960' && c <= '\ua97f' || c >= '\ud7b0' && c <= '\ud7ff'
+                || c >= '\uff66' && c <= '\uffdc') {
             return false;
         }
         return Character.isLetter(c) || Character.isDigit(c) || c == '_';
@@ -1482,7 +1486,7 @@ public abstract class TextSelectionHelper<Cell extends TextSelectionHelper.Selec
                     CharSequence charSequence = getText(selectedView, false);
                     if (!canCopy()) {
                         menu.getItem(2).setVisible(false);
-                    } else if (multiselect || selectionStart <= 0 && selectionEnd >= charSequence.length() - 1) {
+                    } else if (charSequence == null || multiselect || selectionStart <= 0 && selectionEnd >= charSequence.length() - 1) {
                         menu.getItem(2).setVisible(false);
                     } else {
                         menu.getItem(2).setVisible(true);
@@ -1627,7 +1631,9 @@ public abstract class TextSelectionHelper<Cell extends TextSelectionHelper.Selec
         if (!hasNonWhitespaceContent(str)) {
             return;
         }
-        AndroidUtilities.addToClipboard(str.toString(), true);
+        if (!AndroidUtilities.addToClipboard(str.toString(), true)) {
+            return;
+        }
         hideActions();
         clear(true);
         if (TextSelectionHelper.this.callback != null) {
@@ -1682,10 +1688,13 @@ public abstract class TextSelectionHelper<Cell extends TextSelectionHelper.Selec
 
     protected CharSequence getSelectedText() {
         CharSequence text = getText(selectedView, false);
-        if (text != null) {
-            return text.subSequence(selectionStart, selectionEnd);
+        if (text == null || selectionStart < 0 || selectionEnd < selectionStart
+                || selectionEnd > text.length()) {
+            // A message can be edited/rebound while an OEM floating toolbar is
+            // still preparing its menu or delivering the copy action.
+            return null;
         }
-        return null;
+        return text.subSequence(selectionStart, selectionEnd);
     }
 
     protected int[] offsetToCord(int offset) {

@@ -1947,7 +1947,7 @@
     <string name="StarredAuthor">Star this author</string>
     <string name="StarredAuthorAdded">Only this author will trigger notifications in this chat</string>
     <string name="LocalHoldVerificationTitle">Local Hold verification</string>
-    <string name="LocalHoldVerificationInfo">This account has passed third-party Hold verification. This badge is shown only on this device.</string>
+    <string name="LocalHoldVerificationInfo">This account has passed third-party Hold verification.</string>
     <string name="UserUnblocked">User unblocked</string>
     <string name="EditContact">Edit Contact</string>
     <string name="DeleteContact">Delete Contact</string>

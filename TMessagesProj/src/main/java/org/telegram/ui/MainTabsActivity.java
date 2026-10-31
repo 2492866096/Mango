@@ -36,6 +36,8 @@ import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.MainTabsOrder;
+import org.telegram.messenger.MangoSettings;
 import org.telegram.messenger.MessageActionSettings;
 import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.NotificationCenter;
@@ -222,6 +224,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         super.onResume();
         blur3_updateColors();
         checkContactsTabBadge();
+        restoreTabOrder();
         checkUnreadDialogsTabVisibility(true);
         checkUnreadCount(true);
 
@@ -299,27 +302,35 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 selectTab(position, true);
                 viewPager.scrollToPosition(position);
             });
-            if (index == INDEX_UNREAD || index == INDEX_CHATS) {
-                tabs[index].setOnLongClickListener(v -> {
-                    showReadAllMessagesOptions(v);
-                    return true;
-                });
-            } else if (index == INDEX_PROFILE) {
-                tabs[index].setOnLongClickListener(v -> {
-                    showAccountSwitchOptions(v);
-                    return true;
-                });
-            } else if (index == INDEX_SETTINGS) {
-                tabs[index].setOnLongClickListener(v -> {
-                    presentFragment(new ExtensionFeaturesActivity());
-                    return true;
-                });
-            }
+            tabs[index].setOnLongClickListener(v -> {
+                if (viewPager.isManualScrolling() || viewPager.isTouch()) return false;
+                return tabsView.startReordering(v);
+            });
 
             tabsView.addView(tabs[index]);
             tabsView.setViewVisible(view, true, false);
         }
 
+        tabsView.setReorderListener(new MainTabsLayout.ReorderListener() {
+            @Override
+            public void onOrderChanged(int[] order) {
+                MangoSettings.setString(currentAccount, MainTabsOrder.SETTING_KEY, MainTabsOrder.encode(order));
+            }
+
+            @Override
+            public void onLongPressWithoutMove(View tab) {
+                if (tab == tabs[INDEX_UNREAD] || tab == tabs[INDEX_CHATS]) {
+                    showReadAllMessagesOptions(tab);
+                } else if (tab == tabs[INDEX_PROFILE]) {
+                    showAccountSwitchOptions(tab);
+                } else if (tab == tabs[INDEX_SETTINGS]) {
+                    ExtensionFeaturesActivity extension = new ExtensionFeaturesActivity();
+                    extension.setCurrentAccount(currentAccount);
+                    presentFragment(extension);
+                }
+            }
+        });
+        restoreTabOrder();
         selectTab(viewPager.getCurrentPosition(), false);
         checkUnreadDialogsTabVisibility(false);
 
@@ -363,6 +374,13 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         checkUnreadCount(false);
         return contentView;
+    }
+
+    private void restoreTabOrder() {
+        if (tabsView != null) {
+            tabsView.setTabOrder(MainTabsOrder.decode(
+                    MangoSettings.getString(currentAccount, MainTabsOrder.SETTING_KEY, ""), TABS_COUNT));
+        }
     }
 
     private void checkUnreadCount(boolean animated) {

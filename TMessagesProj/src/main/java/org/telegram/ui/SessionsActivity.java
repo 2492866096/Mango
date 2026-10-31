@@ -1116,7 +1116,11 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
     }
 
     private void openCameraScanActivity() {
-        CameraScanActivity.showAsSheet(SessionsActivity.this, false, CameraScanActivity.TYPE_QR_LOGIN, new CameraScanActivity.CameraScanActivityDelegate() {
+        openCameraScanActivity(false);
+    }
+
+    private void openCameraScanActivity(boolean openGalleryOnShow) {
+        CameraScanActivity.showAsSheet(getParentActivity(), true, CameraScanActivity.TYPE_QR_LOGIN, new CameraScanActivity.CameraScanActivityDelegate() {
 
             private TLObject response = null;
             private TLRPC.TL_error error = null;
@@ -1175,7 +1179,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                 }, 750);
                 return true;
             }
-        });
+        }, openGalleryOnShow);
     }
 
     @Override
@@ -1243,6 +1247,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                             }
                         })
                         .setNegativeButton(LocaleController.getString(R.string.ContactsPermissionAlertNotNow), null)
+                        .setNeutralButton(LocaleController.getString(R.string.MangoQrGallery), (dialogInterface, i) -> openCameraScanActivity(true))
                         .setTopAnimation(R.raw.permission_request_camera, 72, false, Theme.getColor(Theme.key_dialogTopBackground))
                         .show();
             }

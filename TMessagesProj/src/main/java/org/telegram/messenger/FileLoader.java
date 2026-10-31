@@ -684,7 +684,7 @@ public class FileLoader extends BaseController {
     public void refreshDownloadSpeedSettings() {
         fileLoaderQueue.postRunnable(() -> {
             for (FileLoadOperation operation : loadOperationPaths.values()) {
-                if (operation != null && operation.wasStarted()) {
+                if (operation != null) {
                     operation.updateDownloadSpeedSettings();
                 }
             }

@@ -8,6 +8,8 @@ package org.telegram.messenger;
  */
 public final class DownloadRequestPolicy {
     private static final int MAX_CHUNK_SIZE = 1024 * 1024;
+    private static final int MAX_REQUESTS = 16;
+    private static final long MAX_IN_FLIGHT_BYTES = 8L * 1024 * 1024;
 
     private DownloadRequestPolicy() {
     }
@@ -22,12 +24,26 @@ public final class DownloadRequestPolicy {
         return (int) Math.max(baseChunkSize, Math.min(adjusted, maxChunkSize));
     }
 
-    /**
-     * Keep each file's outstanding request count at Telegram's selected
-     * baseline. Throughput presets change chunk sizes, not RPC fan-out.
-     */
+    /** Baseline request window for callers without a throughput preset. */
     public static int getMaxRequests(int baseMaxRequests) {
         return Math.max(1, baseMaxRequests);
+    }
+
+    /**
+     * Apply presets to a bounded byte window, using the operation's actual chunk
+     * size. In-progress operations cannot resize chunks without invalidating
+     * offsets, preload data and encrypted-file state; changing this window makes
+     * their speed setting effective immediately without restarting the file.
+     */
+    public static int getMaxRequests(int multiplier, int baseMaxRequests, int actualChunkSize,
+                                     int baseChunkSize, boolean forceSmallChunk) {
+        if (forceSmallChunk || actualChunkSize <= 0 || baseChunkSize <= 0) {
+            return getMaxRequests(baseMaxRequests);
+        }
+        int windowMultiplier = multiplier >= 50 ? 6 : multiplier >= 20 ? 4 : multiplier >= 10 ? 3 : multiplier > 1 ? 2 : 1;
+        long baselineBytes = (long) Math.max(1, baseMaxRequests) * baseChunkSize;
+        long windowBytes = Math.min(MAX_IN_FLIGHT_BYTES, baselineBytes * windowMultiplier);
+        return (int) Math.max(1, Math.min(MAX_REQUESTS, windowBytes / actualChunkSize));
     }
 
     /** Remaining safe slots, including out-of-order chunks held for writing. */

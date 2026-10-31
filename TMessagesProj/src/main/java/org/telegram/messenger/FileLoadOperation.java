@@ -306,7 +306,8 @@ public class FileLoadOperation {
     }
 
     private int getAdjustedMaxDownloadRequests(int baseMaxRequests, int adjustedChunkSize, int baseChunkSize) {
-        return DownloadRequestPolicy.getMaxRequests(baseMaxRequests);
+        return DownloadRequestPolicy.getMaxRequests(SharedConfig.getDownloadSpeedMultiplier(),
+                baseMaxRequests, adjustedChunkSize, baseChunkSize, forceSmallChunk);
     }
 
     private void setCurrentDownloadParams(int baseChunkSize, int baseMaxRequests) {
@@ -533,12 +534,11 @@ public class FileLoadOperation {
             if (currentBaseDownloadChunkSize <= 0 || currentBaseMaxDownloadRequests <= 0) {
                 return;
             }
-            int newChunkSize = getAdjustedDownloadChunkSize(currentBaseDownloadChunkSize);
-            int newMaxRequests = getAdjustedMaxDownloadRequests(currentBaseMaxDownloadRequests, newChunkSize, currentBaseDownloadChunkSize);
-            currentMaxDownloadRequests = newMaxRequests;
-            if ((requestInfos == null || requestInfos.isEmpty()) && (delayedRequestInfos == null || delayedRequestInfos.isEmpty())) {
-                currentDownloadChunkSize = newChunkSize;
-            }
+            // Keep the chunk grid fixed for this file, including paused downloads.
+            // A new grid can overlap existing ranges/preloaded chunks. The bounded
+            // request window is enough to apply a preset to an active transfer.
+            currentMaxDownloadRequests = getAdjustedMaxDownloadRequests(currentBaseMaxDownloadRequests,
+                    currentDownloadChunkSize, currentBaseDownloadChunkSize);
             if (state == stateDownloading && !paused) {
                 startDownloadRequest(-1);
             }

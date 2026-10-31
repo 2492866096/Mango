@@ -37,6 +37,9 @@ public final class MangoFeatureRegistry {
         features.add(new Feature(1015, "hide_reaction_notifications", R.string.MangoHideReactionNotifications, R.string.MangoHideReactionNotificationsInfo, CHAT));
         features.add(new Feature(1016, "collapse_keyboard_after_send", R.string.MangoCollapseKeyboardAfterSend, R.string.MangoCollapseKeyboardAfterSendInfo, CHAT));
         features.add(new Feature(1017, "hide_sticker_time", R.string.MangoHideStickerTime, R.string.MangoHideStickerTimeInfo, MEDIA));
+        features.add(new Feature(1018, "hide_proxy_icon", R.string.MangoHideProxyIcon, R.string.MangoHideProxyIconInfo, APPEARANCE));
+        features.add(new Feature(1019, "disable_pull_down_search", R.string.MangoDisablePullSearch, R.string.MangoDisablePullSearchInfo, APPEARANCE));
+        features.add(new Feature(1020, "collapse_message_menu", R.string.MangoCollapseMessageMenu, R.string.MangoCollapseMessageMenuInfo, CHAT));
         FEATURES = Collections.unmodifiableList(features);
     }
     public static Feature find(int id) {

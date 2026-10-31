@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.telegram.ui.Components.MangoDownloadSpeedHud;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -42,9 +43,13 @@ public final class MangoSettings {
         editor.apply();
         recordChange(account, key, before, after);
         notifyChanged(account, key);
+        MangoSettingsSync.onMangoChanged(account, key);
     }
 
     private static void notifyChanged(int account, String key) {
+        if (key == null || key.equals(MangoDownloadSpeedHud.SETTING_KEY)) {
+            MangoDownloadSpeedHud.onPreferenceChanged(account);
+        }
         if (key == null || key.equals("hide_reaction_notifications")) {
             NotificationsController.getInstance(account).updateReactionNotifications();
         }
@@ -108,5 +113,6 @@ public final class MangoSettings {
             if (!key.startsWith("_")) recordChange(account, key, previous.get(key), null);
         }
         notifyChanged(account, null);
+        MangoSettingsSync.onMangoReset(account);
     }
 }

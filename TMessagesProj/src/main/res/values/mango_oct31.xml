@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoHideProxyIcon">Hide proxy icon</string>
+    <string name="MangoHideProxyIconInfo">Hide the proxy icon in the chat list. Proxy settings remain available in Settings.</string>
+    <string name="MangoDisablePullSearch">Disable pull-down search</string>
+    <string name="MangoDisablePullSearchInfo">Keep the search field collapsed when pulling down the chat list. Tap Search to search.</string>
+    <string name="MangoCollapseMessageMenu">Collapse message actions</string>
+    <string name="MangoCollapseMessageMenuInfo">Show the first half of message actions. Tap More actions to reveal the rest.</string>
+    <string name="MangoMessageMenuMore">More actions</string>
+    <string name="MangoMessageMenuLess">Fewer actions</string>
+    <string name="MangoSyncSwitches">Sync extension switches across accounts</string>
+    <string name="MangoSyncSwitchesInfo">Apply this account’s extension switches to every signed-in account. While enabled, switch changes in any account sync to the others.</string>
+    <string name="MangoSecurityCheck">Account security check</string>
+    <string name="MangoSecurityCheckInfo">Check phone number visibility and two-step verification for this account. Tap an item to change its settings.</string>
+    <string name="MangoSecurityPhone">Phone number visibility</string>
+    <string name="MangoSecurityPassword">Two-step verification</string>
+    <string name="MangoSecurityLoading">Checking…</string>
+    <string name="MangoSecurityFailed">Check failed. Tap to retry.</string>
+    <string name="MangoSecurityRefresh">Check again</string>
+    <string name="MangoQrGallery">Choose a QR code image</string>
+    <string name="MangoQrInvalid">No valid login QR code was found. Choose another image.</string>
+</resources>

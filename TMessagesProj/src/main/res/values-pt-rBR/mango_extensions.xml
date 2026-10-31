@@ -6,7 +6,7 @@
     <string name="MenuProxyDisabled">Não conectado</string>
     <string name="ConnectingConnectProxy">Conectar proxy</string>
     <string name="LocalHoldVerificationTitle">Certificação de retenção local</string>
-    <string name="LocalHoldVerificationInfo">Esta conta passou na verificação de retenção de terceiros. Esta marca de certificação é exibida apenas nesta máquina.</string>
+    <string name="LocalHoldVerificationInfo">Esta conta passou na verificação de retenção de terceiros.</string>
     <string name="FeedbackSupportChannel">Canal de atendimento ao cliente de feedback de problemas</string>
     <string name="ContactSoftwareDeveloper">Entre em contato com o desenvolvedor de software</string>
     <string name="ExtensionFeatures">Centro de Extensão</string>

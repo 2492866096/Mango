@@ -163,11 +163,15 @@ public final class MangoDownloadSpeedHud {
     /** Persists the switch and applies it immediately when this activity is visible. */
     public static void setEnabled(int account, boolean enabled) {
         MangoSettings.setBoolean(account, SETTING_KEY, enabled);
-        if (!enabled) {
-            detach();
-        } else if (LaunchActivity.instance != null && LaunchActivity.isResumed) {
+    }
+
+    /** Applies direct edits, synchronized settings and undo/reset without writing preferences again. */
+    public static void onPreferenceChanged(int account) {
+        AndroidUtilities.runOnUIThread(() -> {
+            // Recheck after dispatch: the user may switch accounts or pause the activity meanwhile.
+            if (account != UserConfig.selectedAccount || LaunchActivity.instance == null || !LaunchActivity.isResumed) return;
             attach(LaunchActivity.instance);
-        }
+        });
     }
 
     public static boolean isEnabled(int account) {

@@ -294,7 +294,7 @@
     <string name="StarredAuthor">设为星标作者</string>
     <string name="StarredAuthorAdded">此聊天现在只提醒该作者的消息</string>
     <string name="LocalHoldVerificationTitle">本地 Hold 认证</string>
-    <string name="LocalHoldVerificationInfo">该账号已通过 Hold 第三方认证。此认证标识仅在本机显示。</string>
+    <string name="LocalHoldVerificationInfo">该账号已通过 Hold 第三方认证。</string>
     <string name="ChatExportLocalTxt">导出本机已缓存消息（TXT）</string>
     <string name="ChatExportLocalPdf">导出本机已缓存消息（PDF）</string>
     <string name="ChatExportScope">仅导出本机已缓存的消息；未存储在此设备上的消息不会包含在内。</string>

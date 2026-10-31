@@ -6,7 +6,7 @@
     <string name="MenuProxyDisabled">未接続</string>
     <string name="ConnectingConnectProxy">プロキシを接続する</string>
     <string name="LocalHoldVerificationTitle">ローカル保留認証</string>
-    <string name="LocalHoldVerificationInfo">このアカウントは保留サードパーティ認証に合格しました。この認証マークは本機のみに表示されます。</string>
+    <string name="LocalHoldVerificationInfo">このアカウントは保留サードパーティ認証に合格しました。</string>
     <string name="FeedbackSupportChannel">問題フィードバック カスタマー サービス チャネル</string>
     <string name="ContactSoftwareDeveloper">ソフトウェア開発者に問い合わせる</string>
     <string name="ExtensionFeatures">拡張センター</string>

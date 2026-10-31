@@ -1071,7 +1071,7 @@ public class TwoStepVerificationActivity extends BaseFragment implements Notific
                                             presentFragment(fragment, true);
                                         } else {
                                             AndroidUtilities.hideKeyboard(passwordEditText);
-                                            TwoStepVerificationActivity fragment = new TwoStepVerificationActivity();
+                                            TwoStepVerificationActivity fragment = new TwoStepVerificationActivity(currentAccount);
                                             fragment.passwordEntered = true;
                                             fragment.currentPasswordHash = currentPasswordHash;
                                             fragment.currentPassword = currentPassword;

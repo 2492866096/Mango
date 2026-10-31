@@ -6,7 +6,7 @@
     <string name="MenuProxyDisabled">Не подключен</string>
     <string name="ConnectingConnectProxy">Подключить прокси</string>
     <string name="LocalHoldVerificationTitle">Локальная проверка подлинности с удержанием</string>
-    <string name="LocalHoldVerificationInfo">Эта учетная запись прошла стороннюю проверку подлинности с удержанием. Этот сертификационный знак отображается только на этом аппарате.</string>
+    <string name="LocalHoldVerificationInfo">Эта учетная запись прошла стороннюю проверку подлинности с удержанием.</string>
     <string name="FeedbackSupportChannel">Канал обслуживания клиентов для обратной связи о проблемах</string>
     <string name="ContactSoftwareDeveloper">Связаться с разработчиком программного обеспечения</string>
     <string name="ExtensionFeatures">Центр расширений</string>

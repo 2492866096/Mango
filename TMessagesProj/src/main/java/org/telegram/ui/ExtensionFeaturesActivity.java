@@ -134,6 +134,7 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     private static final int ITEM_PERFORMANCE_MONITOR = 89, ITEM_DOWNLOAD_SPEED_HUD = 90;
     private static final int ITEM_RANDOM_REPLY_GROUPS = 91;
     private static final int ITEM_USER_BROADCAST = 92;
+    private static final int ITEM_SYNC_SWITCHES = 93, ITEM_SECURITY_CHECK = 94;
     private static final int ITEM_COMMON_CLEAR_CACHE = 20001, ITEM_COMMON_PROXY = 20002,
             ITEM_COMMON_ACCOUNT = 20003, ITEM_COMMON_PRIVACY = 20004;
 
@@ -311,7 +312,7 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         MangoFeatureRegistry.Feature feature = MangoFeatureRegistry.find(id);
         if (feature != null) return feature.category;
         switch (id) {
-            case 1: case 2: case 3: case 4: case 8: case 34: case 41: case 50: case 51: case 53: case ITEM_SCAM_USERS:
+            case 1: case 2: case 3: case 4: case 8: case 34: case 41: case 50: case 51: case 53: case ITEM_SCAM_USERS: case ITEM_SECURITY_CHECK:
                 return MangoFeatureRegistry.PRIVACY;
             case 12: case 14: case 15: case 17: case 18: case 38: case 43: case 56: case ITEM_DOWNLOAD_RETENTION: case ITEM_DOWNLOAD_SPEED_HUD:
                 return MangoFeatureRegistry.MEDIA;
@@ -319,7 +320,7 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 return MangoFeatureRegistry.AUTOMATION;
             case 7: case 9: case 13: case 20: case 21: case 23: case 24: case 25: case 26: case 31: case 32: case 35: case 36: case 39: case 44: case 47: case ITEM_BUILTIN_THEMES: case ITEM_UNIFIED_TAB: case ITEM_UNIFIED_INBOX: case ITEM_RESTRICTION_TITLE:
                 return MangoFeatureRegistry.APPEARANCE;
-            case 19: case 54: case 55: case 57: case ITEM_HISTORY: case ITEM_RESET_ALL: case ITEM_PERFORMANCE_MONITOR:
+            case 19: case 54: case 55: case 57: case ITEM_HISTORY: case ITEM_RESET_ALL: case ITEM_PERFORMANCE_MONITOR: case ITEM_SYNC_SWITCHES:
                 return MangoFeatureRegistry.TOOLS;
             default: return MangoFeatureRegistry.CHAT;
         }
@@ -347,6 +348,9 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         all.add(UItem.asButton(ITEM_NOTIFICATION_RULES, R.drawable.msg_notifications, getString(R.string.MangoNotificationRules)));
         all.add(UItem.asButton(ITEM_SCAM_USERS, R.drawable.msg_info, getString(R.string.MangoScamUsers)));
         all.add(UItem.asButton(ITEM_BUILTIN_THEMES, R.drawable.msg_theme, getString(R.string.MangoBuiltinThemes)));
+        all.add(UItem.asSwitch(ITEM_SYNC_SWITCHES, getString(R.string.MangoSyncSwitches))
+                .setChecked(org.telegram.messenger.MangoSettingsSync.isEnabled()));
+        all.add(UItem.asButton(ITEM_SECURITY_CHECK, R.drawable.msg_secret, getString(R.string.MangoSecurityCheck)));
         all.add(UItem.asButton(ITEM_HISTORY, R.drawable.msg_recent, getString(R.string.MangoRecentSettings)));
         all.add(UItem.asButton(ITEM_RESET_ALL, R.drawable.msg_delete, getString(R.string.MangoResetSettings)).red());
         if (!TextUtils.isEmpty(searchQuery)) {
@@ -393,6 +397,7 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 items.add(item);
                 MangoFeatureRegistry.Feature feature = MangoFeatureRegistry.find(item.id);
                 if (feature != null) items.add(UItem.asShadow(getString(feature.description)));
+                else if (item.id == ITEM_SYNC_SWITCHES) items.add(UItem.asShadow(getString(R.string.MangoSyncSwitchesInfo)));
             }
             items.add(UItem.asShadow(null));
         }
@@ -665,6 +670,14 @@ public class ExtensionFeaturesActivity extends BaseFragment {
             }
             case ITEM_COMMON_PRIVACY:
                 presentExtensionPage(new PrivacySettingsActivity());
+                return;
+            case ITEM_SYNC_SWITCHES:
+                org.telegram.messenger.MangoSettingsSync.setEnabled(currentAccount,
+                        !org.telegram.messenger.MangoSettingsSync.isEnabled());
+                listView.adapter.update(false);
+                return;
+            case ITEM_SECURITY_CHECK:
+                presentExtensionPage(new MangoSecurityCheckActivity());
                 return;
             case ITEM_USER_BROADCAST:
                 presentExtensionPage(new MangoUserBroadcastActivity());

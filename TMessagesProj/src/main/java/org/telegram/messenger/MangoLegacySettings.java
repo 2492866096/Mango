@@ -152,6 +152,35 @@ public final class MangoLegacySettings {
         for (Setting setting : items) labels.put(setting.key, setting.label);
         return items;
     }
+    /** Exclude task/peer-specific switches: their identifiers belong to one account. */
+    public static Map<String, Boolean> booleanSwitches(int account) {
+        Map<String, Boolean> result = new HashMap<>();
+        for (Setting setting : settings(account)) {
+            if (setting.defaultValue instanceof Boolean && !setting.key.startsWith("daily_") && !setting.key.startsWith("echo_")) {
+                result.put(setting.key, (Boolean) setting.getter.get());
+            }
+        }
+        return result;
+    }
+
+    public static void applyBooleanSwitch(int account, String key, boolean value) {
+        initialize(account);
+        for (Setting setting : settings(account)) {
+            if (!setting.key.equals(key) || !(setting.defaultValue instanceof Boolean)
+                    || key.startsWith("daily_") || key.startsWith("echo_")) continue;
+            Object before = setting.getter.get();
+            if (!Objects.equals(before, value)) {
+                setting.setter.set(value);
+                MangoSettings.recordChange(account, "legacy:" + key, before, value);
+                notifyChanged(account);
+            }
+            // Preference listeners run later: align the baseline now to avoid echoing the sync.
+            Observer observer = observers.get(account);
+            if (observer != null) observer.previous.put(key, value);
+            break;
+        }
+    }
+
     public static String label(String key) {
         Integer label = labels.get(key);
         if (label != null) return LocaleController.getString(label);
@@ -206,6 +235,7 @@ public final class MangoLegacySettings {
             observer.stores.add(ApplicationLoader.applicationContext.getSharedPreferences(file, Context.MODE_PRIVATE));
         }
         for (SharedPreferences store : observer.stores) store.registerOnSharedPreferenceChangeListener(observer.listener);
+        MangoSettingsSync.initializeAccount(account);
     }
     public static void capture(int account) {
         Observer observer = observers.get(account);
@@ -213,7 +243,10 @@ public final class MangoLegacySettings {
         for (Setting setting : settings(account)) {
             Object after = setting.getter.get();
             Object before = observer.previous.containsKey(setting.key) ? observer.previous.get(setting.key) : setting.defaultValue;
-            if (!Objects.equals(before, after)) MangoSettings.recordChange(account, "legacy:" + setting.key, before, after);
+            if (!Objects.equals(before, after)) {
+                MangoSettings.recordChange(account, "legacy:" + setting.key, before, after);
+                MangoSettingsSync.onLegacyChanged(account, setting.key, after);
+            }
             observer.previous.put(setting.key, after);
         }
         // Echo targets disappear from the live registry after being turned off.

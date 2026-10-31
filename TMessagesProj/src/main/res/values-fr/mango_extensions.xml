@@ -6,7 +6,7 @@
     <string name="MenuProxyDisabled">Non connecté</string>
     <string name="ConnectingConnectProxy">Connecter le proxy</string>
     <string name="LocalHoldVerificationTitle">Authentification de mise en attente locale</string>
-    <string name="LocalHoldVerificationInfo">Ce compte a réussi l\'authentification tierce en attente. Cette marque de certification est affichée uniquement sur cette machine.</string>
+    <string name="LocalHoldVerificationInfo">Ce compte a réussi l\'authentification tierce en attente.</string>
     <string name="FeedbackSupportChannel">Canal de service client pour les commentaires sur les problèmes</string>
     <string name="ContactSoftwareDeveloper">Contacter le développeur du logiciel</string>
     <string name="ExtensionFeatures">Centre d\'extension</string>

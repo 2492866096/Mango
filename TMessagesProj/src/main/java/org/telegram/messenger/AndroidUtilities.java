@@ -3613,12 +3613,13 @@ public class AndroidUtilities {
         if (str == null) {
             return false;
         }
-        String plainText = str.toString();
-        if (plainText.length() == 0) {
-            return false;
-        }
+        String plainText = null;
         android.content.ClipboardManager clipboard = null;
         try {
+            plainText = str.toString();
+            if (plainText.length() == 0) {
+                return false;
+            }
             clipboard = (android.content.ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
             if (clipboard == null) {
                 return false;
@@ -3637,7 +3638,7 @@ public class AndroidUtilities {
             return true;
         } catch (Throwable e) {
             FileLog.e(e);
-            if (clipboard != null) {
+            if (clipboard != null && plainText != null) {
                 try {
                     android.content.ClipData clip = android.content.ClipData.newPlainText("label", TextUtils.substring(plainText, 0, Math.min(plainText.length(), 4096)));
                     clipboard.setPrimaryClip(clip);
