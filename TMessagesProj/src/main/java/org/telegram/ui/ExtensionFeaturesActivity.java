@@ -27,7 +27,6 @@ import android.widget.Toast;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.AutoReplyManager;
-import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.CustomDownloadPathHelper;
 import org.telegram.messenger.FileLog;
@@ -36,7 +35,6 @@ import org.telegram.messenger.ExtensionMediaSettings;
 import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.KeywordMessageFilterManager;
 import org.telegram.messenger.LocaleController;
-import org.telegram.messenger.MangoUpdateManager;
 import org.telegram.messenger.MangoSettings;
 import org.telegram.messenger.MangoLegacySettings;
 import org.telegram.messenger.MangoFeatureRegistry;
@@ -90,7 +88,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     private static final int ITEM_ID_HIDE_CHANNEL_SEND_AS = 16;
     private static final int ITEM_ID_DEFAULT_HIGH_QUALITY_MEDIA = 17;
     private static final int ITEM_ID_STICKER_MESSAGE_SIZE = 18;
-    private static final int ITEM_ID_MANGO_UPDATE = 19;
     private static final int ITEM_ID_MESSAGE_TEXT_SIZE = 20;
     private static final int ITEM_ID_TABLET_FULL_WIDTH = 21;
     private static final int ITEM_ID_AUTO_TRANSLATE = 22;
@@ -146,9 +143,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     private EditTextBoldCursor searchField;
     private ImageView clearSearchButton;
     private ScrollSlidingTextTabStrip categoryTabs;
-
-    private AlertDialog updateProgressDialog;
-    private final MangoUpdateManager.Listener mangoUpdateListener = this::onMangoUpdateStateChanged;
 
     @Override
     public View createView(Context context) {
@@ -289,7 +283,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
-        MangoUpdateManager.addListener(mangoUpdateListener);
         MangoLegacySettings.initialize(currentAccount);
         MangoLegacySettings.capture(currentAccount);
         AutoReplyManager.getInstance(currentAccount).loadPresetMessageCounts(() -> {
@@ -300,12 +293,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         if (listView != null && listView.adapter != null) {
             listView.adapter.update(false);
         }
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        MangoUpdateManager.removeListener(mangoUpdateListener);
     }
 
     private int categoryFor(int id) {
@@ -551,12 +538,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 R.drawable.msg_premium_uploads,
                 getString(R.string.UploadSpeedBoostTitle),
                 SharedConfig.getUploadSpeedMultiplierText()
-        ));
-        items.add(UItem.asButton(
-                ITEM_ID_MANGO_UPDATE,
-                R.drawable.msg_mini_download,
-                getString(R.string.MangoUpdateTitle),
-                getMangoUpdateSummary()
         ));
         items.add(UItem.asButton(
                 ITEM_ID_CUSTOM_DOWNLOAD_PATH,
@@ -888,9 +869,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 return;
             case ITEM_ID_UPLOAD_SPEED:
                 showUploadSpeedDialog();
-                return;
-            case ITEM_ID_MANGO_UPDATE:
-                showMangoUpdateDialog();
                 return;
             case ITEM_ID_CUSTOM_DOWNLOAD_PATH:
                 showCustomDownloadPathDialog();
@@ -1834,121 +1812,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         });
         builder.setNegativeButton(getString(R.string.Cancel), null);
         showDialog(builder.create());
-    }
-
-    private String getMangoUpdateSummary() {
-        if (MangoUpdateManager.isChecking()) {
-            return getString(R.string.MangoUpdateChecking);
-        }
-        if (MangoUpdateManager.isDownloading()) {
-            return LocaleController.formatString(R.string.MangoUpdateDownloading, getMangoUpdateProgressPercent());
-        }
-        if (MangoUpdateManager.isDownloaded()) {
-            return getString(R.string.MangoUpdateDownloaded);
-        }
-        if (!TextUtils.isEmpty(MangoUpdateManager.getError())) {
-            return MangoUpdateManager.getError();
-        }
-        String remoteVersion = MangoUpdateManager.getRemoteVersion();
-        if (MangoUpdateManager.isRemoteVersionNewer(remoteVersion)) {
-            return LocaleController.formatString(R.string.MangoUpdateAvailable, remoteVersion, BuildVars.BUILD_VERSION_STRING);
-        }
-        return LocaleController.formatString(R.string.MangoUpdateCurrent, BuildVars.BUILD_VERSION_STRING);
-    }
-
-    private int getMangoUpdateProgressPercent() {
-        return Math.max(0, Math.min(100, Math.round(MangoUpdateManager.getProgress() * 100f)));
-    }
-
-    private void onMangoUpdateStateChanged() {
-        if (listView != null && listView.adapter != null) {
-            listView.adapter.update(false);
-        }
-        if (updateProgressDialog != null) {
-            int progress = getMangoUpdateProgressPercent();
-            updateProgressDialog.setProgress(progress);
-            updateProgressDialog.setMessage(LocaleController.formatString(R.string.MangoUpdateDownloading, progress));
-            if (!MangoUpdateManager.isDownloading()) {
-                if (MangoUpdateManager.isDownloaded()) {
-                    updateProgressDialog.setMessage(getString(R.string.MangoUpdateDownloaded));
-                    updateProgressDialog.setProgress(100);
-                }
-                if (!TextUtils.isEmpty(MangoUpdateManager.getError())) {
-                    updateProgressDialog.setMessage(MangoUpdateManager.getError());
-                }
-            }
-        }
-    }
-
-    private void showMangoUpdateDialog() {
-        Activity activity = getParentActivity();
-        if (activity == null) {
-            return;
-        }
-        if (MangoUpdateManager.isDownloaded()) {
-            MangoUpdateManager.installDownloadedUpdate(activity);
-            return;
-        }
-        if (MangoUpdateManager.isDownloading()) {
-            showMangoUpdateProgressDialog();
-            return;
-        }
-        if (MangoUpdateManager.isChecking()) {
-            Toast.makeText(activity, getString(R.string.MangoUpdateChecking), Toast.LENGTH_SHORT).show();
-            return;
-        }
-        AlertDialog progressDialog = new AlertDialog(activity, AlertDialog.ALERT_TYPE_SPINNER, resourceProvider);
-        showDialog(progressDialog);
-        MangoUpdateManager.checkForUpdates((hasUpdate, remoteVersion, error) -> {
-            try {
-                progressDialog.dismiss();
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
-            if (!TextUtils.isEmpty(error)) {
-                Toast.makeText(activity, error, Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (!hasUpdate) {
-                Toast.makeText(activity, getString(R.string.MangoUpdateNoUpdate), Toast.LENGTH_SHORT).show();
-                return;
-            }
-            AlertDialog.Builder builder = new AlertDialog.Builder(activity, resourceProvider);
-            builder.setTitle(getString(R.string.MangoUpdateTitle));
-            builder.setMessage(LocaleController.formatString(R.string.MangoUpdateAvailable, remoteVersion, BuildVars.BUILD_VERSION_STRING));
-            builder.setPositiveButton(getString(R.string.MangoUpdateDownload), (dialog, which) -> {
-                MangoUpdateManager.downloadUpdate(activity);
-                showMangoUpdateProgressDialog();
-            });
-            builder.setNegativeButton(getString(R.string.Cancel), null);
-            showDialog(builder.create());
-        });
-    }
-
-    private void showMangoUpdateProgressDialog() {
-        Activity activity = getParentActivity();
-        if (activity == null) {
-            return;
-        }
-        if (updateProgressDialog != null && updateProgressDialog.isShowing()) {
-            onMangoUpdateStateChanged();
-            return;
-        }
-        int progress = getMangoUpdateProgressPercent();
-        AlertDialog dialog = new AlertDialog(activity, AlertDialog.ALERT_TYPE_LOADING, resourceProvider);
-        dialog.setTitle(getString(R.string.MangoUpdateTitle));
-        dialog.setMessage(LocaleController.formatString(R.string.MangoUpdateDownloading, progress));
-        dialog.setProgress(progress);
-        dialog.setNegativeButton(getString(R.string.MangoUpdateBackground), (alertDialog, which) -> {
-            updateProgressDialog = null;
-        });
-        updateProgressDialog = dialog;
-        showDialog(dialog, dismissDialog -> {
-            if (updateProgressDialog == dialog) {
-                updateProgressDialog = null;
-            }
-        });
-        onMangoUpdateStateChanged();
     }
 
     private void openCustomDownloadPathPicker() {

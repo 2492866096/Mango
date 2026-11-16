@@ -2397,8 +2397,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
-            if (waitingForDialogsAnimationEnd(parentPage) || parentLayout != null && parentLayout.isInPreviewMode() || rightSlidingDialogContainer.hasFragment()
-                    || parentPage.dialogsAdapter.getPinnedPlaceholderId(viewHolder.getAdapterPosition()) != 0) {
+            if (waitingForDialogsAnimationEnd(parentPage) || parentLayout != null && parentLayout.isInPreviewMode() || rightSlidingDialogContainer.hasFragment()) {
                 return 0;
             }
             if (swipingFolder && swipeFolderBack) {
@@ -2453,9 +2452,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder source, RecyclerView.ViewHolder target) {
-            if (!(target.itemView instanceof DialogCell)
-                    || parentPage.dialogsAdapter.getPinnedPlaceholderId(source.getAdapterPosition()) != 0
-                    || parentPage.dialogsAdapter.getPinnedPlaceholderId(target.getAdapterPosition()) != 0) {
+            if (!(target.itemView instanceof DialogCell)) {
                 return false;
             }
             DialogCell dialogCell = (DialogCell) target.itemView;
@@ -7979,32 +7976,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     return;
                 }
                 dialogId = dialog.id;
-                if (DialogsAdapter.isPinnedPlaceholderId(dialogId)) {
-                    if (actionBar.isActionModeShowed(null)) {
-                        long resolvedDialogId = DialogsAdapter.getPinnedPlaceholderResolvedDialogId(currentAccount, dialogId);
-                        if (resolvedDialogId == 0) {
-                            return;
-                        }
-                        dialogId = resolvedDialogId;
-                    } else {
-                        long placeholderId = dialogId;
-                        DialogsAdapter.ensurePinnedPlaceholderResolved(currentAccount, placeholderId, result -> {
-                            if (getParentActivity() == null || result == null) {
-                                return;
-                            }
-                            if (result.dialogObject instanceof TLRPC.User) {
-                                getMessagesController().openChatOrProfileWith((TLRPC.User) result.dialogObject, null, DialogsActivity.this, 1, false);
-                            } else if (result.dialogObject instanceof TLRPC.Chat) {
-                                getMessagesController().openChatOrProfileWith(null, (TLRPC.Chat) result.dialogObject, DialogsActivity.this, 1, false);
-                            } else if (result.chatInvite != null) {
-                                showDialog(new JoinGroupAlert(getParentActivity(), result.chatInvite, result.inviteHash, DialogsActivity.this, null));
-                            } else if (!TextUtils.isEmpty(result.url)) {
-                                Browser.openUrl(getParentActivity(), result.url);
-                            }
-                        });
-                        return;
-                    }
-                }
                 if (actionBar.isActionModeShowed(null)) {
                     showOrUpdateActionMode(dialogId, view);
                     return;
@@ -8046,11 +8017,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         } else if (searchViewPager != null && adapter == searchViewPager.dialogsSearchAdapter) {
             Object obj = searchViewPager.dialogsSearchAdapter.getItem(position);
             isGlobalSearch = searchViewPager.dialogsSearchAdapter.isGlobalSearch(position);
-            if (searchViewPager.dialogsSearchAdapter.isForcedRecentSearch(position) && obj instanceof TLRPC.User && ((TLRPC.User) obj).id == DialogsSearchAdapter.FORCED_RECENT_SEARCH_DID) {
-                MessagesController.getInstance(currentAccount).openByUserName(DialogsSearchAdapter.getForcedRecentSearchUsername(), DialogsActivity.this, 1);
-                closeSearch();
-                return;
-            }
             if (obj instanceof TLRPC.User) {
                 dialogId = ((TLRPC.User) obj).id;
                 if (!onlySelect) {
@@ -8356,16 +8322,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (adapter.getItemViewType(position) == DialogsAdapter.VIEW_TYPE_FORWARD_TO_STORIES_CELL) {
             return false;
         }
-        long pinnedPlaceholderId = adapter instanceof DialogsAdapter ? ((DialogsAdapter) adapter).getPinnedPlaceholderId(position) : 0L;
-        if (pinnedPlaceholderId == 0L && view instanceof DialogCell && DialogsAdapter.isPinnedPlaceholderId(((DialogCell) view).getDialogId())) {
-            pinnedPlaceholderId = ((DialogCell) view).getDialogId();
-        }
-        if (pinnedPlaceholderId != 0L) {
-            long placeholderId = pinnedPlaceholderId;
-            showForcedChannelHideDialog(() -> DialogsAdapter.dismissPinnedPlaceholder(placeholderId));
-            return true;
-        }
-
         if (!actionBar.isActionModeShowed() && !AndroidUtilities.isTablet() && !onlySelect && view instanceof DialogCell && !getMessagesController().isForum(((DialogCell) view).getDialogId()) && !rightSlidingDialogContainer.hasFragment()) {
             DialogCell cell = (DialogCell) view;
             if (cell.isPointInsideAvatar(x, y)) {
@@ -8377,10 +8333,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         if (searchViewPager != null && adapter == searchViewPager.dialogsSearchAdapter) {
             Object item = searchViewPager.dialogsSearchAdapter.getItem(position);
-            if (searchViewPager.dialogsSearchAdapter.isForcedRecentSearch(position)) {
-                showForcedChannelHideDialog(() -> searchViewPager.dialogsSearchAdapter.dismissForcedRecentSearch());
-                return true;
-            }
             if (!onlySelect && item instanceof TLRPC.Chat
                     && org.telegram.messenger.MangoPinnedSearchChannels.canPin((TLRPC.Chat) item)) {
                 final TLRPC.Chat chat = (TLRPC.Chat) item;
@@ -8461,18 +8413,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             Object item = dialogsAdapter.getItem(position);
             if (item instanceof TLRPC.Dialog) {
                 dialog = (TLRPC.Dialog) item;
-                if (DialogsAdapter.isPinnedPlaceholderId(dialog.id)) {
-                    long resolvedDialogId = DialogsAdapter.getPinnedPlaceholderResolvedDialogId(currentAccount, dialog.id);
-                    if (resolvedDialogId == 0) {
-                        return false;
-                    }
-                    TLRPC.Dialog resolvedDialog = getMessagesController().getDialog(resolvedDialogId);
-                    if (resolvedDialog == null) {
-                        resolvedDialog = new TLRPC.TL_dialog();
-                        resolvedDialog.id = resolvedDialogId;
-                    }
-                    dialog = resolvedDialog;
-                }
             } else {
                 return false;
 
@@ -8529,23 +8469,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
-    private void showForcedChannelHideDialog(Runnable onHide) {
-        if (getParentActivity() == null || onHide == null) {
-            return;
-        }
-        BottomSheet.Builder builder = new BottomSheet.Builder(getParentActivity());
-        builder.setItems(
-                new CharSequence[]{LocaleController.getString(R.string.ForcedChannelHideAction)},
-                new int[]{R.drawable.msg_remove},
-                (dialog, which) -> {
-                    if (which == 0) {
-                        onHide.run();
-                    }
-                }
-        );
-        showDialog(builder.create());
-    }
-
     private void onArchiveLongPress(View view) {
         try {
             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
@@ -8596,9 +8519,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return false;
         }
         long dialogId = cell.getDialogId();
-        if (DialogsAdapter.isPinnedPlaceholderId(dialogId)) {
-            return false;
-        }
         Bundle args = new Bundle();
         int message_id = cell.getMessageId();
         if (DialogObject.isEncryptedDialog(dialogId)) {

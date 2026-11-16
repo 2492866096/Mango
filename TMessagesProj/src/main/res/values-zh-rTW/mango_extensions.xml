@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">上傳速度</string>
     <string name="UploadSpeedBoostInfo">設定後會提高檔案上傳的單一檔案並發請求數和上傳佇列並發數。實際速度仍會受到目前網路上行、代理品質和 Telegram 服務端限制影響。</string>
     <string name="UploadSpeedBoostApplied">上傳速度已切換為 %1$s</string>
-    <string name="MangoUpdateTitle">檢查版本更新</string>
-    <string name="MangoUpdateChecking">正在檢查…</string>
-    <string name="MangoUpdateCurrent">目前版本 %1$s</string>
-    <string name="MangoUpdateAvailable">發現新版 %1$s，目前版本 %2$s，是否更新？</string>
-    <string name="MangoUpdateNoUpdate">目前已是最新版本</string>
-    <string name="MangoUpdateDownload">立即更新</string>
-    <string name="MangoUpdateDownloading">正在下載 %1$d%%</string>
-    <string name="MangoUpdateDownloaded">下載完成，點選安裝</string>
-    <string name="MangoUpdateBackground">後台更新</string>
-    <string name="MangoUpdateCheckFailed">檢查更新失敗，請稍後再試</string>
-    <string name="MangoUpdateDownloadFailed">更新包下載失敗，請稍後再試</string>
-    <string name="MangoUpdateInstallFailed">無法開啟安裝程式</string>
     <string name="CustomDownloadPathTitle">自訂下載路徑</string>
     <string name="CustomDownloadPathDefault">預設路徑</string>
     <string name="CustomDownloadPathHint">輸入資料夾完整路徑</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">未找到該用戶，請檢查用戶名</string>
     <string name="AutoReactionUserAdded">已新增 %1$s 為讚對象</string>
     <string name="AccountCancellationBot">註銷帳號</string>
-    <string name="ForcedChannelHideAction">隱藏</string>
     <string name="BroadcastToGroupsTitle">一鍵群發到所有群組</string>
     <string name="BroadcastToGroupsSummary">輸入文字後發送到目前帳號所在群組</string>
     <string name="BroadcastToGroupsHint">輸入要群發的文字</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">未開啟</string>
     <string name="KeywordFilterSummaryEnabled">%1$d 個關鍵字，%2$d 個白名單</string>
     <string name="KeywordFilterEnable">啟用關鍵字屏蔽</string>
-    <string name="KeywordFilterRemoteUpdates">啟用雲端違禁詞更新</string>
     <string name="KeywordFilterKeywords">違禁詞</string>
     <string name="KeywordFilterAddKeyword">加違禁詞</string>
     <string name="KeywordFilterEditKeyword">編輯違禁詞</string>

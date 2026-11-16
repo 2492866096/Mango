@@ -2464,18 +2464,6 @@
     <string name="UploadSpeedBoostTitle">Upload speed</string>
     <string name="UploadSpeedBoostInfo">Increase concurrent requests per file and concurrent uploads. Actual speeds depend on your uplink, proxy quality and Telegram server limits.</string>
     <string name="UploadSpeedBoostApplied">Upload speed setting changed to %1$s</string>
-    <string name="MangoUpdateTitle">Check for updates</string>
-    <string name="MangoUpdateChecking">Checking...</string>
-    <string name="MangoUpdateCurrent">Current version %1$s</string>
-    <string name="MangoUpdateAvailable">Version %1$s is available. Current version: %2$s. Update now?</string>
-    <string name="MangoUpdateNoUpdate">You are using the latest version</string>
-    <string name="MangoUpdateDownload">Update now</string>
-    <string name="MangoUpdateDownloading">Downloading %1$d%%</string>
-    <string name="MangoUpdateDownloaded">Download completed, click to install</string>
-    <string name="MangoUpdateBackground">Background update</string>
-    <string name="MangoUpdateCheckFailed">Failed to check for updates, please try again later</string>
-    <string name="MangoUpdateDownloadFailed">Failed to download the update package, please try again later</string>
-    <string name="MangoUpdateInstallFailed">Unable to open the installer</string>
     <string name="CustomDownloadPathTitle">Custom download path</string>
     <string name="CustomDownloadPathDefault">Default path</string>
     <string name="CustomDownloadPathHint">Enter the full path of the folder</string>
@@ -2561,7 +2549,6 @@
     <string name="AutoReactionUserNotFound">User not found. Check the username.</string>
     <string name="AutoReactionUserAdded">Added %1$s to reaction targets</string>
     <string name="AccountCancellationBot">Delete account</string>
-    <string name="ForcedChannelHideAction">Hide</string>
     <string name="BroadcastToGroupsTitle">Broadcast to all groups</string>
     <string name="BroadcastToGroupsSummary">Send text to groups joined by the current account</string>
     <string name="BroadcastToGroupsHint">Enter the message to broadcast</string>
@@ -2690,7 +2677,6 @@
     <string name="KeywordFilterSummaryDisabled">Off</string>
     <string name="KeywordFilterSummaryEnabled">%1$d keywords, %2$d whitelist</string>
     <string name="KeywordFilterEnable">Enable keyword blocking</string>
-    <string name="KeywordFilterRemoteUpdates">Update blocked keywords from the cloud</string>
     <string name="KeywordFilterEnableInfo">Messages containing blocked keywords will be hidden in private chats, groups, and channels. Recent blocked records are kept below for 3 hours.</string>
     <string name="KeywordFilterKeywords">Blocked keywords</string>
     <string name="KeywordFilterAddKeyword">Add blocked keyword</string>

@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">Upload-Geschwindigkeit</string>
     <string name="UploadSpeedBoostInfo">Nach der Einstellung wird die Anzahl gleichzeitiger Anfragen für eine einzelne Datei und die Anzahl gleichzeitiger Upload-Warteschlangen für das Hochladen von Dateien erhöht. Die tatsächlichen Geschwindigkeiten werden weiterhin durch den aktuellen Netzwerk-Uplink, die Proxy-Qualität und die Einschränkungen des Telegram-Servers beeinflusst.</string>
     <string name="UploadSpeedBoostApplied">Upload-Geschwindigkeit wurde auf %1$s umgestellt</string>
-    <string name="MangoUpdateTitle">Suchen Sie nach Versionsaktualisierungen</string>
-    <string name="MangoUpdateChecking">Überprüfung…</string>
-    <string name="MangoUpdateCurrent">Aktuelle Version %1$s</string>
-    <string name="MangoUpdateAvailable">Neue Version %1$s gefunden, aktuelle Version %2$s, Update?</string>
-    <string name="MangoUpdateNoUpdate">Derzeit die neueste Version</string>
-    <string name="MangoUpdateDownload">Jetzt aktualisieren</string>
-    <string name="MangoUpdateDownloading">lädt %1$d%% herunter.</string>
-    <string name="MangoUpdateDownloaded">Der Download ist abgeschlossen. Klicken Sie zum Installieren</string>
-    <string name="MangoUpdateBackground">Hintergrundaktualisierung</string>
-    <string name="MangoUpdateCheckFailed">Die Suche nach Updates ist fehlgeschlagen. Bitte versuchen Sie es später noch einmal</string>
-    <string name="MangoUpdateDownloadFailed">Der Download des Update-Pakets ist fehlgeschlagen. Bitte versuchen Sie es später noch einmal.</string>
-    <string name="MangoUpdateInstallFailed">Installationsprogramm kann nicht geöffnet werden</string>
     <string name="CustomDownloadPathTitle">Benutzerdefinierter Downloadpfad</string>
     <string name="CustomDownloadPathDefault">Standardpfad</string>
     <string name="CustomDownloadPathHint">Geben Sie den vollständigen Pfad zum Ordner ein</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">Der Benutzer wurde nicht gefunden. Bitte überprüfen Sie den Benutzernamen</string>
     <string name="AutoReactionUserAdded">hat %1$s als „Gefällt mir“ hinzugefügt.</string>
     <string name="AccountCancellationBot">Konto kündigen</string>
-    <string name="ForcedChannelHideAction">verstecken</string>
     <string name="BroadcastToGroupsTitle">Mit einem Klick an alle Gruppen senden</string>
     <string name="BroadcastToGroupsSummary">Geben Sie den Text ein und senden Sie ihn an die Gruppe, zu der das aktuelle Konto gehört.</string>
     <string name="BroadcastToGroupsHint">Geben Sie den Text ein, der an die Gruppe gesendet werden soll</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">Nicht eingeschaltet</string>
     <string name="KeywordFilterSummaryEnabled">%1$d Schlüsselwörter, %2$d Whitelist.</string>
     <string name="KeywordFilterEnable">Aktivieren Sie die Schlüsselwortblockierung</string>
-    <string name="KeywordFilterRemoteUpdates">Aktivieren Sie in der Cloud verbotene Wortaktualisierungen</string>
     <string name="KeywordFilterKeywords">Verbotene Worte</string>
     <string name="KeywordFilterAddKeyword">Fügen Sie verbotene Wörter hinzu</string>
     <string name="KeywordFilterEditKeyword">Bearbeiten Sie verbotene Wörter</string>

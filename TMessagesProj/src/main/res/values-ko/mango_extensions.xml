@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">업로드 속도로 전환되었습니다.</string>
     <string name="UploadSpeedBoostInfo">설정 후 단일 파일에 대한 동시 요청 수와 파일 업로드에 대한 동시 업로드 대기열 수가 증가합니다. 실제 속도는 현재 네트워크 업링크, 프록시 품질, 텔레그램 서버 제한의 영향을 받습니다.</string>
     <string name="UploadSpeedBoostApplied">업로드 속도가 %1$s(으)로 전환되었습니다.</string>
-    <string name="MangoUpdateTitle">버전 업데이트 확인 중</string>
-    <string name="MangoUpdateChecking">확인 중...</string>
-    <string name="MangoUpdateCurrent">현재 버전 %1$s</string>
-    <string name="MangoUpdateAvailable">새 버전 %1$s, 현재 버전 %2$s을(를) 업데이트하시겠습니까?</string>
-    <string name="MangoUpdateNoUpdate">는 현재 최신 버전입니다.</string>
-    <string name="MangoUpdateDownload">지금 업데이트하세요.</string>
-    <string name="MangoUpdateDownloading">%1$d%% 다운로드 중입니다.</string>
-    <string name="MangoUpdateDownloaded">다운로드가 완료되었습니다. 설치하려면 클릭하세요.</string>
-    <string name="MangoUpdateBackground">배경 업데이트</string>
-    <string name="MangoUpdateCheckFailed">업데이트를 확인하지 못했습니다. 나중에 다시 시도해 주세요.</string>
-    <string name="MangoUpdateDownloadFailed">업데이트 패키지를 다운로드하지 못했습니다. 나중에 다시 시도해 주세요.</string>
-    <string name="MangoUpdateInstallFailed">설치 프로그램을 열 수 없습니다.</string>
     <string name="CustomDownloadPathTitle">사용자 정의 다운로드 경로</string>
     <string name="CustomDownloadPathDefault">기본 경로</string>
     <string name="CustomDownloadPathHint">폴더의 전체 경로를 입력하세요.</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">사용자를 찾을 수 없습니다. 사용자 이름을 확인하세요.</string>
     <string name="AutoReactionUserAdded">%1$s이(가) 좋아요로 추가되었습니다</string>
     <string name="AccountCancellationBot">계정 취소</string>
-    <string name="ForcedChannelHideAction">숨다</string>
     <string name="BroadcastToGroupsTitle">한 번의 클릭으로 모든 그룹에 보내기</string>
     <string name="BroadcastToGroupsSummary">텍스트를 입력하고 현재 계정이 속한 그룹으로 보냅니다.</string>
     <string name="BroadcastToGroupsHint">그룹에 보낼 텍스트를 입력하세요.</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">가 활성화되지 않았습니다.</string>
     <string name="KeywordFilterSummaryEnabled">키워드 %1$d개, 화이트리스트 %2$d개</string>
     <string name="KeywordFilterEnable">키워드 차단 활성화</string>
-    <string name="KeywordFilterRemoteUpdates">클라우드 금지어 업데이트 활성화</string>
     <string name="KeywordFilterKeywords">금지어</string>
     <string name="KeywordFilterAddKeyword">금지어 추가</string>
     <string name="KeywordFilterEditKeyword">금지어 편집</string>

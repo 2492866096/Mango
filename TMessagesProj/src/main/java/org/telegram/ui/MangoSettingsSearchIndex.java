@@ -59,7 +59,6 @@ final class MangoSettingsSearchIndex {
         entries.add(new Entry(10, R.string.AutoReplyAddRule, R.string.AutoReplySettings, "自动回复 关键词 预设 话术 auto reply"));
         entries.add(new Entry(10, R.string.AutoReplyRules, R.string.AutoReplySettings, "自动回复 关键词 预设 话术 auto reply"));
         entries.add(new Entry(8, R.string.KeywordFilterEnable, R.string.KeywordFilterSettings, "过滤 屏蔽 白名单 广告 keyword filter"));
-        entries.add(new Entry(8, R.string.KeywordFilterRemoteUpdates, R.string.KeywordFilterSettings, "过滤 屏蔽 白名单 广告 keyword filter"));
         entries.add(new Entry(8, R.string.BlockSponsoredMessagesFull, R.string.KeywordFilterSettings, "过滤 屏蔽 白名单 广告 keyword filter"));
         entries.add(new Entry(8, R.string.KeywordFilterAddKeyword, R.string.KeywordFilterSettings, "过滤 屏蔽 白名单 广告 keyword filter"));
         entries.add(new Entry(8, R.string.KeywordFilterKeywords, R.string.KeywordFilterSettings, "过滤 屏蔽 白名单 广告 keyword filter"));

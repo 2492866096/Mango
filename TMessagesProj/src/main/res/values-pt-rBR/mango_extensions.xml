@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">velocidade de upload</string>
     <string name="UploadSpeedBoostInfo">Após a configuração, o número de solicitações simultâneas para um único arquivo e o número de filas de upload simultâneas para upload de arquivo serão aumentados. As velocidades reais ainda serão afetadas pelo uplink da rede atual, pela qualidade do proxy e pelas limitações do servidor Telegram.</string>
     <string name="UploadSpeedBoostApplied">A velocidade de upload foi alterada para %1$s</string>
-    <string name="MangoUpdateTitle">Verifique se há atualizações de versão</string>
-    <string name="MangoUpdateChecking">Verificando…</string>
-    <string name="MangoUpdateCurrent">Versão atual %1$s</string>
-    <string name="MangoUpdateAvailable">Encontrada nova versão %1$s, versão atual %2$s, atualização?</string>
-    <string name="MangoUpdateNoUpdate">Atualmente a versão mais recente</string>
-    <string name="MangoUpdateDownload">Atualizar agora</string>
-    <string name="MangoUpdateDownloading">Baixando %1$d%%</string>
-    <string name="MangoUpdateDownloaded">O download foi concluído, clique para instalar</string>
-    <string name="MangoUpdateBackground">Atualização em segundo plano</string>
-    <string name="MangoUpdateCheckFailed">Falha ao verificar atualizações. Tente novamente mais tarde</string>
-    <string name="MangoUpdateDownloadFailed">Falha no download do pacote de atualização. Tente novamente mais tarde.</string>
-    <string name="MangoUpdateInstallFailed">Não consigo abrir o instalador</string>
     <string name="CustomDownloadPathTitle">Caminho de download personalizado</string>
     <string name="CustomDownloadPathDefault">caminho padrão</string>
     <string name="CustomDownloadPathHint">Digite o caminho completo para a pasta</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">O usuário não foi encontrado, verifique o nome de usuário</string>
     <string name="AutoReactionUserAdded">%1$s foi adicionado como um objeto semelhante</string>
     <string name="AccountCancellationBot">Cancelar conta</string>
-    <string name="ForcedChannelHideAction">esconder</string>
     <string name="BroadcastToGroupsTitle">Envie para todos os grupos com um clique</string>
     <string name="BroadcastToGroupsSummary">Digite o texto e envie para o grupo ao qual pertence a conta corrente.</string>
     <string name="BroadcastToGroupsHint">Digite o texto a ser enviado ao grupo</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">não está ativada</string>
     <string name="KeywordFilterSummaryEnabled">%1$d palavras-chave, lista de permissões %2$d</string>
     <string name="KeywordFilterEnable">Ativar bloqueio de palavras-chave</string>
-    <string name="KeywordFilterRemoteUpdates">Ativar atualização de palavra banida na nuvem</string>
     <string name="KeywordFilterKeywords">palavra banida</string>
     <string name="KeywordFilterAddKeyword">Adicionar palavras banidas</string>
     <string name="KeywordFilterEditKeyword">Editar palavras banidas</string>

@@ -44,18 +44,6 @@
     <string name="UploadSpeedBoostTitle">上传速度</string>
     <string name="UploadSpeedBoostInfo">设置后会提高文件上传的单文件并发请求数和上传队列并发数。实际速度仍会受到当前网络上行、代理质量和 Telegram 服务端限制影响。</string>
     <string name="UploadSpeedBoostApplied">上传速度已切换为 %1$s</string>
-    <string name="MangoUpdateTitle">检查版本更新</string>
-    <string name="MangoUpdateChecking">正在检查…</string>
-    <string name="MangoUpdateCurrent">当前版本 %1$s</string>
-    <string name="MangoUpdateAvailable">发现新版本 %1$s，当前版本 %2$s，是否更新？</string>
-    <string name="MangoUpdateNoUpdate">当前已是最新版本</string>
-    <string name="MangoUpdateDownload">立即更新</string>
-    <string name="MangoUpdateDownloading">正在下载 %1$d%%</string>
-    <string name="MangoUpdateDownloaded">下载完成，点击安装</string>
-    <string name="MangoUpdateBackground">后台更新</string>
-    <string name="MangoUpdateCheckFailed">检查更新失败，请稍后再试</string>
-    <string name="MangoUpdateDownloadFailed">更新包下载失败，请稍后再试</string>
-    <string name="MangoUpdateInstallFailed">无法打开安装程序</string>
     <string name="CustomDownloadPathTitle">自定义下载路径</string>
     <string name="CustomDownloadPathDefault">默认路径</string>
     <string name="CustomDownloadPathHint">输入文件夹完整路径</string>
@@ -155,7 +143,6 @@
     <string name="KeywordFilterSummaryDisabled">未开启</string>
     <string name="KeywordFilterSummaryEnabled">%1$d 个关键词，%2$d 个白名单</string>
     <string name="KeywordFilterEnable">启用关键词屏蔽</string>
-    <string name="KeywordFilterRemoteUpdates">启用云端违禁词更新</string>
     <string name="KeywordFilterKeywords">违禁词</string>
     <string name="KeywordFilterAddKeyword">添加违禁词</string>
     <string name="KeywordFilterEditKeyword">编辑违禁词</string>

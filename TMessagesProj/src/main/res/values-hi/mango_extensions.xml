@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">भार डालना के गति</string>
     <string name="UploadSpeedBoostInfo">सेटिंग के बाद, एकल फ़ाइल के लिए समवर्ती अनुरोधों की संख्या और फ़ाइल अपलोड के लिए समवर्ती अपलोड कतारों की संख्या बढ़ जाएगी। वास्तविक गति अभी भी वर्तमान नेटवर्क अपलिंक, प्रॉक्सी गुणवत्ता और टेलीग्राम सर्वर सीमाओं से प्रभावित होगी।</string>
     <string name="UploadSpeedBoostApplied">अपलोड गति को %1$s पर स्विच कर दिया गया है</string>
-    <string name="MangoUpdateTitle">संस्करण अपडेट की जांच की जा रही है</string>
-    <string name="MangoUpdateChecking">जांच की जा रही है...</string>
-    <string name="MangoUpdateCurrent">वर्तमान संस्करण %1$s</string>
-    <string name="MangoUpdateAvailable">नया संस्करण %1$s, वर्तमान संस्करण %2$s, अपडेट मिला?</string>
-    <string name="MangoUpdateNoUpdate">वर्तमान में नवीनतम संस्करण है</string>
-    <string name="MangoUpdateDownload">अभी अपडेट करें</string>
-    <string name="MangoUpdateDownloading">डाउनलोडिंग %1$d%%</string>
-    <string name="MangoUpdateDownloaded">डाउनलोड पूरा हुआ,</string>
-    <string name="MangoUpdateBackground">इंस्टॉल करने के लिए क्लिक करें बैकग्राउंड अपडेट</string>
-    <string name="MangoUpdateCheckFailed">अपडेट की जांच करने में विफल, कृपया बाद में पुनः प्रयास करें</string>
-    <string name="MangoUpdateDownloadFailed">अपडेट पैकेज डाउनलोड करने में विफल, कृपया बाद में पुनः प्रयास करें</string>
-    <string name="MangoUpdateInstallFailed">इंस्टॉलर को खोलने में असमर्थ</string>
     <string name="CustomDownloadPathTitle">कस्टम डाउनलोड पथ</string>
     <string name="CustomDownloadPathDefault">डिफ़ॉल्ट पथ</string>
     <string name="CustomDownloadPathHint">फ़ोल्डर का पूरा पथ दर्ज करें</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">उपयोगकर्ता नहीं मिला, कृपया उपयोगकर्ता नाम जांचें</string>
     <string name="AutoReactionUserAdded">%1$s को लाइक के रूप में जोड़ा गया है</string>
     <string name="AccountCancellationBot">खाता खारिज करना</string>
-    <string name="ForcedChannelHideAction">छिपाना</string>
     <string name="BroadcastToGroupsTitle">एक क्लिक से सभी समूहों को भेजें</string>
     <string name="BroadcastToGroupsSummary">टेक्स्ट दर्ज करें और उस समूह को भेजें जहां चालू खाता है।</string>
     <string name="BroadcastToGroupsHint">समूह में भेजे जाने वाले टेक्स्ट को दर्ज करें</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">सक्षम नहीं है</string>
     <string name="KeywordFilterSummaryEnabled">%1$d कीवर्ड, %2$d श्वेतसूची</string>
     <string name="KeywordFilterEnable">कीवर्ड ब्लॉकिंग सक्षम करें</string>
-    <string name="KeywordFilterRemoteUpdates">क्लाउड प्रतिबंधित शब्द अपडेट सक्षम करें</string>
     <string name="KeywordFilterKeywords">प्रतिबंधित शब्द</string>
     <string name="KeywordFilterAddKeyword">प्रतिबंधित शब्द जोड़ें</string>
     <string name="KeywordFilterEditKeyword">प्रतिबंधित शब्द संपादित करें</string>

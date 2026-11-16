@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">yükleme hızına değiştirildi</string>
     <string name="UploadSpeedBoostInfo">Ayarlamanın ardından, tek bir dosya için eşzamanlı isteklerin sayısı ve dosya yükleme için eşzamanlı yükleme kuyruklarının sayısı artırılacaktır. Gerçek hızlar mevcut ağ bağlantısından, proxy kalitesinden ve Telegram sunucusu sınırlamalarından etkilenmeye devam edecektir.</string>
     <string name="UploadSpeedBoostApplied">Yükleme hızı %1$s olarak değiştirildi</string>
-    <string name="MangoUpdateTitle">Sürüm güncellemeleri kontrol ediliyor</string>
-    <string name="MangoUpdateChecking">Kontrol ediliyor...</string>
-    <string name="MangoUpdateCurrent">Geçerli sürüm %1$s</string>
-    <string name="MangoUpdateAvailable">Yeni %1$s sürümü, geçerli sürüm %2$s bulundu, güncellensin mi?</string>
-    <string name="MangoUpdateNoUpdate">şu anda en son sürümdür</string>
-    <string name="MangoUpdateDownload">Şimdi güncelleyin</string>
-    <string name="MangoUpdateDownloading">İndiriliyor %1$d%%</string>
-    <string name="MangoUpdateDownloaded">İndirme tamamlandı, yüklemek için tıklayın</string>
-    <string name="MangoUpdateBackground">Arka plan güncellemesi</string>
-    <string name="MangoUpdateCheckFailed">Güncellemeler kontrol edilemedi, lütfen daha sonra tekrar deneyin</string>
-    <string name="MangoUpdateDownloadFailed">Güncelleme paketi indirilemedi, lütfen daha sonra tekrar deneyin.</string>
-    <string name="MangoUpdateInstallFailed">Yükleyici açılamıyor</string>
     <string name="CustomDownloadPathTitle">Özel indirme yolu</string>
     <string name="CustomDownloadPathDefault">Varsayılan yol</string>
     <string name="CustomDownloadPathHint">Klasörün tam yolunu girin</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">Kullanıcı bulunamadı, lütfen kullanıcı adını kontrol edin</string>
     <string name="AutoReactionUserAdded">%1$s beğeni olarak eklendi</string>
     <string name="AccountCancellationBot">Hesabı iptal et</string>
-    <string name="ForcedChannelHideAction">saklamak</string>
     <string name="BroadcastToGroupsTitle">Tek tıklamayla tüm gruplara gönderin</string>
     <string name="BroadcastToGroupsSummary">Metni girin ve mevcut hesabın ait olduğu gruba gönderin.</string>
     <string name="BroadcastToGroupsHint">Gruba gönderilecek metni girin</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">etkin değil</string>
     <string name="KeywordFilterSummaryEnabled">%1$d anahtar kelime, %2$d beyaz liste</string>
     <string name="KeywordFilterEnable">Anahtar kelime engellemeyi etkinleştir</string>
-    <string name="KeywordFilterRemoteUpdates">Bulut yasaklı kelime güncellemesini etkinleştir</string>
     <string name="KeywordFilterKeywords">yasaklı kelime</string>
     <string name="KeywordFilterAddKeyword">Yasaklanmış kelime ekle</string>
     <string name="KeywordFilterEditKeyword">Yasaklanmış kelimeleri düzenle</string>

@@ -276,7 +276,6 @@
     <string name="CustomVideoWallpaperChoose">选择视频</string>
     <string name="CustomVideoWallpaperInvalid">无法使用此视频作为动态壁纸</string>
     <string name="CustomVideoWallpaperApplied">动态壁纸已更新</string>
-    <string name="ForcedChannelHideAction">隐藏</string>
     <string name="UnlimitedDialogFiltersTitle">突破分组限制</string>
     <string name="LocalMessageEditTime">本地修改时间</string>
     <string name="LocalMessageRestoreTime">恢复默认时间</string>

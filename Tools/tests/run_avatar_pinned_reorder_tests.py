@@ -81,7 +81,6 @@ public class AvatarPinnedReorderRegression {
  static int checks;
  static void check(boolean b,String msg){checks++;if(!b)throw new AssertionError(msg);}
  TLObject getItem(int p){return p<0||p>=itemInternals.size()?null:itemInternals.get(p).dialog;}
- boolean isPinnedPlaceholderId(long id){return id<=-1000;}
  void updateList(Object scroll){updates++;}
  void notifyItemMoved(int from,int to){notifications.add(from+">"+to);}
  void fixtureDialog(TLRPC.Dialog d){parentFragment.dialogs.add(d);itemInternals.add(new ItemInternal(d));}

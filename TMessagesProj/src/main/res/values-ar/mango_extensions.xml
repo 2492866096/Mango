@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">سرعة التحميل</string>
     <string name="UploadSpeedBoostInfo">بعد الإعداد، سيتم زيادة عدد الطلبات المتزامنة لملف واحد وعدد قوائم انتظار التحميل المتزامنة لتحميل الملف. ستظل السرعات الفعلية متأثرة بوصلة الشبكة الحالية وجودة الوكيل وقيود خادم Telegram.</string>
     <string name="UploadSpeedBoostApplied">تم تحويل سرعة التحميل إلى %1$s</string>
-    <string name="MangoUpdateTitle">التحقق من تحديثات الإصدار</string>
-    <string name="MangoUpdateChecking">جارٍ التحقق...</string>
-    <string name="MangoUpdateCurrent">الإصدار الحالي %1$s</string>
-    <string name="MangoUpdateAvailable">العثور على الإصدار الجديد %1$s، الإصدار الحالي %2$s، التحديث؟</string>
-    <string name="MangoUpdateNoUpdate">هو حاليًا أحدث إصدار</string>
-    <string name="MangoUpdateDownload">قم بالتحديث الآن</string>
-    <string name="MangoUpdateDownloading">جارٍ التنزيل %1$d%%</string>
-    <string name="MangoUpdateDownloaded">اكتمل التنزيل، انقر لتثبيت</string>
-    <string name="MangoUpdateBackground">تحديث الخلفية</string>
-    <string name="MangoUpdateCheckFailed">فشل التحقق من التحديثات، يرجى المحاولة مرة أخرى لاحقًا</string>
-    <string name="MangoUpdateDownloadFailed">فشل تنزيل حزمة التحديث، يرجى المحاولة مرة أخرى لاحقًا</string>
-    <string name="MangoUpdateInstallFailed">غير قادر على فتح برنامج التثبيت</string>
     <string name="CustomDownloadPathTitle">مسار التنزيل المخصص</string>
     <string name="CustomDownloadPathDefault">المسار الافتراضي</string>
     <string name="CustomDownloadPathHint">أدخل المسار الكامل للمجلد</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">لم يتم العثور على المستخدم، يرجى التحقق من اسم المستخدم</string>
     <string name="AutoReactionUserAdded">تمت إضافة %1$s كإعجاب</string>
     <string name="AccountCancellationBot">إلغاء الحساب</string>
-    <string name="ForcedChannelHideAction">يخفي</string>
     <string name="BroadcastToGroupsTitle">إرسال إلى جميع المجموعات بنقرة واحدة</string>
     <string name="BroadcastToGroupsSummary">أدخل النص وأرسله إلى المجموعة التي ينتمي إليها الحساب الحالي.</string>
     <string name="BroadcastToGroupsHint">أدخل النص المراد إرساله إلى المجموعة</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">عن</string>
     <string name="KeywordFilterSummaryEnabled">%1$d كلمة رئيسية، %2$d قائمة بيضاء</string>
     <string name="KeywordFilterEnable">تمكين حظر الكلمة الرئيسية</string>
-    <string name="KeywordFilterRemoteUpdates">تمكين تحديث الكلمات المحظورة السحابية</string>
     <string name="KeywordFilterKeywords">الكلمة المحظورة</string>
     <string name="KeywordFilterAddKeyword">إضافة كلمة محظورة</string>
     <string name="KeywordFilterEditKeyword">تحرير الكلمات المحظورة</string>

@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">のアップロード速度に切り替えられました</string>
     <string name="UploadSpeedBoostInfo">設定後は、単一ファイルの同時リクエスト数とファイルアップロードの同時アップロードキュー数が増加します。実際の速度は、現在のネットワーク アップリンク、プロキシの品質、および Telegram サーバーの制限の影響を受けます。</string>
     <string name="UploadSpeedBoostApplied">アップロード速度が %1$s に切り替えられました</string>
-    <string name="MangoUpdateTitle">バージョンの更新をチェックしています</string>
-    <string name="MangoUpdateChecking">チェックしています...</string>
-    <string name="MangoUpdateCurrent">現在のバージョン %1$s</string>
-    <string name="MangoUpdateAvailable">新しいバージョン %1$s、現在のバージョン %2$s が見つかりました、更新しますか?</string>
-    <string name="MangoUpdateNoUpdate">は現在最新バージョンです</string>
-    <string name="MangoUpdateDownload">今すぐ更新</string>
-    <string name="MangoUpdateDownloading">%1$d%% をダウンロード中</string>
-    <string name="MangoUpdateDownloaded">ダウンロードが完了しました。クリックしてインストールします</string>
-    <string name="MangoUpdateBackground">バックグラウンド更新</string>
-    <string name="MangoUpdateCheckFailed">更新の確認に失敗しました。後でもう一度お試しください</string>
-    <string name="MangoUpdateDownloadFailed">更新パッケージのダウンロードに失敗しました。後でもう一度お試しください</string>
-    <string name="MangoUpdateInstallFailed">インストーラーを開けません</string>
     <string name="CustomDownloadPathTitle">カスタム ダウンロード パス</string>
     <string name="CustomDownloadPathDefault">デフォルト パス</string>
     <string name="CustomDownloadPathHint">フォルダーのフル パスを入力します。</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">ユーザーが見つかりませんでした。ユーザー名を確認してください。</string>
     <string name="AutoReactionUserAdded">%1$s がいいねとして追加されました</string>
     <string name="AccountCancellationBot">アカウントをキャンセルする</string>
-    <string name="ForcedChannelHideAction">隠れる</string>
     <string name="BroadcastToGroupsTitle">ワンクリックですべてのグループに送信</string>
     <string name="BroadcastToGroupsSummary">テキストを入力し、現在のアカウントが所属するグループに送信します。</string>
     <string name="BroadcastToGroupsHint">グループに送信するテキストを入力します</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">は無効です</string>
     <string name="KeywordFilterSummaryEnabled">%1$d キーワード、%2$d ホワイトリスト</string>
     <string name="KeywordFilterEnable">キーワード ブロックを有効にする</string>
-    <string name="KeywordFilterRemoteUpdates">クラウド禁止語の更新を有効にする</string>
     <string name="KeywordFilterKeywords">禁止語</string>
     <string name="KeywordFilterAddKeyword">禁止語を追加する</string>
     <string name="KeywordFilterEditKeyword">禁止語を編集する</string>

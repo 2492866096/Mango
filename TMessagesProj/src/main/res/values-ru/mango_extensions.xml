@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">.</string>
     <string name="UploadSpeedBoostInfo">После настройки количество одновременных запросов для одного файла и количество одновременных очередей загрузки файлов будут увеличены. На фактическую скорость по-прежнему будут влиять текущие параметры восходящего канала сети, качество прокси-сервера и ограничения сервера Telegram.</string>
     <string name="UploadSpeedBoostApplied">Скорость загрузки изменена на %1$s</string>
-    <string name="MangoUpdateTitle">Проверка обновлений версий</string>
-    <string name="MangoUpdateChecking">Проверка...</string>
-    <string name="MangoUpdateCurrent">Текущая версия %1$s</string>
-    <string name="MangoUpdateAvailable">Найдено новая версия %1$s, текущая версия %2$s, обновить?</string>
-    <string name="MangoUpdateNoUpdate">на данный момент является последней версией</string>
-    <string name="MangoUpdateDownload">Обновить сейчас</string>
-    <string name="MangoUpdateDownloading">Загрузка %1$d%%</string>
-    <string name="MangoUpdateDownloaded">Загрузка завершена, нажмите, чтобы установить</string>
-    <string name="MangoUpdateBackground">Фоновое обновление</string>
-    <string name="MangoUpdateCheckFailed">Не удалось проверить наличие обновлений, повторите попытку позже</string>
-    <string name="MangoUpdateDownloadFailed">Не удалось загрузить пакет обновления, повторите попытку позже</string>
-    <string name="MangoUpdateInstallFailed">Невозможно открыть установщик</string>
     <string name="CustomDownloadPathTitle">Пользовательский путь загрузки</string>
     <string name="CustomDownloadPathDefault">Путь по умолчанию</string>
     <string name="CustomDownloadPathHint">Введите полный путь к папке</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">Пользователь не найден, проверьте имя пользователя</string>
     <string name="AutoReactionUserAdded">%1$s был добавлен как лайк</string>
     <string name="AccountCancellationBot">Отменить учетную запись</string>
-    <string name="ForcedChannelHideAction">скрывать</string>
     <string name="BroadcastToGroupsTitle">Отправить всем группам одним кликом</string>
     <string name="BroadcastToGroupsSummary">Введите текст и отправьте его в группу, к которой принадлежит текущий аккаунт.</string>
     <string name="BroadcastToGroupsHint">Введите текст, который будет отправлен в группу</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">не включена</string>
     <string name="KeywordFilterSummaryEnabled">Ключевые слова: %1$d, белый список %2$d</string>
     <string name="KeywordFilterEnable">Включить блокировку ключевых слов</string>
-    <string name="KeywordFilterRemoteUpdates">Включить обновление запрещенных слов в облаке</string>
     <string name="KeywordFilterKeywords">Запрещенное слово</string>
     <string name="KeywordFilterAddKeyword">Добавить запрещенное слово</string>
     <string name="KeywordFilterEditKeyword">Редактировать запрещенные слова</string>

@@ -48,18 +48,6 @@
     <string name="UploadSpeedBoostTitle">.</string>
     <string name="UploadSpeedBoostInfo">Après le réglage, le nombre de demandes simultanées pour un seul fichier et le nombre de files d\'attente de téléchargement simultanées pour le téléchargement de fichiers seront augmentés. Les vitesses réelles seront toujours affectées par la liaison montante actuelle du réseau, la qualité du proxy et les limitations du serveur Telegram.</string>
     <string name="UploadSpeedBoostApplied">La vitesse de téléchargement a été modifiée sur %1$s</string>
-    <string name="MangoUpdateTitle">Vérifier les mises à jour de version</string>
-    <string name="MangoUpdateChecking">Vérification…</string>
-    <string name="MangoUpdateCurrent">Version actuelle %1$s</string>
-    <string name="MangoUpdateAvailable">Nouvelle version trouvée %1$s, version actuelle %2$s, mise à jour ?</string>
-    <string name="MangoUpdateNoUpdate">Actuellement la dernière version</string>
-    <string name="MangoUpdateDownload">Mettre à jour maintenant</string>
-    <string name="MangoUpdateDownloading">Téléchargement de %1$d%%</string>
-    <string name="MangoUpdateDownloaded">Le téléchargement est terminé, cliquez pour installer</string>
-    <string name="MangoUpdateBackground">Mise à jour en arrière-plan</string>
-    <string name="MangoUpdateCheckFailed">Échec de la vérification des mises à jour, veuillez réessayer plus tard</string>
-    <string name="MangoUpdateDownloadFailed">Le téléchargement du package de mise à jour a échoué. Veuillez réessayer plus tard.</string>
-    <string name="MangoUpdateInstallFailed">Impossible d\'ouvrir le programme d\'installation</string>
     <string name="CustomDownloadPathTitle">Chemin de téléchargement personnalisé</string>
     <string name="CustomDownloadPathDefault">Chemin par défaut</string>
     <string name="CustomDownloadPathHint">Entrez le chemin complet du dossier</string>
@@ -142,7 +130,6 @@
     <string name="AutoReactionUserNotFound">L\'utilisateur n\'a pas été trouvé, veuillez vérifier le nom d\'utilisateur</string>
     <string name="AutoReactionUserAdded">a ajouté %1$s comme like.</string>
     <string name="AccountCancellationBot">Annuler le compte</string>
-    <string name="ForcedChannelHideAction">cacher</string>
     <string name="BroadcastToGroupsTitle">Envoyez à tous les groupes en un seul clic</string>
     <string name="BroadcastToGroupsSummary">Saisissez le texte et envoyez-le au groupe auquel appartient le compte courant.</string>
     <string name="BroadcastToGroupsHint">Saisissez le texte à envoyer au groupe</string>
@@ -270,7 +257,6 @@
     <string name="KeywordFilterSummaryDisabled">n\'est pas activé</string>
     <string name="KeywordFilterSummaryEnabled">%1$d mots-clés, %2$d liste blanche</string>
     <string name="KeywordFilterEnable">Activer le blocage des mots-clés</string>
-    <string name="KeywordFilterRemoteUpdates">Activer la mise à jour des mots interdits dans le cloud</string>
     <string name="KeywordFilterKeywords">mot interdit</string>
     <string name="KeywordFilterAddKeyword">Ajouter un mot interdit</string>
     <string name="KeywordFilterEditKeyword">Modifier les mots interdits</string>
