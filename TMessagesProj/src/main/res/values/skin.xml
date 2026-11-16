@@ -5,7 +5,6 @@
     <string name="SkinTabChats">Chats</string>
     <string name="SkinTabContacts">Contacts</string>
     <string name="SkinTabCalls">Calls</string>
-    <string name="SkinTabFeed">Channel feed</string>
     <string name="SkinTabCenter">Message center</string>
     <string name="SkinTabAllAccounts">All accounts</string>
     <string name="SkinTabMe">Me</string>
@@ -56,7 +55,6 @@
     <string name="SkinToggleQuietInfo">Do not disturb: mute all notifications</string>
     <string name="SkinToolBroadcast">Broadcast</string>
     <string name="SkinToolRules">Notification rules</string>
-    <string name="SkinToolScam">Scam alerts</string>
     <string name="SkinToolSecurity">Security check</string>
     <string name="SkinToolPerformance">Performance</string>
     <string name="SkinToolAll">All features</string>

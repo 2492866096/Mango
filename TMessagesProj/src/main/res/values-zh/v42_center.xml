@@ -27,7 +27,6 @@
     <string name="MangoResetNow">确认重置</string>
     <string name="MangoResetDone">设置已重置</string>
     <string name="MangoNotificationRules">关键词独立通知规则</string>
-    <string name="MangoScamUsers">诈骗用户与频道标记</string>
     <string name="MangoSettingsSubtitle">分类管理 · 全局搜索 · 修改可找回</string>
     <string name="MangoSearchPage">打开设置页：%1$s</string>
     <string name="MangoStandardSettings">更多应用设置</string>

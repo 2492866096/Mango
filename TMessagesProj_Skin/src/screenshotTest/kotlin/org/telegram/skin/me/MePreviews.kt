@@ -38,14 +38,12 @@ private fun fakeMe(): MeState = MeState(FakeMeStrings).apply {
         MeRow(1, Glyph.Stories, "我的动态", action = MeRowAction(Glyph.Camera, "发动态")),
     )
     tools = listOf(
-        MeTool(0, Glyph.Feed, "频道动态"),
-        MeTool(1, Glyph.Checklist, "消息中心"),
-        MeTool(2, Glyph.Broadcast, "群发"),
-        MeTool(3, Glyph.Rules, "通知规则"),
-        MeTool(4, Glyph.Shield, "防诈提示"),
-        MeTool(5, Glyph.ShieldCheck, "安全检查"),
-        MeTool(6, Glyph.Gauge, "性能监控"),
-        MeTool(7, Glyph.Grid, "全部功能"),
+        MeTool(0, Glyph.Checklist, "消息中心"),
+        MeTool(1, Glyph.Broadcast, "群发"),
+        MeTool(2, Glyph.Rules, "通知规则"),
+        MeTool(3, Glyph.ShieldCheck, "安全检查"),
+        MeTool(4, Glyph.Gauge, "性能监控"),
+        MeTool(5, Glyph.Grid, "全部功能"),
     )
     settings = listOf(
         MeRow(10, Glyph.Person, "账号"),

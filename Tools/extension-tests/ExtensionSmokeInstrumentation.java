@@ -74,7 +74,6 @@ public class ExtensionSmokeInstrumentation extends Instrumentation {
             editorConstructor.setAccessible(true);
             show(activity, (BaseFragment) editorConstructor.newInstance(draft), "daily-task-editor");
             show(activity, new PresenceSimulationActivity(), "presence");
-            show(activity, new org.telegram.ui.ScamProtectionActivity(), "scam-protection");
             show(activity, new org.telegram.ui.MessageEchoActivity(), "message-echo");
             show(activity, new org.telegram.ui.RecalledMessagesActivity(), "recalled-messages");
             show(activity, new org.telegram.ui.InteractionStatisticsActivity(), "interaction-statistics");
@@ -228,19 +227,10 @@ public class ExtensionSmokeInstrumentation extends Instrumentation {
             owner.id--;
             org.telegram.messenger.MessageEchoManager.setTarget(0, message.dialog_id, false);
             check(org.telegram.messenger.MessageEchoManager.targets(0).isEmpty(), "Echo target removal");
-            org.telegram.messenger.ScamProtectionManager.setEnabled(0, true);
-            org.telegram.messenger.ScamProtectionManager.setKeywords(0, "TEST SCAM");
-            message.message = "This is a test scam fixture";
             org.telegram.messenger.MessageObject object = new org.telegram.messenger.MessageObject(0, message, false, false);
-            String keyword = org.telegram.messenger.ScamProtectionManager.match(0, object);
-            check(keyword != null, "Scam matches normalized keyword");
-            check(org.telegram.messenger.ScamProtectionManager.markShown(0, object, keyword), "Scam first hint");
-            check(!org.telegram.messenger.ScamProtectionManager.markShown(0, object, keyword), "Scam suppresses repeat hint");
             message.out = true;
-            check(org.telegram.messenger.ScamProtectionManager.match(0, object) == null, "Scam excludes outgoing");
             check(!org.telegram.messenger.MessageEchoManager.canEcho(0, object), "Echo excludes outgoing");
-            org.telegram.messenger.ScamProtectionManager.setKeywords(0, org.telegram.messenger.ScamProtectionManager.DEFAULT_KEYWORDS);
-            report.append("V4 recall storage, account/owner isolation, echo preferences and scam hint checks passed.\n");
+            report.append("V4 recall storage, account/owner isolation and echo preference checks passed.\n");
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {

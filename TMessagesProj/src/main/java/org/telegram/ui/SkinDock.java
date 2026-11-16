@@ -62,12 +62,11 @@ final class SkinDock implements NotificationCenter.NotificationCenterDelegate {
     static final int TAB_CONTACTS = 1;
     static final int TAB_CALLS = 2;
     static final int TAB_ALL_ACCOUNTS = 3;
-    static final int TAB_FEED = 4;
     static final int TAB_CENTER = 5;
     static final int TAB_ME = 6;
 
     /** What may go in the middle of the dock, in the arranger's order. */
-    private static final int[] CHOICES = {TAB_CONTACTS, TAB_CALLS, TAB_FEED, TAB_CENTER};
+    private static final int[] CHOICES = {TAB_CONTACTS, TAB_CALLS, TAB_CENTER};
     private static final String MIDDLE_KEY = "skin_dock_middle";
     private static final String MIDDLE_DEFAULT = TAB_CONTACTS + "," + TAB_CALLS;
     private static final int MAX_MIDDLE = 3;
@@ -114,11 +113,10 @@ final class SkinDock implements NotificationCenter.NotificationCenterDelegate {
      */
     int legacyPosition(int position) {
         switch (kindAt(position)) {
-            case TAB_CHATS: return 3;
-            case TAB_CONTACTS: return 0;
-            case TAB_FEED: return 1;
-            case TAB_CENTER: return 6;
-            case TAB_ALL_ACCOUNTS: return 7;
+            case TAB_CHATS: return MainTabsActivity.POSITION_CHATS;
+            case TAB_CONTACTS: return MainTabsActivity.POSITION_CONTACTS;
+            case TAB_CENTER: return MainTabsActivity.POSITION_MESSAGE_CENTER;
+            case TAB_ALL_ACCOUNTS: return MainTabsActivity.POSITION_UNIFIED_INBOX;
             default: return -1;
         }
     }
@@ -360,7 +358,6 @@ final class SkinDock implements NotificationCenter.NotificationCenterDelegate {
         switch (kind) {
             case TAB_CONTACTS: return Glyph.Contacts;
             case TAB_CALLS: return Glyph.Calls;
-            case TAB_FEED: return Glyph.Feed;
             default: return Glyph.Checklist;
         }
     }
@@ -369,7 +366,6 @@ final class SkinDock implements NotificationCenter.NotificationCenterDelegate {
         switch (kind) {
             case TAB_CONTACTS: return SkinBridge.text(R.string.SkinTabContacts, R.string.Contacts);
             case TAB_CALLS: return SkinBridge.text(R.string.SkinTabCalls, R.string.Calls);
-            case TAB_FEED: return LocaleController.getString(R.string.SkinTabFeed);
             default: return LocaleController.getString(R.string.SkinTabCenter);
         }
     }

@@ -328,7 +328,6 @@ public class ApplicationLoader extends Application {
         }
         startExtensionAutomationTicker();
         MangoMessageReminderManager.rescheduleAll();
-        ScamProtectionManager.startAutomaticRefresh();
         BuiltinProxyController.ensureStartupProxyApplied();
         syncProxyWithVpnState(true);
         BuiltinLanguageController.bootstrap();
@@ -445,9 +444,6 @@ public class ApplicationLoader extends Application {
                 super.onActivityStarted(activity);
                 if (wasInBackground) {
                     ensureCurrentNetworkGet(true);
-                    if (applicationInited) {
-                        ScamProtectionManager.startAutomaticRefresh();
-                    }
                 }
             }
         };
@@ -463,7 +459,6 @@ public class ApplicationLoader extends Application {
         LauncherIconController.tryFixLauncherIconIfNeeded();
         ProxyRotationController.init();
         ProxyGate.runWhenSyncAllowed(BuiltinProxyController::init);
-        ScamKeywordsUpdateService.schedule();
     }
 
     public static void startPushService() {

@@ -80,7 +80,6 @@ fun fakeDock(mode: DockMode = DockMode.Rail, position: Float = 0f): DockState = 
     choices = listOf(
         DockChoice(1, Glyph.Contacts, "联系人"),
         DockChoice(2, Glyph.Calls, "通话"),
-        DockChoice(4, Glyph.Feed, "频道动态"),
         DockChoice(5, Glyph.Checklist, "消息中心"),
     )
     chosen = listOf(1, 2)

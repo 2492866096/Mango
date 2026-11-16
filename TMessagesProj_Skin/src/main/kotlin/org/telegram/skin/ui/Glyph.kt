@@ -45,7 +45,6 @@ enum class Glyph(internal val paths: List<String>, internal val mirrors: Boolean
     Chevron(listOf("M9 5l7 7-7 7"), mirrors = true, weight = 2f),
     Broadcast(listOf("M4 10v4h3l6 4V6L7 10z", "M16.5 9a4 4 0 0 1 0 6")),
     Rules(listOf("M4 7h9", "M17 7h3", "M4 17h3", "M11 17h9", "M15 5v4", "M9 15v4")),
-    Shield(listOf("M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z", "M12 8v5", "M12 16.5v.5")),
     ShieldCheck(listOf("M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z", "M8.5 12l2.5 2.5 4.5-4.5")),
     Gauge(listOf("M4.5 17a8 8 0 1 1 15 0", "M12 13.5l3.5-4")),
     History(listOf("M3.5 12a8.5 8.5 0 1 0 2.5-6", "M3.5 4v4h4", "M12 8v4.5l3 2")),

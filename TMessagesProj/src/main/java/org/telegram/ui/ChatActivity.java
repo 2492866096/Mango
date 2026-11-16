@@ -1223,10 +1223,6 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_MESSAGE_ECHO = 129;
     public final static int OPTION_MESSAGE_REMINDER = 130;
     public final static int OPTION_BLOCK_SELECTED_WORDS = 131;
-    private Runnable scamHintRunnable;
-    private boolean scamHintsActive;
-    private final HashSet<Long> scamUsersShownThisVisit = new HashSet<>();
-    private final Runnable scamHintsChanged = this::scheduleScamHint;
 
     public final static int OPTION_SUGGESTION_EDIT_PRICE = 111;
     public final static int OPTION_SUGGESTION_EDIT_TIME = 112;
@@ -3456,7 +3452,6 @@ public class ChatActivity extends BaseFragment implements
 
     @Override
     public void onFragmentDestroy() {
-        stopScamHints();
         if (chatHistoryExportProgressDialog != null) {
             chatHistoryExportProgressDialog.dismiss();
             chatHistoryExportProgressDialog = null;
@@ -6908,7 +6903,6 @@ public class ChatActivity extends BaseFragment implements
                         pollHintView.showForMessageCell(pollHintCell, -1, pollHintX, pollHintY, true);
                         pollHintCell = null;
                     }
-                    scheduleScamHint();
                     scrollingFloatingDate = false;
                     scrollingFloatingTopic = false;
                     scrollingChatListView = false;
@@ -22212,7 +22206,6 @@ public class ChatActivity extends BaseFragment implements
             }
         } else if (id == NotificationCenter.updateInterfaces) {
             int updateMask = (Integer) args[0];
-            if ((updateMask & MessagesController.UPDATE_MASK_NAME) != 0) scheduleScamHint();
             if (updateMask == 0 && sideControlsButtonsLayout != null) {
                 updateReactionsMentionButton(false);
                 if (chatAdapter != null) chatAdapter.notifyDataSetChanged(false);
@@ -24194,7 +24187,6 @@ public class ChatActivity extends BaseFragment implements
                 }
             }
         } else if (id == NotificationCenter.userInfoDidLoad) {
-            scheduleScamHint();
             Long uid = (Long) args[0];
             if (currentUser != null && currentUser.id == uid) {
                 userInfo = (TLRPC.UserFull) args[1];
@@ -27159,7 +27151,6 @@ public class ChatActivity extends BaseFragment implements
     public void onBecomeFullyVisible() {
         isFullyVisible = true;
         super.onBecomeFullyVisible();
-        scheduleScamHint();
         if (showCloseChatDialogLater) {
             showDialog(closeChatDialog);
         }
@@ -27401,7 +27392,6 @@ public class ChatActivity extends BaseFragment implements
     public void onTransitionAnimationEnd(boolean isOpen, boolean backward) {
         super.onTransitionAnimationEnd(isOpen, backward);
         if (isOpen) {
-            scheduleScamHint();
             if (backward) {
                 if (showPinBulletin && pinBulletin != null) {
                     pinBulletin.show();
@@ -27707,7 +27697,6 @@ public class ChatActivity extends BaseFragment implements
 
     @Override
     protected void onDialogDismiss(Dialog dialog) {
-        scheduleScamHint();
         if (closeChatDialog != null && dialog == closeChatDialog) {
             getMessagesController().deleteDialog(dialog_id, 0);
             if (parentLayout != null && !parentLayout.getFragmentStack().isEmpty() && parentLayout.getFragmentStack().get(parentLayout.getFragmentStack().size() - 1) != this) {
@@ -29946,7 +29935,6 @@ public class ChatActivity extends BaseFragment implements
         }
 
         paused = false;
-        startScamHints();
         pausedOnLastMessage = false;
         checkScrollForLoad(false);
         if (wasPaused) {
@@ -30051,7 +30039,6 @@ public class ChatActivity extends BaseFragment implements
 
     @Override
     public void onPause() {
-        stopScamHints();
         super.onPause();
         scrolling = false;
         if (scrimPopupWindow != null) {
@@ -33434,93 +33421,6 @@ public class ChatActivity extends BaseFragment implements
         getMessagesStorage().updateMessageCustomParams(message.getDialogId(), message.messageOwner);
         updateMessageAnimated(message, false);
         updateVisibleRows();
-    }
-
-    private void startScamHints() {
-        scamHintsActive = true;
-        scamUsersShownThisVisit.clear();
-        org.telegram.messenger.ScamUsersManager.addListener(scamHintsChanged);
-        org.telegram.messenger.ScamProtectionManager.addListener(scamHintsChanged);
-        org.telegram.messenger.ScamUsersManager.refresh(currentAccount, false);
-        org.telegram.messenger.ScamProtectionManager.refreshIfNeeded(currentAccount);
-        scheduleScamHint();
-    }
-
-    private void stopScamHints() {
-        scamHintsActive = false;
-        org.telegram.messenger.ScamUsersManager.removeListener(scamHintsChanged);
-        org.telegram.messenger.ScamProtectionManager.removeListener(scamHintsChanged);
-        if (scamHintRunnable != null) {
-            AndroidUtilities.cancelRunOnUIThread(scamHintRunnable);
-            scamHintRunnable = null;
-        }
-    }
-
-    private void scheduleScamHint() {
-        if (!scamHintsActive || scamHintRunnable != null || paused || isFinished
-                || chatMode != MODE_DEFAULT || isInPreviewMode()) return;
-        // Coalesce binds, then inspect the actual visible cells. Never capture a recycled
-        // cell or let the first bound message discard every other sender on screen.
-        scamHintRunnable = () -> {
-            scamHintRunnable = null;
-            checkVisibleScamHints();
-        };
-        AndroidUtilities.runOnUIThread(scamHintRunnable, 400);
-    }
-
-    private boolean showScamUserHint(TLRPC.User user) {
-        if (user == null || scamUsersShownThisVisit.contains(user.id)) return false;
-        // A transition may reject showDialog. Only consume the hint after it is visible.
-        if (org.telegram.ui.Components.MangoScamUserWarning.show(this, user,
-                () -> AndroidUtilities.runOnUIThread(this::scheduleScamHint, 80))) {
-            scamUsersShownThisVisit.add(user.id);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean showScamChannelHint(TLRPC.Chat chat) {
-        if (chat == null || scamUsersShownThisVisit.contains(-chat.id)) return false;
-        // Keep channel keys separate from user IDs while preserving per-visit deduplication.
-        if (org.telegram.ui.Components.MangoScamUserWarning.showChannel(this, chat,
-                () -> AndroidUtilities.runOnUIThread(this::scheduleScamHint, 80))) {
-            scamUsersShownThisVisit.add(-chat.id);
-            return true;
-        }
-        return false;
-    }
-
-    private void checkVisibleScamHints() {
-        if (!scamHintsActive || paused || isFinished || chatMode != MODE_DEFAULT || isInPreviewMode()
-                || getParentActivity() == null || getParentLayout() == null) return;
-        if (visibleDialog != null && visibleDialog.isShowing()) return;
-
-        // Private-chat identity is enough, including an empty chat or only outgoing,
-        // photo and sticker messages. Group chats are checked by visible sender below.
-        if (currentUser != null && showScamUserHint(
-                org.telegram.messenger.ScamUsersManager.matchUser(currentAccount, currentUser.id))) return;
-        // A public broadcast channel is itself a listed peer, even when its history is empty.
-        if (currentChat != null && org.telegram.messenger.ChatObject.isChannelAndNotMegaGroup(currentChat)
-                && showScamChannelHint(org.telegram.messenger.ScamUsersManager.matchChannel(currentAccount, currentChat.id))) return;
-        if (chatListView == null) return;
-        ArrayList<MessageObject> visibleMessages = new ArrayList<>();
-        android.graphics.Rect visibleRect = new android.graphics.Rect();
-        for (int i = 0; i < chatListView.getChildCount(); i++) {
-            View child = chatListView.getChildAt(i);
-            if (!(child instanceof ChatMessageCell) || !child.getLocalVisibleRect(visibleRect)) continue;
-            MessageObject message = ((ChatMessageCell) child).getMessageObject();
-            visibleMessages.add(message);
-            if (showScamChannelHint(org.telegram.messenger.ScamUsersManager.matchChannelSender(currentAccount, message))) return;
-            if (showScamUserHint(org.telegram.messenger.ScamUsersManager.match(currentAccount, message))) return;
-        }
-        for (MessageObject message : visibleMessages) {
-            String keyword = org.telegram.messenger.ScamProtectionManager.match(currentAccount, message);
-            if (keyword != null && org.telegram.messenger.ScamProtectionManager.markShown(currentAccount, message, keyword)) {
-                BulletinFactory.of(this).createSimpleBulletin(R.raw.error,
-                        LocaleController.formatString(R.string.V4ScamRiskWarning, keyword)).show();
-                return;
-            }
-        }
     }
 
     private void processSelectedOption(int option) {
@@ -37530,7 +37430,6 @@ public class ChatActivity extends BaseFragment implements
                 }
 
                 MessageObject message = messages.get(position - messagesStartRow);
-                scheduleScamHint();
                 View view = holder.itemView;
 
                 if (view instanceof ChatMessageCell) {
@@ -38192,7 +38091,6 @@ public class ChatActivity extends BaseFragment implements
                 }
 
                 MessageObject message = messages.get(position - messagesStartRow);
-                scheduleScamHint();
                 View view = holder.itemView;
                 if (message != null && message.messageOwner != null && message.messageOwner.media_unread && message.messageOwner.mentioned) {
                     if (!inPreviewMode && chatMode == 0) {

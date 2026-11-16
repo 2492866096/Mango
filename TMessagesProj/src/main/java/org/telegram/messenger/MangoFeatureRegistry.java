@@ -52,7 +52,6 @@ public final class MangoFeatureRegistry {
         for (Feature feature : FEATURES) if (feature.key.equals(key)) return LocaleController.getString(feature.title);
         if (key.startsWith("legacy:")) return MangoLegacySettings.label(key.substring(7));
         if (key.startsWith("notification_")) return LocaleController.getString(R.string.MangoNotificationRules);
-        if (key.startsWith("scam_")) return LocaleController.getString(R.string.MangoScamUsers);
         return key;
     }
     private MangoFeatureRegistry() {}

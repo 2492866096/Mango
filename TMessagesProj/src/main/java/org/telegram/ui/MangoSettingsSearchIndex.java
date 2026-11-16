@@ -30,10 +30,6 @@ final class MangoSettingsSearchIndex {
         entries.add(new Entry(48, R.string.MessageTagTodo, R.string.MessageManagementTitle, "消息标签 待处理 待回复 收藏 标签管理"));
         entries.add(new Entry(48, R.string.MessageTagReply, R.string.MessageManagementTitle, "消息标签 待处理 待回复 收藏 标签管理"));
         entries.add(new Entry(48, R.string.MessageTagFavorite, R.string.MessageManagementTitle, "消息标签 待处理 待回复 收藏 标签管理"));
-        entries.add(new Entry(53, R.string.V4ScamProtectionEnabled, R.string.V4ScamEntry, "反诈 诈骗 风险 词库 两小时 2小时 scam fraud"));
-        entries.add(new Entry(53, R.string.V4ScamKeywords, R.string.V4ScamEntry, "反诈 诈骗 风险 词库 两小时 2小时 scam fraud"));
-        entries.add(new Entry(53, R.string.V4ScamKeywordsUpdateNow, R.string.V4ScamEntry, "反诈 诈骗 风险 词库 两小时 2小时 scam fraud"));
-        entries.add(new Entry(53, R.string.V4RestoreScamKeywords, R.string.V4ScamEntry, "反诈 诈骗 风险 词库 两小时 2小时 scam fraud"));
         entries.add(new Entry(45, R.string.DailyMessageTasksAdd, R.string.ExtensionDailyMessages, "定时 签到 自动 手动 时间 随机 每日 schedule"));
         entries.add(new Entry(45, R.string.DailyMessageTasksAutomatic, R.string.ExtensionDailyMessages, "定时 签到 自动 手动 时间 随机 每日 schedule"));
         entries.add(new Entry(45, R.string.DailyMessageTasksSendNow, R.string.ExtensionDailyMessages, "定时 签到 自动 手动 时间 随机 每日 schedule"));
@@ -77,7 +73,6 @@ final class MangoSettingsSearchIndex {
         entries.add(new Entry(44, R.string.SelectFromGallery, R.string.ExtensionPersonalWallpapers, "自定义壁纸 上传图片 背景 wallpaper"));
         entries.add(new Entry(51, R.string.V4RecalledArchive, R.string.V4RecalledArchive, "撤回 归档 防撤回 archive"));
         entries.add(new Entry(82, R.string.MangoNotificationRules, R.string.MangoNotificationRules, "提醒 @我 mentions 关键词 独立 通知"));
-        entries.add(new Entry(83, R.string.MangoScamUsers, R.string.MangoScamUsers, "诈骗名单 用户名 永久ID 直链 拉黑 举报 scam user"));
         entries.add(new Entry(84, R.string.MangoBuiltinThemes, R.string.MangoBuiltinThemes, "内置 主题 外观 配色 theme appearance"));
         entries.add(new Entry(89, R.string.MangoPerformanceTitle, R.string.MangoPerformanceTitle, "性能 内存 电池 耗电 缓存 后台任务 monitor performance memory battery"));
         entries.add(new Entry(90, R.string.MangoDownloadHudTitle, R.string.MangoDownloadHudTitle, "下载速度 浮窗 任务数 download speed floating"));

@@ -24,7 +24,6 @@ public final class MangoSettingsSync {
         Map<String, Boolean> result = new LinkedHashMap<>();
         for (MangoFeatureRegistry.Feature feature : MangoFeatureRegistry.FEATURES) result.put(feature.key, false);
         result.put("cross_account_inbox", true);
-        result.put("scam_users_enabled", true);
         result.put("mango_quick_forward_account_selection", false);
         result.put("mango_download_speed_hud", false);
         return result;

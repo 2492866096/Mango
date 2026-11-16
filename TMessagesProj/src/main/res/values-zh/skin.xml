@@ -5,7 +5,6 @@
     <string name="SkinTabChats">对话</string>
     <string name="SkinTabContacts">联系人</string>
     <string name="SkinTabCalls">通话</string>
-    <string name="SkinTabFeed">频道动态</string>
     <string name="SkinTabCenter">消息中心</string>
     <string name="SkinTabAllAccounts">全部账号</string>
     <string name="SkinTabMe">我</string>
@@ -56,7 +55,6 @@
     <string name="SkinToggleQuietInfo">勿扰：暂停全部通知</string>
     <string name="SkinToolBroadcast">群发</string>
     <string name="SkinToolRules">通知规则</string>
-    <string name="SkinToolScam">防诈提示</string>
     <string name="SkinToolSecurity">安全检查</string>
     <string name="SkinToolPerformance">性能监控</string>
     <string name="SkinToolAll">全部功能</string>

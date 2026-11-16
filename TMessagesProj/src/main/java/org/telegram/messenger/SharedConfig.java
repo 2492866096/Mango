@@ -87,8 +87,6 @@ public class SharedConfig {
     private static final String PREF_AUTO_REACTION_EMOJI = "autoReactionEmoji";
     private static final String PREF_AUTO_REACTION_TARGET = "autoReactionTarget";
     private static final String PREF_AUTO_REACTION_USERS_PREFIX = "autoReactionUsers_";
-    private static final String PREF_CHANNEL_FEED_ENABLED = "channelFeedEnabled";
-    private static final String PREF_CHANNEL_FEED_CUSTOM_ENTRIES = "channelFeedCustomEntries";
     private static final String PREF_UNLIMITED_CHANNEL_JOIN_ENABLED = "unlimitedChannelJoinEnabled";
     private static final String PREF_UNLIMITED_DIALOG_FILTERS_ENABLED = "unlimitedDialogFiltersEnabled";
     private static final String PREF_LOCAL_HOLD_VERIFICATION_ENABLED = "localHoldVerificationEnabled";
@@ -113,7 +111,6 @@ public class SharedConfig {
     public static final int AUTO_REACTION_TARGET_INCOMING = 0;
     public static final int AUTO_REACTION_TARGET_OUTGOING = 1;
     public static final int AUTO_REACTION_TARGET_BOTH = 2;
-    public static final String CHANNEL_FEED_URL = "https://1812652903.v.123pan.cn/1812652903/GY/PDL.txt";
 
     /**
      * V2: Ping and check time serialized
@@ -974,108 +971,6 @@ public class SharedConfig {
         return selectedUsers.isEmpty() || selectedUsers.contains(userId);
     }
 
-    public static boolean isChannelFeedEnabled() {
-        return channelFeedEnabled;
-    }
-
-    public static void setChannelFeedEnabled(boolean enabled) {
-        channelFeedEnabled = enabled;
-        saveExtensionPreference(PREF_CHANNEL_FEED_ENABLED, enabled);
-    }
-
-    public static ArrayList<String> getCustomChannelFeedEntries() {
-        ArrayList<String> entries = new ArrayList<>();
-        if (TextUtils.isEmpty(channelFeedCustomEntries)) {
-            return entries;
-        }
-        String[] lines = channelFeedCustomEntries.split("\\n");
-        HashSet<String> seen = new HashSet<>();
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i] == null ? "" : lines[i].trim();
-            if (TextUtils.isEmpty(line)) {
-                continue;
-            }
-            String key = line.toLowerCase(Locale.US);
-            if (seen.add(key)) {
-                entries.add(line);
-            }
-        }
-        return entries;
-    }
-
-    public static boolean addCustomChannelFeedEntry(String entry) {
-        String value = sanitizeChannelFeedEntry(entry);
-        if (TextUtils.isEmpty(value)) {
-            return false;
-        }
-        ArrayList<String> entries = getCustomChannelFeedEntries();
-        String key = value.toLowerCase(Locale.US);
-        for (int i = 0; i < entries.size(); i++) {
-            if (key.equals(entries.get(i).toLowerCase(Locale.US))) {
-                return false;
-            }
-        }
-        entries.add(value);
-        saveCustomChannelFeedEntries(entries);
-        return true;
-    }
-
-    public static boolean removeCustomChannelFeedEntry(String entry) {
-        String value = sanitizeChannelFeedEntry(entry);
-        if (TextUtils.isEmpty(value)) {
-            return false;
-        }
-        ArrayList<String> entries = getCustomChannelFeedEntries();
-        String key = value.toLowerCase(Locale.US);
-        boolean removed = false;
-        for (int i = entries.size() - 1; i >= 0; i--) {
-            if (key.equals(entries.get(i).toLowerCase(Locale.US))) {
-                entries.remove(i);
-                removed = true;
-            }
-        }
-        if (removed) {
-            saveCustomChannelFeedEntries(entries);
-        }
-        return removed;
-    }
-
-    private static String sanitizeChannelFeedEntry(String entry) {
-        if (entry == null) {
-            return "";
-        }
-        return entry.replace('\n', ' ').replace('\r', ' ').trim();
-    }
-
-    private static void saveCustomChannelFeedEntries(ArrayList<String> entries) {
-        StringBuilder builder = new StringBuilder();
-        if (entries != null) {
-            HashSet<String> seen = new HashSet<>();
-            for (int i = 0; i < entries.size(); i++) {
-                String entry = sanitizeChannelFeedEntry(entries.get(i));
-                if (TextUtils.isEmpty(entry)) {
-                    continue;
-                }
-                String key = entry.toLowerCase(Locale.US);
-                if (!seen.add(key)) {
-                    continue;
-                }
-                if (builder.length() > 0) {
-                    builder.append('\n');
-                }
-                builder.append(entry);
-            }
-        }
-        channelFeedCustomEntries = builder.toString();
-        if (ApplicationLoader.applicationContext != null) {
-            ApplicationLoader.applicationContext
-                    .getSharedPreferences("userconfing", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString(PREF_CHANNEL_FEED_CUSTOM_ENTRIES, channelFeedCustomEntries)
-                    .apply();
-        }
-    }
-
     public static boolean isUnlimitedChannelJoinEnabled() {
         return unlimitedChannelJoinEnabled;
     }
@@ -1825,8 +1720,6 @@ public class SharedConfig {
     public static boolean autoReactionEnabled = true;
     public static String autoReactionEmoji = "\uD83D\uDC4D";
     public static int autoReactionTarget = AUTO_REACTION_TARGET_INCOMING;
-    public static boolean channelFeedEnabled = true;
-    public static String channelFeedCustomEntries = "";
     public static boolean unlimitedChannelJoinEnabled = true;
     public static boolean unlimitedDialogFiltersEnabled = true;
     public static boolean localHoldVerificationEnabled = true;
@@ -2007,8 +1900,6 @@ public class SharedConfig {
                 editor.putBoolean(PREF_AUTO_REACTION_ENABLED, autoReactionEnabled);
                 editor.putString(PREF_AUTO_REACTION_EMOJI, getAutoReactionEmoji());
                 editor.putInt(PREF_AUTO_REACTION_TARGET, getAutoReactionTarget());
-                editor.putBoolean(PREF_CHANNEL_FEED_ENABLED, channelFeedEnabled);
-                editor.putString(PREF_CHANNEL_FEED_CUSTOM_ENTRIES, channelFeedCustomEntries == null ? "" : channelFeedCustomEntries);
                 editor.putBoolean(PREF_UNLIMITED_CHANNEL_JOIN_ENABLED, unlimitedChannelJoinEnabled);
                 editor.putBoolean(PREF_UNLIMITED_DIALOG_FILTERS_ENABLED, unlimitedDialogFiltersEnabled);
                 editor.putBoolean(PREF_LOCAL_HOLD_VERIFICATION_ENABLED, localHoldVerificationEnabled);
@@ -2101,8 +1992,6 @@ public class SharedConfig {
             autoReactionEnabled = preferences.getBoolean(PREF_AUTO_REACTION_ENABLED, true);
             autoReactionEmoji = preferences.getString(PREF_AUTO_REACTION_EMOJI, "\uD83D\uDC4D");
             autoReactionTarget = preferences.getInt(PREF_AUTO_REACTION_TARGET, AUTO_REACTION_TARGET_INCOMING);
-            channelFeedEnabled = preferences.getBoolean(PREF_CHANNEL_FEED_ENABLED, true);
-            channelFeedCustomEntries = preferences.getString(PREF_CHANNEL_FEED_CUSTOM_ENTRIES, "");
             unlimitedChannelJoinEnabled = preferences.getBoolean(PREF_UNLIMITED_CHANNEL_JOIN_ENABLED, true);
             unlimitedDialogFiltersEnabled = preferences.getBoolean(PREF_UNLIMITED_DIALOG_FILTERS_ENABLED, true);
             localHoldVerificationEnabled = preferences.getBoolean(PREF_LOCAL_HOLD_VERIFICATION_ENABLED, true);

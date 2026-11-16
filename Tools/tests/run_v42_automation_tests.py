@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Behavioral checks of production automation and risk-list code with isolated storage/network."""
+"""Behavioral checks of production automation code with isolated storage."""
 from pathlib import Path
-import ast, os, subprocess, tempfile
+import os, subprocess, tempfile
 root = Path(__file__).resolve().parents[2]
 java = Path(os.environ.get('JAVA_HOME', '/Applications/Android Studio.app/Contents/jbr/Contents/Home')) / 'bin'
-tree = ast.parse((root/'Tools/tests/run_scam_keywords_tests.py').read_text())
-fixtures = ast.literal_eval(next(n.value for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='FIXTURES' for t in n.targets)))
-fixtures.pop('org/telegram/messenger/ScamUsersManager.java')
+fixtures = {
+'android/content/SharedPreferences.java': 'package android.content;\npublic interface SharedPreferences {\n String getString(String key,String fallback); long getLong(String key,long fallback); boolean getBoolean(String key,boolean fallback);\n Editor edit(); interface Editor { Editor putString(String key,String value); Editor putLong(String key,long value); Editor putBoolean(String key,boolean value); boolean commit(); void apply(); }\n}',
+'android/content/Context.java': 'package android.content;\nimport java.util.*;\npublic class Context {\n public static final int MODE_PRIVATE=0;\n public boolean failCommit; private final Map<String,Prefs> preferences=new HashMap<>();\n public SharedPreferences getSharedPreferences(String name,int mode){return preferences.computeIfAbsent(name,key->new Prefs());}\n private final class Prefs implements SharedPreferences {\n  private Map<String,Object> values=new HashMap<>();\n  public String getString(String key,String fallback){return (String)values.getOrDefault(key,fallback);}\n  public long getLong(String key,long fallback){return (Long)values.getOrDefault(key,fallback);}\n  public boolean getBoolean(String key,boolean fallback){return (Boolean)values.getOrDefault(key,fallback);}\n  public Editor edit(){return new Editor(){\n   final Map<String,Object> next=new HashMap<>(values);\n   public Editor putString(String key,String value){next.put(key,value);return this;}\n   public Editor putLong(String key,long value){next.put(key,value);return this;}\n   public Editor putBoolean(String key,boolean value){next.put(key,value);return this;}\n   public boolean commit(){if(failCommit)return false;values=next;return true;}\n   public void apply(){commit();}\n  };}\n }\n}',
+'android/text/TextUtils.java': 'package android.text; public final class TextUtils {\n public static String join(CharSequence delimiter,Iterable<?> values){StringBuilder out=new StringBuilder();for(Object value:values){if(out.length()>0)out.append(delimiter);out.append(value);}return out.toString();}\n}',
+'org/telegram/messenger/UserConfig.java': 'package org.telegram.messenger;\npublic final class UserConfig {\n private static final UserConfig[] accounts={new UserConfig(),new UserConfig(),new UserConfig()}; public long owner;\n public static UserConfig getInstance(int id){return accounts[id];} public long getClientUserId(){return owner;} public boolean isClientActivated(){return owner!=0;}\n public static int[] getActivatedAccounts(){java.util.ArrayList<Integer> active=new java.util.ArrayList<>();for(int i=0;i<accounts.length;i++)if(accounts[i].owner!=0)active.add(i);return active.stream().mapToInt(Integer::intValue).toArray();}\n}',
+'org/telegram/messenger/AndroidUtilities.java': 'package org.telegram.messenger;\npublic final class AndroidUtilities {\n public static final class Delayed {public Runnable runnable;public long delay;Delayed(Runnable r,long d){runnable=r;delay=d;}}\n public static final java.util.ArrayList<Delayed> delayed=new java.util.ArrayList<>();\n public static void runOnUIThread(Runnable r){r.run();} public static void runOnUIThread(Runnable r,long delay){delayed.add(new Delayed(r,delay));}\n public static void cancelRunOnUIThread(Runnable r){delayed.removeIf(item->item.runnable==r);}\n}',
+'org/telegram/messenger/FileLog.java': 'package org.telegram.messenger; public final class FileLog { public static int errors; public static void e(Exception error){errors++;} }',
+}
 fixtures.update({
-'org/telegram/messenger/ScamProtectionManager.java': 'package org.telegram.messenger;public class ScamProtectionManager {public static final long REFRESH_INTERVAL_MS=7200000;}',
 'org/telegram/messenger/ApplicationLoader.java': 'package org.telegram.messenger;public class ApplicationLoader {public static final android.content.Context applicationContext=new android.content.Context();public static boolean mainInterfacePaused=false,isScreenOn=true;}',
 'org/telegram/messenger/MangoSettings.java': '''package org.telegram.messenger;import java.util.*;public class MangoSettings {static final Map<String,Object> map=new HashMap<>();static String k(int a,String k){return a+":"+UserConfig.getInstance(a).owner+":"+k;}public static boolean getBoolean(int a,String k){return (Boolean)map.getOrDefault(k(a,k),false);}public static boolean getBoolean(int a,String k,boolean d){return (Boolean)map.getOrDefault(k(a,k),d);}public static String getString(int a,String k,String d){return (String)map.getOrDefault(k(a,k),d);}public static int getInt(int a,String k,int d){return (Integer)map.getOrDefault(k(a,k),d);}public static void setString(int a,String k,String v){map.put(k(a,k),v);}public static void setBoolean(int a,String k,boolean v){map.put(k(a,k),v);}public static void setInt(int a,String k,int v){map.put(k(a,k),v);}}''',
 'org/telegram/messenger/Utilities.java': 'package org.telegram.messenger;public class Utilities {public static final java.util.Random random=new java.util.Random(10);}',
@@ -30,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix='mango-v42-tests-') as tmp:
  for name,source in fixtures.items():
   p=base/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(source);sources.append(p)
  production=root/'TMessagesProj/src/main/java/org/telegram/messenger'
- sources += [production/f for f in ['MangoAutoReadManager.java','RemoteScamUsers.java','ScamUsersManager.java','MessageInsightsRules.java','MangoNotificationRules.java']]
+ sources += [production/f for f in ['MangoAutoReadManager.java','MessageInsightsRules.java','MangoNotificationRules.java']]
  sources += [root/'Tools/tests/V42AutomationTest.java']
  subprocess.run([str(java/'javac'),'-d',str(base/'classes')]+list(map(str,sources)),check=True)
  subprocess.run([str(java/'java'),'-cp',str(base/'classes'),'org.telegram.messenger.V42AutomationTest'],check=True)

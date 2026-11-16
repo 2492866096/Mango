@@ -334,8 +334,10 @@ private fun Section(title: String) {
 @Composable
 private fun Toolbox(tools: List<MeTool>, actions: MeActions) {
     val c = Skin.colors
-    // Four to a row, three once the system font is so large that four-character names would break.
-    val columns = if (LocalDensity.current.fontScale >= 1.5f) 3 else 4
+    // Four to a row; three once the system font is so large that four-character names
+    // would break, or when three fills every row and four would leave a gap.
+    val largeFont = LocalDensity.current.fontScale >= 1.5f
+    val columns = if (largeFont || tools.size % 4 != 0 && tools.size % 3 == 0) 3 else 4
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         tools.chunked(columns).forEach { line ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

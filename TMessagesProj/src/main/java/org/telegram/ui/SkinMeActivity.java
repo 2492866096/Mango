@@ -50,14 +50,12 @@ public class SkinMeActivity extends BaseFragment implements NotificationCenter.N
     private static final int ROW_SAVED = 100;
     private static final int ROW_STORIES = 101;
 
-    private static final int TOOL_FEED = 300;
-    private static final int TOOL_CENTER = 301;
-    private static final int TOOL_BROADCAST = 302;
-    private static final int TOOL_RULES = 303;
-    private static final int TOOL_SCAM = 304;
-    private static final int TOOL_SECURITY = 305;
-    private static final int TOOL_PERFORMANCE = 306;
-    private static final int TOOL_ALL = 307;
+    private static final int TOOL_CENTER = 300;
+    private static final int TOOL_BROADCAST = 301;
+    private static final int TOOL_RULES = 302;
+    private static final int TOOL_SECURITY = 303;
+    private static final int TOOL_PERFORMANCE = 304;
+    private static final int TOOL_ALL = 305;
 
     private static final int SET_ACCOUNT = 200;
     private static final int SET_CHAT = 201;
@@ -198,11 +196,9 @@ public class SkinMeActivity extends BaseFragment implements NotificationCenter.N
                         new MeRowAction(Glyph.Camera, LocaleController.getString(R.string.SkinMePostStory)))));
 
         state.setTools(Arrays.asList(
-                new MeTool(TOOL_FEED, Glyph.Feed, LocaleController.getString(R.string.SkinTabFeed)),
                 new MeTool(TOOL_CENTER, Glyph.Checklist, LocaleController.getString(R.string.SkinTabCenter)),
                 new MeTool(TOOL_BROADCAST, Glyph.Broadcast, LocaleController.getString(R.string.SkinToolBroadcast)),
                 new MeTool(TOOL_RULES, Glyph.Rules, LocaleController.getString(R.string.SkinToolRules)),
-                new MeTool(TOOL_SCAM, Glyph.Shield, LocaleController.getString(R.string.SkinToolScam)),
                 new MeTool(TOOL_SECURITY, Glyph.ShieldCheck, LocaleController.getString(R.string.SkinToolSecurity)),
                 new MeTool(TOOL_PERFORMANCE, Glyph.Gauge, LocaleController.getString(R.string.SkinToolPerformance)),
                 new MeTool(TOOL_ALL, Glyph.Grid, LocaleController.getString(R.string.SkinToolAll))));
@@ -370,9 +366,6 @@ public class SkinMeActivity extends BaseFragment implements NotificationCenter.N
         @Override
         public void onTool(int id) {
             switch (id) {
-                case TOOL_FEED:
-                    presentForAccount(new ChannelFeedActivity(false));
-                    break;
                 case TOOL_CENTER:
                     presentForAccount(new MessageManagementActivity(false));
                     break;
@@ -381,9 +374,6 @@ public class SkinMeActivity extends BaseFragment implements NotificationCenter.N
                     break;
                 case TOOL_RULES:
                     presentForAccount(new MangoNotificationRulesActivity());
-                    break;
-                case TOOL_SCAM:
-                    presentForAccount(new ScamProtectionActivity());
                     break;
                 case TOOL_SECURITY:
                     presentForAccount(new MangoSecurityCheckActivity());

@@ -76,24 +76,22 @@ import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
 
 public class MainTabsActivity extends ViewPagerActivity implements NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target {
-    public static final int TABS_COUNT = 8;
-    private static final int POSITION_CONTACTS = 0;
-    private static final int POSITION_CHANNEL_FEED = 1;
-    private static final int POSITION_UNREAD = 2;
-    private static final int POSITION_CHATS = 3;
-    private static final int POSITION_SETTINGS = 4;
-    private static final int POSITION_PROFILE = 5;
-    private static final int POSITION_MESSAGE_CENTER = 6;
-    private static final int POSITION_UNIFIED_INBOX = 7;
+    public static final int TABS_COUNT = 7;
+    static final int POSITION_CONTACTS = 0;
+    static final int POSITION_UNREAD = 1;
+    static final int POSITION_CHATS = 2;
+    static final int POSITION_SETTINGS = 3;
+    static final int POSITION_PROFILE = 4;
+    static final int POSITION_MESSAGE_CENTER = 5;
+    static final int POSITION_UNIFIED_INBOX = 6;
 
     private static final int INDEX_CONTACTS = 0;
-    private static final int INDEX_CHANNEL_FEED = 1;
-    private static final int INDEX_UNREAD = 2;
-    private static final int INDEX_CHATS = 3;
-    private static final int INDEX_SETTINGS = 4;
-    private static final int INDEX_PROFILE = 5;
-    private static final int INDEX_MESSAGE_CENTER = 6;
-    private static final int INDEX_UNIFIED_INBOX = 7;
+    private static final int INDEX_UNREAD = 1;
+    private static final int INDEX_CHATS = 2;
+    private static final int INDEX_SETTINGS = 3;
+    private static final int INDEX_PROFILE = 4;
+    private static final int INDEX_MESSAGE_CENTER = 5;
+    private static final int INDEX_UNIFIED_INBOX = 6;
     private static final int TABS_WIDTH_TWO = 196;
     private static final int TABS_WIDTH_THREE = 284;
     private static final int TABS_WIDTH_FOUR = 320;
@@ -317,7 +315,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         tabs = new GlassTabView[TABS_COUNT];
         tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CONTACTS, R.string.ContactsTabTitle);
-        tabs[INDEX_CHANNEL_FEED] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.REPLIES, R.string.ChannelFeedTitle);
         tabs[INDEX_UNREAD] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHECKLIST, R.string.MainTabsUnread);
         tabs[INDEX_CHATS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHATS, R.string.MainTabsChats);
         tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.SETTINGS, R.string.Settings);
@@ -452,12 +449,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         return getUserConfig().showContactsTab;
     }
 
-    private boolean isChannelFeedTabEnabled() {
-        return SharedConfig.isChannelFeedEnabled();
-    }
-
-    private int getTabsWidthDp(boolean contactsVisible, boolean unreadVisible, boolean channelFeedVisible) {
-        int visibleCount = 3 + (contactsVisible ? 1 : 0) + (unreadVisible ? 1 : 0) + (channelFeedVisible ? 1 : 0) + (MessageActionSettings.isCenterEnabled(currentAccount) ? 1 : 0) + (CrossAccountInboxActivity.isEnabled(currentAccount) ? 1 : 0);
+    private int getTabsWidthDp(boolean contactsVisible, boolean unreadVisible) {
+        int visibleCount = 3 + (contactsVisible ? 1 : 0) + (unreadVisible ? 1 : 0) + (MessageActionSettings.isCenterEnabled(currentAccount) ? 1 : 0) + (CrossAccountInboxActivity.isEnabled(currentAccount) ? 1 : 0);
         if (visibleCount <= 2) {
             return TABS_WIDTH_TWO;
         } else if (visibleCount == 3) {
@@ -475,14 +468,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             skinDock.refreshOrder();
             return;
         }
-        if (tabsView == null || tabs == null || tabs[INDEX_CONTACTS] == null || tabs[INDEX_UNREAD] == null || tabs[INDEX_CHANNEL_FEED] == null) {
+        if (tabsView == null || tabs == null || tabs[INDEX_CONTACTS] == null || tabs[INDEX_UNREAD] == null) {
             return;
         }
         final boolean contactsVisible = isContactsTabEnabled();
         final boolean unreadVisible = isUnreadDialogsTabEnabled();
-        final boolean channelFeedVisible = isChannelFeedTabEnabled();
         tabsView.setViewVisible(tabs[INDEX_CONTACTS], contactsVisible, animated);
-        tabsView.setViewVisible(tabs[INDEX_CHANNEL_FEED], channelFeedVisible, animated);
         tabsView.setViewVisible(tabs[INDEX_UNREAD], unreadVisible, animated);
         final boolean messageCenterVisible = MessageActionSettings.isCenterEnabled(currentAccount);
         tabsView.setViewVisible(tabs[INDEX_MESSAGE_CENTER], messageCenterVisible, animated);
@@ -491,14 +482,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         ViewGroup.LayoutParams lp = tabsView.getLayoutParams();
         if (lp != null) {
             int availableWidth = contentView != null && contentView.getMeasuredWidth() > 0 ? contentView.getMeasuredWidth() : AndroidUtilities.displaySize.x;
-            int targetWidth = Math.min(availableWidth, dp(getTabsWidthDp(contactsVisible, unreadVisible, channelFeedVisible) + DialogsActivity.MAIN_TABS_MARGIN * 2));
+            int targetWidth = Math.min(availableWidth, dp(getTabsWidthDp(contactsVisible, unreadVisible) + DialogsActivity.MAIN_TABS_MARGIN * 2));
             if (lp.width != targetWidth) {
                 lp.width = targetWidth;
                 tabsView.setLayoutParams(lp);
             }
         }
         int currentPosition = viewPager != null ? viewPager.getCurrentPosition() : POSITION_CHATS;
-        if ((!contactsVisible && currentPosition == POSITION_CONTACTS) || (!unreadVisible && currentPosition == POSITION_UNREAD) || (!channelFeedVisible && currentPosition == POSITION_CHANNEL_FEED) || (!messageCenterVisible && currentPosition == POSITION_MESSAGE_CENTER) || (!unifiedInboxVisible && currentPosition == POSITION_UNIFIED_INBOX)) {
+        if ((!contactsVisible && currentPosition == POSITION_CONTACTS) || (!unreadVisible && currentPosition == POSITION_UNREAD) || (!messageCenterVisible && currentPosition == POSITION_MESSAGE_CENTER) || (!unifiedInboxVisible && currentPosition == POSITION_UNIFIED_INBOX)) {
             selectTab(POSITION_CHATS, animated);
             viewPager.scrollToPosition(POSITION_CHATS);
         } else {
@@ -767,8 +758,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             args.putBoolean("hasMainTabs", true);
             args.putBoolean("destroyAfterSelect", false);
             return new ContactsActivity(args);
-        } else if (position == POSITION_CHANNEL_FEED) {
-            return new ChannelFeedActivity();
         } else if (position == POSITION_MESSAGE_CENTER) {
             MessageManagementActivity center = new MessageManagementActivity(true);
             center.setCurrentAccount(currentAccount);
@@ -885,15 +874,9 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             return false;
         }
         if (!forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_UNREAD) {
-            return isChannelFeedTabEnabled();
-        }
-        if (!forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_CHANNEL_FEED) {
             return isContactsTabEnabled();
         }
         if (forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_CONTACTS) {
-            return isChannelFeedTabEnabled();
-        }
-        if (forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_CHANNEL_FEED) {
             return isUnreadDialogsTabEnabled();
         }
         if (forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_UNREAD && isUnreadDialogsTabEnabled()) {

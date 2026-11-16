@@ -490,11 +490,6 @@
             </intent-filter>
         </receiver>
 
-        <service
-            android:name="org.telegram.messenger.ScamKeywordsUpdateService"
-            android:permission="android.permission.BIND_JOB_SERVICE"
-            android:exported="true" />
-
         <service android:name="org.telegram.messenger.MangoUserBroadcastService"
             android:exported="false" android:foregroundServiceType="dataSync" />
 

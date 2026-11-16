@@ -13,6 +13,5 @@
     <string name="V4DuplicateEntry">Find and clean duplicate files</string>
     <string name="V4MemorialEntry">Message memorial</string>
     <string name="V4StatisticsEntry">Interaction frequency</string>
-    <string name="V4ScamEntry">Scam keyword hints</string>
     <string name="V4CaptureMemorial">Save read-only memorial</string>
 </resources>

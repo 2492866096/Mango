@@ -23,7 +23,7 @@ public class SyncTest {
   MangoSettings.setBoolean(1,"confirm_send",true);
   MangoSettings.setString(0,"main_tabs_order","7,6,5");
   MangoSettings.setString(0,"auto_read_random_reply_groups","-999");
-  MangoSettings.setInt(0,"scam_refresh_time",123);
+  MangoSettings.setInt(0,"last_refresh_time",123);
   MangoLegacySettings.store(0).put("hide_online",true);
   MangoLegacySettings.store(1).put("anti_revoke",false);
   check(!MangoSettingsSync.isEnabled(),"sync defaults off");
@@ -36,13 +36,13 @@ public class SyncTest {
   check(MangoLegacySettings.booleanSwitches(1).get("anti_revoke"),"legacy true default applied");
   check(MangoSettings.getString(1,"main_tabs_order","local").equals("local"),"tab order not copied");
   check(MangoSettings.getString(1,"auto_read_random_reply_groups","local").equals("local"),"chat-specific targets not copied");
-  check(MangoSettings.getInt(1,"scam_refresh_time",0)==0,"runtime state not copied");
+  check(MangoSettings.getInt(1,"last_refresh_time",0)==0,"runtime state not copied");
   MangoSettings.setBoolean(1,"hide_proxy_icon",false);
   check(!MangoSettings.getBoolean(0,"hide_proxy_icon"),"edits from second account sync back");
-  MangoSettings.setBoolean(1,"scam_users_enabled",false);
-  check(!MangoSettings.getBoolean(0,"scam_users_enabled",true),"false overrides true default");
+  MangoSettings.setBoolean(1,"cross_account_inbox",false);
+  check(!MangoSettings.getBoolean(0,"cross_account_inbox",true),"false overrides true default");
   MangoSettings.restore(1,MangoSettings.getHistory(1).get(0));
-  check(MangoSettings.getBoolean(0,"scam_users_enabled",true),"undo propagates effective restored value");
+  check(MangoSettings.getBoolean(0,"cross_account_inbox",true),"undo propagates effective restored value");
   MangoSettings.setBoolean(1,"collapse_message_menu",true);
   MangoSettings.setBoolean(0,MangoDownloadSpeedHud.SETTING_KEY,true);
   check(MangoDownloadSpeedHud.enabled[1],"synced HUD switch refreshes existing account");

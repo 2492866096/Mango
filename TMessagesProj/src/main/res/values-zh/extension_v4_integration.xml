@@ -13,6 +13,5 @@
     <string name="V4DuplicateEntry">重复文件检测与清理</string>
     <string name="V4MemorialEntry">消息纪念堂</string>
     <string name="V4StatisticsEntry">互动频率统计</string>
-    <string name="V4ScamEntry">反诈骗关键词提示</string>
     <string name="V4CaptureMemorial">保存只读纪念快照</string>
 </resources>

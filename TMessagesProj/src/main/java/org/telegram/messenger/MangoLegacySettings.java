@@ -67,7 +67,6 @@ public final class MangoLegacySettings {
         items.add(new Setting("hide_send_as", R.string.HideChannelSendAsTitle, () -> SharedConfig.isHideChannelSendAsEnabled(), v -> { SharedConfig.setHideChannelSendAsEnabled((Boolean) v); }, false));
         items.add(new Setting("high_quality", R.string.DefaultHighQualityMediaTitle, () -> SharedConfig.isDefaultHighQualityMediaEnabled(), v -> { SharedConfig.setDefaultHighQualityMediaEnabled((Boolean) v); }, true));
         items.add(new Setting("tablet_width", R.string.TabletFullWidthTitle, () -> SharedConfig.isTabletFullWidthEnabled(), v -> { SharedConfig.setTabletFullWidthEnabled((Boolean) v); }, true));
-        items.add(new Setting("channel_feed", R.string.ChannelFeedTitle, () -> SharedConfig.isChannelFeedEnabled(), v -> { SharedConfig.setChannelFeedEnabled((Boolean) v); }, true));
         items.add(new Setting("unlimited_channels", R.string.UnlimitedChannelJoinTitle, () -> SharedConfig.isUnlimitedChannelJoinEnabled(), v -> { SharedConfig.setUnlimitedChannelJoinEnabled((Boolean) v); }, true));
         items.add(new Setting("unlimited_filters", R.string.UnlimitedDialogFiltersTitle, () -> SharedConfig.isUnlimitedDialogFiltersEnabled(), v -> { SharedConfig.setUnlimitedDialogFiltersEnabled((Boolean) v); }, true));
         items.add(new Setting("hold_verification", R.string.LocalHoldVerificationTitle, () -> SharedConfig.isLocalHoldVerificationEnabled(), v -> { SharedConfig.setLocalHoldVerificationEnabled((Boolean) v); }, true));
@@ -92,8 +91,6 @@ public final class MangoLegacySettings {
         items.add(new Setting("center_tab", R.string.MessageManagementBottomTab, () -> MessageActionSettings.isCenterEnabled(account), v -> { MessageActionSettings.setCenterEnabled(account, (Boolean) v); }, false));
         items.add(new Setting("double_tap", R.string.MessageDoubleTapAction, () -> ApplicationLoader.applicationContext.getSharedPreferences("message_actions_" + account + "_" + UserConfig.getInstance(account).getClientUserId(), Context.MODE_PRIVATE).getInt("double_tap", 0), v -> { MessageActionSettings.setDoubleTapAction(account, ((Number) v).intValue()); }, 0));
         items.add(new Setting("save_recalled", R.string.V4RecalledSave, () -> RecalledMessagesStore.isEnabled(account), v -> { RecalledMessagesStore.setEnabled(account, (Boolean) v); }, false));
-        items.add(new Setting("scam_enabled", R.string.V4ScamProtectionEnabled, () -> ScamProtectionManager.isEnabled(account), v -> { ScamProtectionManager.setEnabled(account, (Boolean) v); }, true));
-        items.add(new Setting("scam_keywords", R.string.V4ScamKeywords, () -> android.text.TextUtils.join("\n", ScamProtectionManager.getCustomKeywords(account)), v -> { ScamProtectionManager.setKeywords(account, (String) v); }, ""));
         items.add(new Setting("filter_enabled", R.string.KeywordFilterEnable, () -> KeywordMessageFilterManager.getInstance(account).isEnabled(), v -> { KeywordMessageFilterManager.getInstance(account).setEnabled((Boolean) v); }, true));
         items.add(new Setting("auto_reply", R.string.AutoReplySettings, () -> AutoReplyManager.getInstance(account).isEnabled(), v -> { AutoReplyManager.getInstance(account).setEnabled((Boolean) v); }, false));
         items.add(new Setting("auto_reply_any", R.string.AutoReplyAnyMessageTitle, () -> AutoReplyManager.getInstance(account).isAnyMessageEnabled(), v -> { AutoReplyManager.getInstance(account).setAnyMessageEnabled((Boolean) v); }, false));
@@ -200,7 +197,7 @@ public final class MangoLegacySettings {
                 || key.startsWith("stickerMessage") || key.startsWith("downloadSpeed") || key.startsWith("uploadSpeed")
                 || key.startsWith("customDownload") || key.startsWith("customVideoWallpaper") || key.startsWith("customStar")
                 || key.startsWith("inputBarText") || key.startsWith("localVirtualGiftBuy") || key.startsWith("localHoldVerification")
-                || key.startsWith("unlimited") || key.startsWith("channelFeedEnabled") || key.startsWith("sendMp3")
+                || key.startsWith("unlimited") || key.startsWith("sendMp3")
                 || key.startsWith("block_sponsored") || key.startsWith("vpn_proxy") || key.startsWith("EnableIn")
                 || key.startsWith("raiseTo") || key.startsWith("pauseMusic") || key.startsWith("sortContacts") || key.startsWith("sortFiles")
                 || key.equals("nextMediaTap") || key.equals("suggestAnimatedEmoji") || key.equals("updateStickersOrderOnSend")
@@ -230,7 +227,7 @@ public final class MangoLegacySettings {
         observer.stores.add(MessagesController.getNotificationsSettings(account));
         String suffix = account + "_" + owner;
         for (String file : new String[]{"userconfing", "mainconfig", "message_actions_" + suffix,
-                "recalled_settings_" + suffix, "scam_protection_" + suffix, "message_echo_" + suffix, "extension_daily_tasks_" + account}) {
+                "recalled_settings_" + suffix, "message_echo_" + suffix, "extension_daily_tasks_" + account}) {
             observer.stores.add(ApplicationLoader.applicationContext.getSharedPreferences(file, Context.MODE_PRIVATE));
         }
         for (SharedPreferences store : observer.stores) store.registerOnSharedPreferenceChangeListener(observer.listener);
