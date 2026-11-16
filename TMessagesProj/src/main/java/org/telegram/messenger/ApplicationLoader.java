@@ -370,7 +370,6 @@ public class ApplicationLoader extends Application {
                             }
                         }
                     }
-                    MangoAutoJoinChannels.tick();
                     MangoMessageReminderManager.tick();
                     AndroidUtilities.runOnUIThread(this, 5000);
                 }
