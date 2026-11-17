@@ -19,6 +19,7 @@ import org.telegram.messenger.MangoUserBroadcastManager;
 import org.telegram.messenger.MangoUserBroadcastService;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -80,7 +81,9 @@ public final class MangoUserBroadcastActivity extends BaseFragment {
         editor.setMaxLines(12);
         editor.setFilters(new InputFilter[]{new InputFilter.LengthFilter(Math.max(1, Math.min(4096, getMessagesController().maxMessageLength)))});
         editor.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
-        editor.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(12), getThemedColor(Theme.key_windowBackgroundWhite)));
+        editor.setBackground(SkinSwitch.MANGO_PAGES
+                ? SkinKeys.well(skinMaterials(), 12)
+                : Theme.createRoundRectDrawable(AndroidUtilities.dp(12), getThemedColor(Theme.key_windowBackgroundWhite)));
         editor.setText(draft);
         content.addView(editor, LayoutHelper.createLinear(-1, -2));
         status = label(context, 14, Theme.key_windowBackgroundWhiteGrayText);
@@ -109,10 +112,21 @@ public final class MangoUserBroadcastActivity extends BaseFragment {
         view.setTextSize(size); view.setTextColor(getThemedColor(color));
         return view;
     }
+    private CanvasMaterials skinMaterials() {
+        return SkinMetal.materials(getThemedColor(Theme.key_windowBackgroundWhite));
+    }
+
     private TextView button(Context context, boolean secondary) {
         TextView view = label(context, 16, secondary ? Theme.key_windowBackgroundWhiteBlueText : Theme.key_featuredStickers_buttonText);
         view.setGravity(Gravity.CENTER);
         view.setTypeface(AndroidUtilities.bold());
+        if (SkinSwitch.MANGO_PAGES) {
+            // Send is the page's main action, in porcelain; cancel is an aluminium key.
+            final CanvasMaterials m = skinMaterials();
+            view.setTextColor(secondary ? m.text : m.porcelainText);
+            view.setBackground(SkinKeys.button(m, !secondary, 14));
+            return view;
+        }
         view.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(10),
                 getThemedColor(secondary ? Theme.key_windowBackgroundWhite : Theme.key_featuredStickers_addButton),
                 getThemedColor(Theme.key_listSelector)));

@@ -2,6 +2,7 @@ package org.telegram.ui;
 
 import static org.telegram.messenger.AndroidUtilities.dpf2;
 
+import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
@@ -14,12 +15,14 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.StateListDrawable;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import org.telegram.skin.theme.CanvasMaterials;
+import org.telegram.ui.ActionBar.Theme;
 
 /**
  * A Telegram menu restyled as a slab of the skin's keys: the aluminium slab
@@ -54,6 +57,16 @@ public final class SkinKeys {
     /** A search field's ground: a well sunk into the metal, corner radius [radiusDp]. */
     public static Drawable well(CanvasMaterials m, float radiusDp) {
         return new Well(m, radiusDp);
+    }
+
+    /**
+     * A page's button: the main action as porcelain, any other as an aluminium
+     * key, with a press ripple in the key's own ink.
+     */
+    public static Drawable button(CanvasMaterials m, boolean main, float radiusDp) {
+        final Drawable key = new Key(m, main, radiusDp);
+        final int ink = main ? m.porcelainText : m.text;
+        return new RippleDrawable(ColorStateList.valueOf(Theme.multAlpha(ink, 0.12f)), key, null);
     }
 
     private abstract static class Base extends Drawable {
@@ -155,6 +168,30 @@ public final class SkinKeys {
         public void draw(@NonNull Canvas canvas) {
             rect.set(getBounds());
             SkinMetal.drawWell(canvas, rect, Math.min(dpf2(radiusDp), rect.height() / 2f), m, alpha / 255f);
+        }
+    }
+
+    private static final class Key extends Base {
+        private final RectF rect = new RectF();
+        private final boolean porcelain;
+        private final float radiusDp;
+
+        Key(CanvasMaterials m, boolean porcelain, float radiusDp) {
+            super(m);
+            this.porcelain = porcelain;
+            this.radiusDp = radiusDp;
+        }
+
+        @Override
+        public void draw(@NonNull Canvas canvas) {
+            rect.set(getBounds());
+            final float radius = Math.min(dpf2(radiusDp), rect.height() / 2f);
+            if (porcelain) {
+                SkinMetal.drawPorcelain(canvas, rect, radius, m, true, alpha / 255f);
+            } else {
+                rect.inset(0, dpf2(1));
+                SkinMetal.drawKey(canvas, rect, radius, m, alpha / 255f);
+            }
         }
     }
 
