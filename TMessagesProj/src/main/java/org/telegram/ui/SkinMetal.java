@@ -143,6 +143,11 @@ public final class SkinMetal {
      * beside its glyph: the same domed cap metal, the LED at the far end.
      */
     public static void drawCapsule(Canvas canvas, RectF bounds, boolean lit, CanvasMaterials m, float alpha) {
+        drawCapsule(canvas, bounds, true, lit, m, alpha);
+    }
+
+    /** The capsule, with or without its LED: a small cap that only carries a control needs none. */
+    public static void drawCapsule(Canvas canvas, RectF bounds, boolean withLed, boolean lit, CanvasMaterials m, float alpha) {
         final float r = bounds.height() / 2f;
         if (alpha >= 1f) {
             shadowPaint.setColor(m.knurlB);
@@ -164,8 +169,10 @@ public final class SkinMetal {
         linePaint.setAlpha((int) (Color.alpha(m.highlight) * alpha));
         canvas.drawRoundRect(bounds.left + inset, bounds.top + inset, bounds.right - inset, bounds.bottom - inset, r - inset, r - inset, linePaint);
 
-        final float led = dpf2(2.5f);
-        SkinStyle.drawLed(canvas, bounds.right - 0.24f * r - led, bounds.top + dpf2(2) + led, led, lit, m.led, m.textTertiary, alpha);
+        if (withLed) {
+            final float led = dpf2(2.5f);
+            SkinStyle.drawLed(canvas, bounds.right - 0.24f * r - led, bounds.top + dpf2(2) + led, led, lit, m.led, m.textTertiary, alpha);
+        }
     }
 
     /**

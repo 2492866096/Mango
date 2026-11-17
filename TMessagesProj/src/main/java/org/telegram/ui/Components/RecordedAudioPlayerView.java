@@ -20,7 +20,10 @@ import android.view.View;
 import androidx.annotation.NonNull;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.SkinMetal;
+import org.telegram.ui.SkinStyle;
 
 import java.io.File;
 
@@ -50,6 +53,19 @@ public class RecordedAudioPlayerView extends View {
         text.setTextSize(dp(12));
         text.setTypeface(AndroidUtilities.bold());
         text.setOverrideFullWidth(AndroidUtilities.displaySize.x);
+    }
+
+    private boolean skin;
+
+    /**
+     * Draws the recording as the skin's console does: the waveform engraved in
+     * the well, celadon for what has played, porcelain trim handles and a metal
+     * cap for play and the duration.
+     */
+    public void setSkin(boolean skin) {
+        this.skin = skin;
+        text.setTypeface(skin ? SkinStyle.numerals(false) : AndroidUtilities.bold());
+        invalidate();
     }
 
     @Override
@@ -228,12 +244,16 @@ public class RecordedAudioPlayerView extends View {
     private final AnimatedFloat showBadge = new AnimatedFloat(this, 0, 340, CubicBezierInterpolator.EASE_OUT_QUINT);
 
     public void drawIn(Canvas canvas, RectF rect, float transitionProgress) {
-        backgroundPaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceBackground, resourcesProvider));
-        darkerBackgroundPaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceDarkerBackground, resourcesProvider));
-        text.setTextColor(Theme.getColor(Theme.key_chat_recordedVoiceProgressInner, resourcesProvider));
-        playPauseDrawable.setColor(Theme.getColor(Theme.key_chat_recordedVoicePlayPause, resourcesProvider));
-        waveformPaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceProgress, resourcesProvider));
-        handlePaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceProgressInner, resourcesProvider));
+        final CanvasMaterials m = skin ? SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider)) : null;
+        // The waveform's two inks: as recorded, and lit (played, or being played).
+        final int normal = m != null ? m.textSecondary : Theme.getColor(Theme.key_chat_recordedVoiceProgress, resourcesProvider);
+        final int lit = m != null ? m.led : Theme.getColor(Theme.key_chat_recordedVoiceProgressInner, resourcesProvider);
+        backgroundPaint.setColor(m != null ? m.field : Theme.getColor(Theme.key_chat_recordedVoiceBackground, resourcesProvider));
+        darkerBackgroundPaint.setColor(m != null ? Theme.multAlpha(m.text, 0.06f) : Theme.getColor(Theme.key_chat_recordedVoiceDarkerBackground, resourcesProvider));
+        text.setTextColor(m != null ? m.text : Theme.getColor(Theme.key_chat_recordedVoiceProgressInner, resourcesProvider));
+        playPauseDrawable.setColor(m != null ? m.text : Theme.getColor(Theme.key_chat_recordedVoicePlayPause, resourcesProvider));
+        waveformPaint.setColor(normal);
+        handlePaint.setColor(lit);
 
         final int left  = (int) lerp(rect.left + dp(11.33f), rect.right - dp(11.33f), clamp01(this.left));
         final int right = (int) lerp(rect.left + dp(11.33f), rect.right - dp(11.33f), clamp01(this.right));
@@ -241,7 +261,8 @@ public class RecordedAudioPlayerView extends View {
 
         canvas.save();
         clipPath.rewind();
-        clipPath.addRoundRect(rect, dp(8), dp(8), Path.Direction.CW);
+        final float clipRadius = m != null ? rect.height() / 2f : dp(8);
+        clipPath.addRoundRect(rect, clipRadius, clipRadius, Path.Direction.CW);
         canvas.clipPath(clipPath);
 
         canvas.drawRect(rect.left, rect.top, left - dp(1.33f), rect.bottom, darkerBackgroundPaint);
@@ -249,7 +270,7 @@ public class RecordedAudioPlayerView extends View {
 
         canvas.save();
         canvas.translate(rect.left + dp(14), rect.centerY());
-        waveformPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_chat_recordedVoiceProgress, resourcesProvider), 0.3f));
+        waveformPaint.setColor(m != null ? Theme.multAlpha(m.textTertiary, 0.35f) : Theme.multAlpha(normal, 0.3f));
         canvas.drawPath(waveformPath, waveformPaint);
         canvas.restore();
 
@@ -261,11 +282,7 @@ public class RecordedAudioPlayerView extends View {
             canvas.save();
             canvas.clipRect(progressX, rect.top, right, rect.bottom);
             canvas.translate(rect.left + dp(14), rect.centerY());
-            if (!wasPlaying || progress >= this.left || progressPressed) {
-                waveformPaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceProgress, resourcesProvider));
-            } else {
-                waveformPaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceProgressInner, resourcesProvider));
-            }
+            waveformPaint.setColor(!wasPlaying || progress >= this.left || progressPressed ? normal : lit);
             canvas.drawPath(waveformPath, waveformPaint);
             canvas.restore();
         }
@@ -273,20 +290,24 @@ public class RecordedAudioPlayerView extends View {
             canvas.save();
             canvas.clipRect(left, rect.top, progressX, rect.bottom);
             canvas.translate(rect.left + dp(14), rect.centerY());
-            if (isPlaying() || wasPlaying || progressPressed) {
-                waveformPaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceProgressInner, resourcesProvider));
-            } else {
-                waveformPaint.setColor(Theme.getColor(Theme.key_chat_recordedVoiceProgress, resourcesProvider));
-            }
+            waveformPaint.setColor(isPlaying() || wasPlaying || progressPressed ? lit : normal);
             canvas.drawPath(waveformPath, waveformPaint);
             canvas.restore();
         }
 
-        handleRect.set(left - dp(7), rect.centerY() - dp(5.33f), left - dp(5.33f), rect.centerY() + dp(5.33f));
-        canvas.drawRoundRect(handleRect, handleRect.width() / 2f, handleRect.width() / 2f, handlePaint);
+        if (m != null) {
+            // Porcelain handles at the trim's ends, short enough to clear the well's rounded ends.
+            handleRect.set(left - dp(7), rect.centerY() - dp(9.5f), left - dp(2), rect.centerY() + dp(9.5f));
+            SkinMetal.drawPorcelain(canvas, handleRect, dp(2.5f), m, false, 1f);
+            handleRect.set(right + dp(2), rect.centerY() - dp(9.5f), right + dp(7), rect.centerY() + dp(9.5f));
+            SkinMetal.drawPorcelain(canvas, handleRect, dp(2.5f), m, false, 1f);
+        } else {
+            handleRect.set(left - dp(7), rect.centerY() - dp(5.33f), left - dp(5.33f), rect.centerY() + dp(5.33f));
+            canvas.drawRoundRect(handleRect, handleRect.width() / 2f, handleRect.width() / 2f, handlePaint);
 
-        handleRect.set(right + dp(5.33f), rect.centerY() - dp(5.33f), right + dp(7), rect.centerY() + dp(5.33f));
-        canvas.drawRoundRect(handleRect, handleRect.width() / 2f, handleRect.width() / 2f, handlePaint);
+            handleRect.set(right + dp(5.33f), rect.centerY() - dp(5.33f), right + dp(7), rect.centerY() + dp(5.33f));
+            canvas.drawRoundRect(handleRect, handleRect.width() / 2f, handleRect.width() / 2f, handlePaint);
+        }
 
         leftHandleClickRect.set(left - dp(24), 0, left + dp(6), getHeight());
         rightHandleClickRect.set(right - dp(6), 0, right + dp(24), getHeight());
@@ -303,10 +324,14 @@ public class RecordedAudioPlayerView extends View {
                 (left + right + badgeWidth) / 2f,
                 rect.centerY() + badgeHeight / 2f
             );
-            final int wasAlpha = darkerBackgroundPaint.getAlpha();
-            darkerBackgroundPaint.setAlpha((int) (wasAlpha * badgeAlpha));
-            canvas.drawRoundRect(badgeRect, badgeRect.height() / 2f, badgeRect.height() / 2f, darkerBackgroundPaint);
-            darkerBackgroundPaint.setAlpha(wasAlpha);
+            if (m != null) {
+                SkinMetal.drawCapsule(canvas, badgeRect, false, false, m, badgeAlpha);
+            } else {
+                final int wasAlpha = darkerBackgroundPaint.getAlpha();
+                darkerBackgroundPaint.setAlpha((int) (wasAlpha * badgeAlpha));
+                canvas.drawRoundRect(badgeRect, badgeRect.height() / 2f, badgeRect.height() / 2f, darkerBackgroundPaint);
+                darkerBackgroundPaint.setAlpha(wasAlpha);
+            }
 
             badgeClickRect.set(badgeRect);
             badgeClickRect.inset(-dp(6), -dp(6));

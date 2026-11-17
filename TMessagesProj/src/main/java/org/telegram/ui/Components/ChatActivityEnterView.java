@@ -1209,8 +1209,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             radiiRight[0] = radiiRight[1] = radiiRight[6] = radiiRight[7] = 0;
             radiiRight[2] = radiiRight[3] = radiiRight[4] = radiiRight[5] = dp(3);
 
-            micDrawable = getResources().getDrawable(R.drawable.input_mic).mutate();
-            vidDrawable = getResources().getDrawable(R.drawable.input_video).mutate();
+            micDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_mic : R.drawable.input_mic).mutate();
+            vidDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_video : R.drawable.input_video).mutate();
 
             setWillNotDraw(false);
             updateColors();
@@ -1712,6 +1712,18 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             micDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock), PorterDuff.Mode.SRC_IN));
             vidDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock), PorterDuff.Mode.SRC_IN));
+
+            if (skinFrame) {
+                // The latch is metal: lock, pause and resume in the metal's ink, the keyhole cut in its face;
+                // the view-once seal fills with celadon glaze when on.
+                final CanvasMaterials m = skinMaterials();
+                periodDrawable.updateColors(m.text, ColorUtils.blendARGB(m.glazeTop, m.glazeBottom, 0.5f), m.porcelainText);
+                lockBackgroundPaint.setColor(m.sheenMid);
+                lockPaint.setColor(m.text);
+                lockOutlinePaint.setColor(m.text);
+                micDrawable.setColorFilter(new PorterDuffColorFilter(m.text, PorterDuff.Mode.SRC_IN));
+                vidDrawable.setColorFilter(new PorterDuffColorFilter(m.text, PorterDuff.Mode.SRC_IN));
+            }
         }
 
         private void scale(RectF rect, float s) {
@@ -3967,6 +3979,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         sizeNotifierLayout.addView(videoTimeHintView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, 0, 0, 0, 52));
 
         audioTimelineView = new RecordedAudioPlayerView(getContext(), resourcesProvider);
+        audioTimelineView.setSkin(skinFrame);
         recordedAudioPanel.addView(audioTimelineView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 32, Gravity.CENTER_VERTICAL | Gravity.LEFT, DEFAULT_HEIGHT, 0, 4, 0));
 
         updateFieldRight(lastAttachVisible);
@@ -10225,9 +10238,10 @@ public class ChatActivityEnterView extends FrameLayout implements
     }
 
     private void updateRecordedDeleteIconColors() {
-        int dotColor = getThemedColor(Theme.key_chat_recordedVoiceDot);
-        int background = getThemedColor(Theme.key_chat_messagePanelBackground);
-        int greyColor = getThemedColor(Theme.key_chat_messagePanelVoiceDelete);
+        final CanvasMaterials m = skinFrame ? skinMaterials() : null;
+        int dotColor = m != null ? m.danger : getThemedColor(Theme.key_chat_recordedVoiceDot);
+        int background = m != null ? m.field : getThemedColor(Theme.key_chat_messagePanelBackground);
+        int greyColor = m != null ? m.textSecondary : getThemedColor(Theme.key_chat_messagePanelVoiceDelete);
 
         if (recordDeleteImageView != null) {
             recordDeleteImageView.setLayerColor("Cup Red.**", dotColor);
