@@ -170,6 +170,7 @@ import org.telegram.ui.Business.QuickRepliesController;
 import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.SkinMetal;
+import org.telegram.ui.SkinStyle;
 import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Components.Forum.ForumUtilities;
 import org.telegram.ui.Components.Premium.PremiumFeatureBottomSheet;
@@ -974,8 +975,8 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void updateColors() {
-            int dotColor = getThemedColor(Theme.key_chat_recordedVoiceDot);
-            int background = getThemedColor(Theme.key_chat_messagePanelBackground);
+            int dotColor = skinFrame ? skinMaterials().danger : getThemedColor(Theme.key_chat_recordedVoiceDot);
+            int background = skinFrame ? skinMaterials().sheenMid : getThemedColor(Theme.key_chat_messagePanelBackground);
             redDotPaint.setColor(dotColor);
             drawable.beginApplyLayerColors();
             drawable.setLayerColor("Cup Red.**", dotColor);
@@ -1031,7 +1032,12 @@ public class ChatActivityEnterView extends FrameLayout implements
                 drawable.draw(canvas);
             }
             if (!playing || !drawable.hasBitmap()) {
-                canvas.drawCircle(this.getMeasuredWidth() >> 1, this.getMeasuredHeight() >> 1, dp(5), redDotPaint);
+                if (skinFrame) {
+                    final CanvasMaterials m = skinMaterials();
+                    SkinStyle.drawLed(canvas, getMeasuredWidth() >> 1, getMeasuredHeight() >> 1, dpf2(4), true, m.led, m.textTertiary, alpha);
+                } else {
+                    canvas.drawCircle(this.getMeasuredWidth() >> 1, this.getMeasuredHeight() >> 1, dp(5), redDotPaint);
+                }
             }
             invalidate();
         }
@@ -1987,19 +1993,20 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (micDrawable != null) {
                 return;
             }
-            micDrawable = getResources().getDrawable(R.drawable.input_mic_pressed).mutate();
-            micDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
+            final int glyph = skinFrame ? skinMaterials().text : getThemedColor(Theme.key_chat_messagePanelVoicePressed);
+            micDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_mic : R.drawable.input_mic_pressed).mutate();
+            micDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
 
-            cameraDrawable = getResources().getDrawable(R.drawable.input_video_pressed).mutate();
-            cameraDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
+            cameraDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_video : R.drawable.input_video_pressed).mutate();
+            cameraDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
 
-            sendDrawable = getResources().getDrawable(R.drawable.attach_send).mutate();
-            sendDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
+            sendDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_send : R.drawable.attach_send).mutate();
+            sendDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
 
-            micOutline = getResources().getDrawable(R.drawable.input_mic).mutate();
+            micOutline = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_mic : R.drawable.input_mic).mutate();
             micOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
 
-            cameraOutline = getResources().getDrawable(R.drawable.input_video).mutate();
+            cameraOutline = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_video : R.drawable.input_video).mutate();
             cameraOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
         }
 
@@ -2265,7 +2272,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             lastUpdateTime = System.currentTimeMillis();
             float slideToCancelProgress1 = slideToCancelProgress > 0.7f ? 1f : slideToCancelProgress / 0.7f;
 
-            if (LiteMode.isEnabled(LiteMode.FLAGS_CHAT) && progressToSeekbarStep2 != 1 && exitProgress2 < 0.4f && slideToCancelProgress1 > 0 && !canceledByGesture) {
+            if (!skinFrame && LiteMode.isEnabled(LiteMode.FLAGS_CHAT) && progressToSeekbarStep2 != 1 && exitProgress2 < 0.4f && slideToCancelProgress1 > 0 && !canceledByGesture) {
                 if (showWaves && wavesEnterAnimation != 1f) {
                     wavesEnterAnimation += 0.04f;
                     if (wavesEnterAnimation > 1f) {
@@ -2327,10 +2334,10 @@ public class ChatActivityEnterView extends FrameLayout implements
                             rectF.set(left, top, right, bottom);
                             audioTimelineView.drawIn(canvas, rectF, progressToSeekbarStep3);
                         } else {
-                            canvas.drawCircle(cx + slideDelta, cy, radius * (1f - progressToSeekbarStep3), paint);
+                            drawRecordCircle(canvas, cx + slideDelta, cy, radius * (1f - progressToSeekbarStep3));
                         }
                     } else {
-                        canvas.drawCircle(cx + slideDelta, cy, radius, paint);
+                        drawRecordCircle(canvas, cx + slideDelta, cy, radius);
                     }
                     canvas.save();
                     float a = (1f - exitProgress2);
@@ -2341,14 +2348,35 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
 
             if (scale != 1f) {
-                canvas.drawCircle(cx + slideDelta, cy, radius, paint);
+                drawRecordCircle(canvas, cx + slideDelta, cy, radius);
                 float a = (canceledByGesture ? (1f - slideToCancelProgress) : 1);
                 canvas.save();
                 canvas.translate(slideDelta, 0);
                 drawIconInternal(canvas, drawable, replaceDrawable, progressToSendButton, (int) (255 * a));
                 canvas.restore();
             }
-            drawingCircleRadius = radius;
+            drawingCircleRadius = skinFrame ? skinKnobRadius(radius) : radius;
+        }
+
+        /** Telegram's circle under the thumb, or with the skin on, the knob held down. */
+        private void drawRecordCircle(Canvas canvas, float x, float y, float r) {
+            if (!skinFrame) {
+                canvas.drawCircle(x, y, r, paint);
+                return;
+            }
+            // The knob keeps its size under the thumb; the voice shows in its celadon rim.
+            final float rim = dpf2(2.5f) + dpf2(1.5f) * amplitude;
+            SkinMetal.drawKnob(canvas, x, y, skinKnobRadius(r), true, rim, skinMaterials(), paint.getAlpha() / 255f);
+        }
+
+        /** The knob's radius for a circle radius: the circle's grow-and-shrink kept, its swelling with the voice taken out. */
+        private float skinKnobRadius(float r) {
+            return r * dp(19) / (circleRadius + circleRadiusAmplitude * amplitude);
+        }
+
+        /** The circle's colour where the sent voice message starts its flight into the chat. */
+        public int getFlightColor() {
+            return skinFrame ? skinMaterials().capMid : getThemedColor(Theme.key_chat_messagePanelVoiceBackground);
         }
 
         @Override
@@ -2431,6 +2459,12 @@ public class ChatActivityEnterView extends FrameLayout implements
             bigWaveDrawable.paint.setColor(ColorUtils.setAlphaComponent(getThemedColor(Theme.key_chat_messagePanelVoiceBackground), (int) (255 * WaveDrawable.CIRCLE_ALPHA_1)));
 
             paintAlpha = paint.getAlpha();
+            if (skinFrame && micDrawable != null) {
+                final int glyph = skinMaterials().text;
+                micDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
+                cameraDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
+                sendDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
+            }
         }
 
         public void canceledByGesture() {
@@ -2454,6 +2488,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void drawWaves(Canvas canvas, float cx, float cy, float additionalScale) {
+            if (skinFrame) {
+                return;
+            }
             float enter = CubicBezierInterpolator.EASE_OUT.getInterpolation(wavesEnterAnimation);
             float slideToCancelProgress1 = slideToCancelProgress > 0.7f ? 1f : slideToCancelProgress / 0.7f;
             canvas.save();
@@ -13423,11 +13460,12 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void updateColors() {
-            grayPaint.setColor(getThemedColor(Theme.key_chat_recordTime));
-            bluePaint.setColor(getThemedColor(Theme.key_chat_recordVoiceCancel));
+            final CanvasMaterials m = skinFrame ? skinMaterials() : null;
+            grayPaint.setColor(m != null ? m.textSecondary : getThemedColor(Theme.key_chat_recordTime));
+            bluePaint.setColor(m != null ? m.ink : getThemedColor(Theme.key_chat_recordVoiceCancel));
             slideToAlpha = grayPaint.getAlpha();
             cancelAlpha = bluePaint.getAlpha();
-            selectableBackground = Theme.createSimpleSelectorCircleDrawable(dp(60), 0, ColorUtils.setAlphaComponent(getThemedColor(Theme.key_chat_recordVoiceCancel), 26));
+            selectableBackground = Theme.createSimpleSelectorCircleDrawable(dp(60), 0, ColorUtils.setAlphaComponent(bluePaint.getColor(), 26));
             selectableBackground.setCallback(this);
         }
 
@@ -13634,8 +13672,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (textPaint == null) {
                 textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
                 textPaint.setTextSize(dp(15));
-                textPaint.setTypeface(AndroidUtilities.bold());
-                textPaint.setColor(getThemedColor(Theme.key_chat_recordTime));
+                textPaint.setTypeface(skinFrame ? SkinStyle.numerals(false) : AndroidUtilities.bold());
+                textPaint.setColor(skinFrame ? skinMaterials().text : getThemedColor(Theme.key_chat_recordTime));
             }
             long currentTimeMillis = System.currentTimeMillis();
             long t = isRunning ? (currentTimeMillis - startTime) : stopTime - startTime;
@@ -13779,7 +13817,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         public void updateColors() {
             if (textPaint != null) {
-                textPaint.setColor(getThemedColor(Theme.key_chat_recordTime));
+                textPaint.setColor(skinFrame ? skinMaterials().text : getThemedColor(Theme.key_chat_recordTime));
             }
         }
 

@@ -86,6 +86,14 @@ public final class SkinMetal {
      * otherwise.
      */
     public static void drawKnob(Canvas canvas, float cx, float cy, float r, boolean lit, CanvasMaterials m, float alpha) {
+        drawKnob(canvas, cx, cy, r, lit, 0, m, alpha);
+    }
+
+    /**
+     * The knob held down: as above, with a celadon rim [rim] wide lit round its
+     * edge under the LED. A rim of 0 draws none.
+     */
+    public static void drawKnob(Canvas canvas, float cx, float cy, float r, boolean lit, float rim, CanvasMaterials m, float alpha) {
         final int a = (int) (255 * alpha);
         canvas.save();
         canvas.translate(cx, cy);
@@ -118,6 +126,12 @@ public final class SkinMetal {
         linePaint.setColor(m.highlight);
         linePaint.setAlpha((int) (Color.alpha(m.highlight) * alpha));
         canvas.drawCircle(0, 0, cap - dpf2(0.5f), linePaint);
+        if (rim > 0) {
+            linePaint.setStrokeWidth(rim);
+            linePaint.setColor(m.led);
+            linePaint.setAlpha((int) (Color.alpha(m.led) * alpha));
+            canvas.drawCircle(0, 0, r - rim / 2, linePaint);
+        }
         canvas.restore();
 
         final float led = dpf2(2.5f);
