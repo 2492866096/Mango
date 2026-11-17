@@ -203,6 +203,7 @@ import org.telegram.messenger.utils.PhotoUtilities;
 import org.telegram.messenger.utils.RectFMergeBounding;
 import org.telegram.messenger.utils.tlutils.TlUtils;
 import org.telegram.messenger.voip.VoIPService;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
@@ -8233,6 +8234,14 @@ public class ChatActivity extends BaseFragment implements
             }
 
             @Override
+            protected void dispatchDraw(Canvas canvas) {
+                if (SkinSwitch.CHAT_FRAME) {
+                    drawSkinSlip(canvas, this);
+                }
+                super.dispatchDraw(canvas);
+            }
+
+            @Override
             public void setVisibility(int visibility) {
                 super.setVisibility(visibility);
                 if (visibility == GONE) {
@@ -8382,6 +8391,7 @@ public class ChatActivity extends BaseFragment implements
         replyObjectHintTextView.setText(LocaleController.getString(R.string.TapForForwardingOptions));
         replyObjectHintTextView.setAlpha(0f);
         replyLayout.addView(replyObjectHintTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 18, Gravity.TOP | Gravity.LEFT, 52, 24, 0, 0));
+        updateSkinSlipColors();
 
         SpoilerEffect replySpoilerEffect = new SpoilerEffect();
         replyImageView = new BackupImageView(context) {
@@ -8443,9 +8453,12 @@ public class ChatActivity extends BaseFragment implements
                 @Override
                 public void updateColors() {
                     final int leftInset = firstButton ? dp(4) : 0;
-                    setBackground(Theme.createInsetRoundRectDrawable(getThemedColor(Theme.key_chat_replyPanelName) & 0x19ffffff, dp(19), leftInset, dp(3), 0, dp(3)));
-                    getImageView().setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_replyPanelName), PorterDuff.Mode.MULTIPLY));
-                    getTextView().setTextColor(getThemedColor(Theme.key_chat_replyPanelName));
+                    // On the porcelain slip the pill keeps inside the glaze, which is 4dp in from the panel's edges.
+                    final int color = SkinSwitch.CHAT_FRAME ? skinSlipMaterials().porcelainText : getThemedColor(Theme.key_chat_replyPanelName);
+                    final int inset = SkinSwitch.CHAT_FRAME ? dp(7) : dp(3);
+                    setBackground(Theme.createInsetRoundRectDrawable(color & 0x19ffffff, SkinSwitch.CHAT_FRAME ? dp(17) : dp(19), leftInset, inset, 0, inset));
+                    getImageView().setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
+                    getTextView().setTextColor(color);
                 }
             };
             button.setOrientation(LinearLayout.HORIZONTAL);
@@ -10886,6 +10899,40 @@ public class ChatActivity extends BaseFragment implements
         boolean visible = !org.telegram.messenger.MangoSettings.getBoolean(currentAccount, "hide_reaction_notifications") && reactionsMentionCount > 0 && (chatMode == 0 || chatMode == MODE_SUGGESTIONS);
         sideControlsButtonsLayout.showButton(ChatActivitySideControlsButtonsLayout.BUTTON_REACTIONS, visible, animated);
         sideControlsButtonsLayout.setButtonCount(ChatActivitySideControlsButtonsLayout.BUTTON_REACTIONS, reactionsMentionCount, animated);
+    }
+
+    private final RectF skinSlipRect = new RectF();
+
+    private CanvasMaterials skinSlipMaterials() {
+        return SkinMetal.materials(getThemedColor(Theme.key_chat_messagePanelBackground));
+    }
+
+    /**
+     * The panel over the input field (the message being replied to, edited,
+     * forwarded or previewed) as a porcelain slip set into the console, with
+     * an engraved line between it and the field.
+     */
+    private void drawSkinSlip(Canvas canvas, View panel) {
+        final CanvasMaterials m = skinSlipMaterials();
+        final float w = panel.getWidth();
+        final float h = panel.getHeight();
+        skinSlipRect.set(dp(8), dp(4), w - dp(8), h - dp(4));
+        SkinMetal.drawPorcelain(canvas, skinSlipRect, dp(13), m, true, 1f);
+        SkinMetal.drawGrooveAcross(canvas, dp(16), w - dp(16), h - dp(2.5f), m, 1f);
+    }
+
+    private void updateSkinSlipColors() {
+        if (!SkinSwitch.CHAT_FRAME || replyNameTextView == null) {
+            return;
+        }
+        final CanvasMaterials m = skinSlipMaterials();
+        final int body = Theme.multAlpha(m.porcelainText, 0.8f);
+        replyNameTextView.setTextColor(m.porcelainText);
+        replyObjectTextView.setTextColor(body);
+        replyObjectTextView.setLinkTextColor(m.porcelainText);
+        replyObjectHintTextView.setTextColor(body);
+        replyIconImageView.setColorFilter(new PorterDuffColorFilter(m.porcelainText, PorterDuff.Mode.MULTIPLY));
+        replyCloseImageView.setColorFilter(new PorterDuffColorFilter(m.porcelainText, PorterDuff.Mode.MULTIPLY));
     }
 
     public void fallbackFieldPanel() {
@@ -15172,7 +15219,7 @@ public class ChatActivity extends BaseFragment implements
                                 ), 0.66f, spanArr));
                     }
 
-                    if (isTon && spanArr[0] != null) {
+                    if (isTon && spanArr[0] != null && !SkinSwitch.CHAT_FRAME) {
                         spanArr[0].setColorKey(Theme.key_chat_replyPanelIcons);
                     }
 
@@ -15633,7 +15680,7 @@ public class ChatActivity extends BaseFragment implements
                     ), 0.66f, spanArr));
                 }
 
-                if (isTon && spanArr[0] != null) {
+                if (isTon && spanArr[0] != null && !SkinSwitch.CHAT_FRAME) {
                     spanArr[0].setColorKey(Theme.key_chat_replyPanelIcons);
                 }
             }
@@ -42170,6 +42217,10 @@ public class ChatActivity extends BaseFragment implements
             }
             if (chatActivityEnterTopView != null && chatActivityEnterTopView.getEditView() != null) {
                 chatActivityEnterTopView.getEditView().updateColors();
+            }
+            updateSkinSlipColors();
+            if (chatActivityEnterTopView != null) {
+                chatActivityEnterTopView.invalidate();
             }
             if (headerItem != null) {
                 headerItem.updateColor();

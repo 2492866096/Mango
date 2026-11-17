@@ -20,8 +20,9 @@ import org.telegram.skin.theme.CanvasPalette;
 /**
  * The skin's machined aluminium drawn on a Canvas, for Telegram views that
  * keep their own drawing: the knurled knob, the sunken well a text field
- * sits in, and the engraved line between them. Measured to match the Compose
- * dock, so the chat screen's input console and the dock read as one object.
+ * sits in, the engraved lines between them and the celadon porcelain set into
+ * the metal. Measured to match the Compose dock, so the chat screen's input
+ * console and the dock read as one object.
  */
 public final class SkinMetal {
 
@@ -33,6 +34,19 @@ public final class SkinMetal {
     private static final Paint wellPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final Paint recessPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final Path wellPath = new Path();
+    private static final Paint glazePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint glazeRecessPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint cracklePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Path porcelainPath = new Path();
+    private static final Path cracklePath = new Path();
+
+    /** Celadon crazing, sketched on a 74 x 52 tile and stretched to fit; the same runs as the Compose porcelain. */
+    private static final float[][] CRACKS = {
+            {8f, 14f, 22f, 20f, 30f, 9f, 44f, 17f, 58f, 11f, 68f, 19f},
+            {22f, 20f, 20f, 34f, 34f, 40f, 44f, 17f},
+            {34f, 40f, 52f, 36f, 58f, 46f},
+            {52f, 36f, 58f, 11f},
+    };
 
     private static CanvasMaterials knurlMaterials;
     private static CanvasMaterials capMaterials;
@@ -41,9 +55,16 @@ public final class SkinMetal {
     private static CanvasMaterials capsuleMaterials;
     private static float capsuleTop;
     private static float capsuleBottom;
+    private static CanvasMaterials glazeMaterials;
+    private static float glazeTop;
+    private static float glazeBottom;
+    private static CanvasMaterials glazeRecessMaterials;
+    private static float crackleWidth;
+    private static float crackleHeight;
 
     static {
         linePaint.setStyle(Paint.Style.STROKE);
+        cracklePaint.setStyle(Paint.Style.STROKE);
     }
 
     private SkinMetal() {
@@ -158,6 +179,82 @@ public final class SkinMetal {
         canvas.translate(0, bounds.top);
         canvas.drawRect(bounds.left, 0, bounds.right, dpf2(5), recessPaint);
         canvas.restore();
+    }
+
+    /**
+     * Celadon glaze sunk into the metal, where something is "the current
+     * one": the glaze deepening downwards, a recess shadow under its top edge,
+     * a lit lower lip and, if [crackle] is set, the faint crazing of celadon.
+     */
+    public static void drawPorcelain(Canvas canvas, RectF bounds, float radius, CanvasMaterials m, boolean crackle, float alpha) {
+        if (bounds.isEmpty()) {
+            return;
+        }
+        if (glazeMaterials != m || glazeTop != bounds.top || glazeBottom != bounds.bottom) {
+            glazeMaterials = m;
+            glazeTop = bounds.top;
+            glazeBottom = bounds.bottom;
+            glazePaint.setShader(new LinearGradient(0, bounds.top, 0, bounds.bottom,
+                    m.glazeTop, m.glazeBottom, Shader.TileMode.CLAMP));
+        }
+        glazePaint.setAlpha((int) (255 * alpha));
+        canvas.drawRoundRect(bounds, radius, radius, glazePaint);
+
+        porcelainPath.rewind();
+        porcelainPath.addRoundRect(bounds, radius, radius, Path.Direction.CW);
+        canvas.save();
+        canvas.clipPath(porcelainPath);
+        canvas.translate(bounds.left, bounds.top);
+        final float w = bounds.width();
+        final float h = bounds.height();
+
+        if (glazeRecessMaterials != m) {
+            glazeRecessMaterials = m;
+            glazeRecessPaint.setShader(new LinearGradient(0, 0, 0, dpf2(5),
+                    m.porcelainRecess, Color.TRANSPARENT, Shader.TileMode.CLAMP));
+        }
+        glazeRecessPaint.setAlpha((int) (255 * alpha));
+        canvas.drawRect(0, 0, w, dpf2(5), glazeRecessPaint);
+
+        final float px = dpf2(1);
+        linePaint.setStrokeWidth(px);
+        linePaint.setColor(m.porcelainLip);
+        linePaint.setAlpha((int) (Color.alpha(m.porcelainLip) * alpha));
+        canvas.drawLine(0, h - px / 2, w, h - px / 2, linePaint);
+
+        if (crackle) {
+            if (crackleWidth != w || crackleHeight != h) {
+                crackleWidth = w;
+                crackleHeight = h;
+                final float sx = w / 74f;
+                final float sy = h / 52f;
+                cracklePath.rewind();
+                for (float[] run : CRACKS) {
+                    cracklePath.moveTo(run[0] * sx, run[1] * sy);
+                    for (int i = 2; i < run.length; i += 2) {
+                        cracklePath.lineTo(run[i] * sx, run[i + 1] * sy);
+                    }
+                }
+            }
+            // The line stays a hairline however far the tile is stretched.
+            cracklePaint.setStrokeWidth(dpf2(0.8f));
+            cracklePaint.setColor(m.crackle);
+            cracklePaint.setAlpha((int) (Color.alpha(m.crackle) * alpha));
+            canvas.drawPath(cracklePath, cracklePaint);
+        }
+        canvas.restore();
+    }
+
+    /** An engraved line laid across: the dark cut on top, the lit lip under it. */
+    public static void drawGrooveAcross(Canvas canvas, float left, float right, float y, CanvasMaterials m, float alpha) {
+        final float px = dpf2(1);
+        linePaint.setStrokeWidth(px);
+        linePaint.setColor(m.grooveCut);
+        linePaint.setAlpha((int) (Color.alpha(m.grooveCut) * alpha));
+        canvas.drawLine(left, y + px / 2, right, y + px / 2, linePaint);
+        linePaint.setColor(m.grooveLip);
+        linePaint.setAlpha((int) (Color.alpha(m.grooveLip) * alpha));
+        canvas.drawLine(left, y + px * 1.5f, right, y + px * 1.5f, linePaint);
     }
 
     /** An engraved upright line: a dark cut with a lit lip beside it. */

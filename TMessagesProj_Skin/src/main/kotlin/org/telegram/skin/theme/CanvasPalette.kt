@@ -30,6 +30,13 @@ class CanvasMaterials internal constructor(c: SkinColors, shadows: SkinShadows) 
     @JvmField val led = c.led.toArgb()
     @JvmField val ink = c.ink.toArgb()
 
+    @JvmField val glazeTop = c.porcelain.glazeTop.toArgb()
+    @JvmField val glazeBottom = c.porcelain.glazeBottom.toArgb()
+    @JvmField val porcelainText = c.porcelain.text.toArgb()
+    @JvmField val crackle = c.porcelain.crackle.toArgb()
+    @JvmField val porcelainRecess = c.porcelain.recess.toArgb()
+    @JvmField val porcelainLip = c.porcelain.lip.toArgb()
+
     /** The shadow under floating things, nearest layer first: blur and drop in dp, then colour. */
     @JvmField val floatingBlur = FloatArray(shadows.floating.size) { shadows.floating[it].radius.value }
     @JvmField val floatingDrop = FloatArray(shadows.floating.size) { shadows.floating[it].offset.y.value }
