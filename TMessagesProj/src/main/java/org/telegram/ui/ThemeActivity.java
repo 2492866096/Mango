@@ -212,7 +212,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
     private int chatListInfoRow;
     private int themeListRow;
     private int themeListRow2;
-    private int builtinThemesRow;
+    private int skinBubbleStyleRow;
     private int themeAccentListRow;
     private int themeInfoRow;
     private int chatBlurRow;
@@ -785,7 +785,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         scheduleFromToInfoRow = -1;
         themeListRow = -1;
         themeListRow2 = -1;
-        builtinThemesRow = -1;
+        skinBubbleStyleRow = -1;
         themeAccentListRow = -1;
         themeInfoRow = -1;
         preferedHeaderRow = -1;
@@ -872,7 +872,6 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         if (currentType == THEME_TYPE_THEMES_BROWSER) {
             selectThemeHeaderRow = rowCount++;
             themeListRow2 = rowCount++;
-            builtinThemesRow = rowCount++;
             chatListInfoRow = rowCount++;
 
             themePreviewRow = rowCount++;
@@ -903,7 +902,9 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             themeHeaderRow = rowCount++;
 
             themeListRow2 = rowCount++;
-            builtinThemesRow = rowCount++;
+            if (SkinSwitch.CHAT_FRAME) {
+                skinBubbleStyleRow = rowCount++;
+            }
             themeInfoRow = rowCount++;
 
 	            bubbleRadiusHeaderRow = rowCount++;
@@ -1696,8 +1697,21 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                 } else {
                     presentFragment(new WebBrowserSettings(null));
                 }
-            } else if (position == builtinThemesRow) {
-                MangoBuiltinThemes.show(this);
+            } else if (position == skinBubbleStyleRow) {
+                if (getParentActivity() == null) {
+                    return;
+                }
+                final String[] styles = {
+                    getString(R.string.SkinBubbleStyleFollow),
+                    getString(R.string.SkinBubbleStyleGraphite),
+                    getString(R.string.SkinBubbleStyleCeladon),
+                };
+                showDialog(AlertsCreator.createSingleChoiceDialog(getParentActivity(), styles, getString(R.string.SkinBubbleStyle), Theme.getSkinBubbleStyle(), (dialog, which) -> {
+                    if (which != Theme.getSkinBubbleStyle()) {
+                        Theme.setSkinBubbleStyle(which);
+                        listAdapter.notifyItemChanged(skinBubbleStyleRow);
+                    }
+                }));
             } else if (position == nightDisabledRow) {
                 if (Theme.selectedAutoNightType == Theme.AUTO_NIGHT_TYPE_NONE) {
                     return;
@@ -2811,8 +2825,10 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                     } else if (position == bluetoothScoRow) {
                         cell.setTextAndValue(getString(R.string.MicrophoneForVoiceMessages), getString(SharedConfig.recordViaSco ? R.string.MicrophoneForVoiceMessagesSco : R.string.MicrophoneForVoiceMessagesBuiltIn), updateRecordViaSco, false);
                         updateRecordViaSco = false;
-                    } else if (position == builtinThemesRow) {
-                        cell.setTextAndValue(getString(R.string.MangoBuiltinThemes), "3", false);
+                    } else if (position == skinBubbleStyleRow) {
+                        final int style = Theme.getSkinBubbleStyle();
+                        cell.setTextAndValue(getString(R.string.SkinBubbleStyle), getString(style == Theme.SKIN_BUBBLES_GRAPHITE ? R.string.SkinBubbleStyleGraphite
+                            : style == Theme.SKIN_BUBBLES_CELADON ? R.string.SkinBubbleStyleCeladon : R.string.SkinBubbleStyleFollow), false);
                     }
                     break;
                 }
@@ -3041,7 +3057,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             if (position == scheduleFromRow || position == distanceRow ||
                     position == scheduleToRow || position == scheduleUpdateLocationRow ||
                     position == contactsReimportRow || position == contactsSortRow ||
-                    position == bluetoothScoRow || position == searchEngineRow || position == builtinThemesRow) {
+                    position == bluetoothScoRow || position == searchEngineRow || position == skinBubbleStyleRow) {
                 return TYPE_TEXT_SETTING;
             } else if (position == automaticBrightnessInfoRow || position == scheduleLocationInfoRow || position == swipeGestureInfoRow || position == stickersInfoRow || position == liteModeInfoRow) {
                 return TYPE_TEXT_INFO_PRIVACY;

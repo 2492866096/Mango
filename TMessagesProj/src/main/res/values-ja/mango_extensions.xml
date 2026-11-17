@@ -411,10 +411,6 @@
     <string name="MangoAppIconMoon">月</string>
     <string name="MangoAppIconSpeed">速度</string>
     <string name="MangoAppIconNeon">ネオン</string>
-    <string name="MangoBuiltinThemes">組み込みテーマ</string>
-    <string name="MangoBuiltinThemeOption">テーマ %1$d</string>
-    <string name="MangoBuiltinThemesInfo">プレビューする 3 つのテーマの 1 つを選択し、Telegram で適用します。テーマをインポートするにはインターネット接続が必要です。適用されたテーマは引き続きテーマ リストで使用できます。</string>
-    <string name="MangoBuiltinThemesOffline">Telegram に接続して、このテーマをプレビューしてインポートします。以前に適用したテーマは、オフラインでもテーマ リストから選択できます。</string>
     <string name="MangoCommandPanelSearchHint">検索コマンド、設定、アクション…</string>
     <string name="MangoCommandPanelCommonActions">一般的なアクション</string>
     <string name="MangoCommandPanelProxySummary">接続設定</string>

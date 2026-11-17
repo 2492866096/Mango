@@ -411,10 +411,6 @@
     <string name="MangoAppIconMoon">Ay</string>
     <string name="MangoAppIconSpeed">Hız</string>
     <string name="MangoAppIconNeon">Neon</string>
-    <string name="MangoBuiltinThemes">Yerleşik temalar</string>
-    <string name="MangoBuiltinThemeOption">Tema %1$d</string>
-    <string name="MangoBuiltinThemesInfo">Önizlemek ve Telegram\'da uygulamak için üç temadan birini seçin. Bir temayı içe aktarmak için İnternet bağlantısı gerekir. Uygulanan temalar tema listesinde kullanılabilir durumda kalır.</string>
-    <string name="MangoBuiltinThemesOffline">Bu temayı önizlemek ve içe aktarmak için Telegram\'a bağlanın. Daha önce uygulanmış temalar çevrimdışıyken de tema listesinden seçilebilir.</string>
     <string name="MangoCommandPanelSearchHint">Arama komutları, ayarları veya eylemleri…</string>
     <string name="MangoCommandPanelCommonActions">Ortak eylemler</string>
     <string name="MangoCommandPanelProxySummary">Bağlantı ayarları</string>

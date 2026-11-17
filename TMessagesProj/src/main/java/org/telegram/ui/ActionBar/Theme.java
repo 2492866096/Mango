@@ -4807,6 +4807,8 @@ public class Theme {
         themeInfo.sortIndex = -1;
         themes.add(themeInfo);
         themesDict.put("Frost Night", currentNightTheme = themeInfo);
+        // Qualified: the static block runs above these constants' declarations.
+        applySkinBubbleStyle(themeConfig.getInt(Theme.SKIN_BUBBLE_STYLE_KEY, Theme.SKIN_BUBBLES_FOLLOW));
 
         String themesString = themeConfig.getString("themes2", null);
 
@@ -9845,6 +9847,39 @@ public class Theme {
 
     public static boolean isThemeWallpaperPublic() {
         return !TextUtils.isEmpty(themedWallpaperLink);
+    }
+
+    /** 气泡风格: the skin themes' outgoing bubble follows day and night (graphite by day, celadon at night), or is always one of them. */
+    public static final int SKIN_BUBBLES_FOLLOW = 0;
+    public static final int SKIN_BUBBLES_GRAPHITE = 1;
+    public static final int SKIN_BUBBLES_CELADON = 2;
+    private static final String SKIN_BUBBLE_STYLE_KEY = "skinBubbleStyle";
+
+    public static int getSkinBubbleStyle() {
+        return ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).getInt(SKIN_BUBBLE_STYLE_KEY, SKIN_BUBBLES_FOLLOW);
+    }
+
+    /** Saves the style and reapplies the current theme, recolouring the app as a theme switch does. */
+    public static void setSkinBubbleStyle(int style) {
+        ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).edit().putInt(SKIN_BUBBLE_STYLE_KEY, style).apply();
+        applySkinBubbleStyle(style);
+        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, currentTheme, isCurrentThemeNight(), null, -1);
+    }
+
+    /** Points each skin theme at the file generated with the chosen outgoing bubble. */
+    private static void applySkinBubbleStyle(int style) {
+        final ThemeInfo day = themesDict.get("Frost");
+        if (day != null) {
+            final boolean celadon = style == SKIN_BUBBLES_CELADON;
+            day.assetName = celadon ? "skin_frost_celadon.attheme" : "skin_frost.attheme";
+            day.previewOutColor = celadon ? 0xffcde2db : 0xff20272b;
+        }
+        final ThemeInfo night = themesDict.get("Frost Night");
+        if (night != null) {
+            final boolean graphite = style == SKIN_BUBBLES_GRAPHITE;
+            night.assetName = graphite ? "skin_frost_night_graphite.attheme" : "skin_frost_night.attheme";
+            night.previewOutColor = graphite ? 0xffdce3e6 : 0xff2a4843;
+        }
     }
 
     /** One of the redesign's own themes, whose plain ground the chat screen draws with the celadon crazing. */

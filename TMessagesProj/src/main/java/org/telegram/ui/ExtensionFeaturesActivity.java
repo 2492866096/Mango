@@ -133,7 +133,7 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     private static final int ITEM_COMMON_CLEAR_CACHE = 20001, ITEM_COMMON_PROXY = 20002,
             ITEM_COMMON_ACCOUNT = 20003, ITEM_COMMON_PRIVACY = 20004;
 
-    private static final int ITEM_HISTORY = 80, ITEM_RESET_ALL = 81, ITEM_NOTIFICATION_RULES = 82, ITEM_BUILTIN_THEMES = 84;
+    private static final int ITEM_HISTORY = 80, ITEM_RESET_ALL = 81, ITEM_NOTIFICATION_RULES = 82;
     private UniversalRecyclerView listView;
     private int category = MangoFeatureRegistry.ALL;
     private String searchQuery = "";
@@ -303,7 +303,7 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 return MangoFeatureRegistry.MEDIA;
             case 10: case 27: case 28: case 29: case 30: case 42: case 45: case 46: case 52: case ITEM_RANDOM_REPLY_GROUPS: case ITEM_USER_BROADCAST:
                 return MangoFeatureRegistry.AUTOMATION;
-            case 7: case 9: case 13: case 20: case 21: case 23: case 24: case 25: case 26: case 32: case 35: case 36: case 39: case 44: case 47: case ITEM_BUILTIN_THEMES: case ITEM_UNIFIED_TAB: case ITEM_UNIFIED_INBOX: case ITEM_RESTRICTION_TITLE:
+            case 7: case 9: case 13: case 20: case 21: case 23: case 24: case 25: case 26: case 32: case 35: case 36: case 39: case 44: case 47: case ITEM_UNIFIED_TAB: case ITEM_UNIFIED_INBOX: case ITEM_RESTRICTION_TITLE:
                 return MangoFeatureRegistry.APPEARANCE;
             case 19: case 54: case 55: case 57: case ITEM_HISTORY: case ITEM_RESET_ALL: case ITEM_PERFORMANCE_MONITOR: case ITEM_SYNC_SWITCHES:
                 return MangoFeatureRegistry.TOOLS;
@@ -331,7 +331,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         all.add(UItem.asButton(ITEM_USER_BROADCAST, R.drawable.msg_send,
                 getString(R.string.MangoBroadcastTitle), getString(R.string.MangoBroadcastInfo)));
         all.add(UItem.asButton(ITEM_NOTIFICATION_RULES, R.drawable.msg_notifications, getString(R.string.MangoNotificationRules)));
-        all.add(UItem.asButton(ITEM_BUILTIN_THEMES, R.drawable.msg_theme, getString(R.string.MangoBuiltinThemes)));
         all.add(UItem.asSwitch(ITEM_SYNC_SWITCHES, getString(R.string.MangoSyncSwitches))
                 .setChecked(org.telegram.messenger.MangoSettingsSync.isEnabled()));
         all.add(UItem.asButton(ITEM_SECURITY_CHECK, R.drawable.msg_secret, getString(R.string.MangoSecurityCheck)));
@@ -669,10 +668,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 return;
             case ITEM_RANDOM_REPLY_GROUPS:
                 presentExtensionPage(new MangoAutoReadReplyGroupsActivity());
-                return;
-            case ITEM_BUILTIN_THEMES:
-                AndroidUtilities.hideKeyboard(searchField);
-                MangoBuiltinThemes.show(this);
                 return;
             case ITEM_ID_SAVE_RECALLED:
                 enabled = !org.telegram.messenger.RecalledMessagesStore.isEnabled(currentAccount);

@@ -71,4 +71,8 @@
     <string name="SkinNoticeFrozen">你的帳號已被凍結，點此了解詳情</string>
     <string name="SkinNoticeSuggestion">設定裡有一則提醒</string>
     <string name="SkinListUnread">未讀</string>
+    <string name="SkinBubbleStyle">氣泡風格</string>
+    <string name="SkinBubbleStyleFollow">跟隨淺深色</string>
+    <string name="SkinBubbleStyleGraphite">一直石墨</string>
+    <string name="SkinBubbleStyleCeladon">一直天青</string>
 </resources>

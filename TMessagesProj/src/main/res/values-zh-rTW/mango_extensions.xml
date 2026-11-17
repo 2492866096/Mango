@@ -411,10 +411,6 @@
     <string name="MangoAppIconMoon">月亮</string>
     <string name="MangoAppIconSpeed">速度</string>
     <string name="MangoAppIconNeon">氖</string>
-    <string name="MangoBuiltinThemes">內建主題</string>
-    <string name="MangoBuiltinThemeOption">主題%1$d</string>
-    <string name="MangoBuiltinThemesInfo">选择三个主题之一进行预览并将其应用到 Telegram 中。導入主題需要網路連線。應用程式的主題在主題清單中仍然可用。</string>
-    <string name="MangoBuiltinThemesOffline">連接到 Telegram 預覽並匯入此主題。離線時仍可從主題清單中選擇先前套用的主題。</string>
     <string name="MangoCommandPanelSearchHint">搜尋命令、設定或操作...</string>
     <string name="MangoCommandPanelCommonActions">常見動作</string>
     <string name="MangoCommandPanelProxySummary">連接設定</string>

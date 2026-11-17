@@ -71,4 +71,8 @@
     <string name="SkinNoticeFrozen">Your account is frozen. Tap for details</string>
     <string name="SkinNoticeSuggestion">Settings has a reminder for you</string>
     <string name="SkinListUnread">Unread</string>
+    <string name="SkinBubbleStyle">Bubble style</string>
+    <string name="SkinBubbleStyleFollow">Follow day and night</string>
+    <string name="SkinBubbleStyleGraphite">Always graphite</string>
+    <string name="SkinBubbleStyleCeladon">Always celadon</string>
 </resources>

@@ -411,10 +411,6 @@
     <string name="MangoAppIconMoon">मून</string>
     <string name="MangoAppIconSpeed">स्पीड</string>
     <string name="MangoAppIconNeon">नियॉन</string>
-    <string name="MangoBuiltinThemes">बिल्ट-इन थीम</string>
-    <string name="MangoBuiltinThemeOption">थीम %1$d</string>
-    <string name="MangoBuiltinThemesInfo">पूर्वावलोकन करने और इसे टेलीग्राम में लागू करने के लिए तीन थीम में से एक चुनें। किसी थीम को आयात करने के लिए इंटरनेट कनेक्शन की आवश्यकता होती है। लागू थीम थीम सूची में उपलब्ध रहती हैं।</string>
-    <string name="MangoBuiltinThemesOffline">इस थीम का पूर्वावलोकन और आयात करने के लिए टेलीग्राम से कनेक्ट करें। पहले से लागू थीम को ऑफ़लाइन रहते हुए भी थीम सूची से चुना जा सकता है।</string>
     <string name="MangoCommandPanelSearchHint">कमांड, सेटिंग्स या क्रियाएं खोजें...</string>
     <string name="MangoCommandPanelCommonActions">सामान्य क्रियाएं</string>
     <string name="MangoCommandPanelProxySummary">कनेक्शन सेटिंग्स</string>

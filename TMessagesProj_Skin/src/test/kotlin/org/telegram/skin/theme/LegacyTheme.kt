@@ -187,11 +187,11 @@ internal class LegacyTheme(private val repo: File) {
 /**
  * The keys that carry the design, pinned to tokens. A null value drops the key
  * from the file, which is how the stock out-bubble gradients are removed:
- * bubbles here are flat.
+ * bubbles here are flat. [out] is the outgoing bubble: the theme's own by
+ * default, the other one for the 气泡风格 setting's fixed choices.
  */
-internal fun designOverrides(c: SkinColors): Map<String, Color?> {
+internal fun designOverrides(c: SkinColors, out: Bubble = c.bubbleOut): Map<String, Color?> {
     val onInk = if (c.isDark) c.page else Color.White
-    val out = c.bubbleOut
     val inn = c.bubbleIn
     val selection = c.text.copy(alpha = 0.06f)
     val mutedCounter = if (c.isDark) Color(0xFF3A4247) else Color(0xFFB9C2C6)

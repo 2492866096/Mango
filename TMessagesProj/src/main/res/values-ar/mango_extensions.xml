@@ -406,10 +406,6 @@
     <string name="MangoAppIconMoon">قمر</string>
     <string name="MangoAppIconSpeed">السرعة</string>
     <string name="MangoAppIconNeon">نيون</string>
-    <string name="MangoBuiltinThemes">السمات المضمنة</string>
-    <string name="MangoBuiltinThemeOption">الموضوع %1$d</string>
-    <string name="MangoBuiltinThemesInfo">اختر أحد السمات الثلاثة لمعاينتها وتطبيقها في Telegram. يلزم الاتصال بالإنترنت لاستيراد السمة. تظل السمات المطبقة متاحة في قائمة السمات.</string>
-    <string name="MangoBuiltinThemesOffline">اتصل بـ Telegram لمعاينة هذا المظهر واستيراده. لا يزال من الممكن تحديد السمات المطبقة مسبقًا من قائمة السمات أثناء عدم الاتصال بالإنترنت.</string>
     <string name="MangoCommandPanelSearchHint">أوامر البحث أو الإعدادات أو الإجراءات...</string>
     <string name="MangoCommandPanelCommonActions">الإجراءات الشائعة</string>
     <string name="MangoCommandPanelProxySummary">إعدادات الاتصال</string>

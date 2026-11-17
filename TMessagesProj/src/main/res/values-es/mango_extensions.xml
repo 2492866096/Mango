@@ -406,10 +406,6 @@
     <string name="MangoAppIconMoon">Luna</string>
     <string name="MangoAppIconSpeed">Velocidad</string>
     <string name="MangoAppIconNeon">Neón</string>
-    <string name="MangoBuiltinThemes">Temas integrados</string>
-    <string name="MangoBuiltinThemeOption">Tema %1$d</string>
-    <string name="MangoBuiltinThemesInfo">Elija uno de los tres temas para obtener una vista previa y aplicarlo en Telegram. Se necesita una conexión a Internet para importar un tema. Los temas aplicados permanecen disponibles en la lista de temas.</string>
-    <string name="MangoBuiltinThemesOffline">Conéctese a Telegram para obtener una vista previa e importar este tema. Los temas aplicados anteriormente aún se pueden seleccionar de la lista de temas sin conexión.</string>
     <string name="MangoCommandPanelSearchHint">Buscar comandos, configuraciones o acciones…</string>
     <string name="MangoCommandPanelCommonActions">Acciones comunes</string>
     <string name="MangoCommandPanelProxySummary">Configuración de conexión</string>

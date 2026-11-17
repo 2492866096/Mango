@@ -406,10 +406,6 @@
     <string name="MangoAppIconMoon">달</string>
     <string name="MangoAppIconSpeed">속도</string>
     <string name="MangoAppIconNeon">네온</string>
-    <string name="MangoBuiltinThemes">내장 테마</string>
-    <string name="MangoBuiltinThemeOption">테마 %1$d</string>
-    <string name="MangoBuiltinThemesInfo">세 가지 테마 중 하나를 선택하여 텔레그램에서 미리 보고 적용하세요. 테마를 가져오려면 인터넷 연결이 필요합니다. 적용된 테마는 테마 목록에서 계속 사용할 수 있습니다.</string>
-    <string name="MangoBuiltinThemesOffline">이 테마를 미리 보고 가져오려면 Telegram에 연결하세요. 이전에 적용한 테마는 오프라인 상태에서도 테마 목록에서 선택할 수 있습니다.</string>
     <string name="MangoCommandPanelSearchHint">명령, 설정 또는 작업 검색...</string>
     <string name="MangoCommandPanelCommonActions">일반적인 작업</string>
     <string name="MangoCommandPanelProxySummary">연결 설정</string>

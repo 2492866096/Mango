@@ -14,24 +14,29 @@ class LegacyThemeTest {
     @Test
     fun overridesUseRealKeys() {
         for (colors in listOf(FrostLight, FrostDark)) {
-            val unknown = designOverrides(colors).keys - legacy.validNames
-            assertTrue("Not Telegram theme keys: $unknown", unknown.isEmpty())
+            for (out in listOf(colors.bubbleGraphite, colors.bubbleCeladon)) {
+                val unknown = designOverrides(colors, out).keys - legacy.validNames
+                assertTrue("Not Telegram theme keys: $unknown", unknown.isEmpty())
+            }
         }
     }
 
     @Test
     fun themeFilesMatchTokens() {
-        check("skin_frost.attheme", "day.attheme", DAY_BLUE, FrostLight)
-        check("skin_frost_night.attheme", "night.attheme", NIGHT_BLUE, FrostDark)
+        // Each theme with its own outgoing bubble, and with the other one for the 气泡风格 setting.
+        check("skin_frost.attheme", "day.attheme", DAY_BLUE, FrostLight, FrostLight.bubbleGraphite)
+        check("skin_frost_celadon.attheme", "day.attheme", DAY_BLUE, FrostLight, FrostLight.bubbleCeladon)
+        check("skin_frost_night.attheme", "night.attheme", NIGHT_BLUE, FrostDark, FrostDark.bubbleCeladon)
+        check("skin_frost_night_graphite.attheme", "night.attheme", NIGHT_BLUE, FrostDark, FrostDark.bubbleGraphite)
     }
 
-    private fun check(target: String, base: String, baseAccent: Int, colors: SkinColors) {
+    private fun check(target: String, base: String, baseAccent: Int, colors: SkinColors, out: Bubble) {
         val text = legacy.generate(
             base = File(repo, "TMessagesProj/src/main/assets/$base"),
             baseAccent = baseAccent,
             accent = colors.led,
             isDark = colors.isDark,
-            overrides = designOverrides(colors),
+            overrides = designOverrides(colors, out),
         )
         val file = File(module, "src/main/assets/$target")
         if (System.getProperty("skin.regen") == "true") {
