@@ -38,6 +38,7 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.SwipeGestureSettingsView;
 import org.telegram.ui.LaunchActivity;
+import org.telegram.ui.SkinSwitch;
 
 import java.io.File;
 import java.io.RandomAccessFile;
@@ -1700,7 +1701,9 @@ public class SharedConfig {
     public static boolean useSystemBoldFont;
     public static int fontSize = 16;
 	public static boolean fontSizeIsDefault;
-	public static int bubbleRadius = 17;
+	/** Message bubble corner radius in dp; the skin's bubbles are rounder by default. */
+	public static final int DEFAULT_BUBBLE_RADIUS = SkinSwitch.CHAT_FRAME ? 20 : 17;
+	public static int bubbleRadius = DEFAULT_BUBBLE_RADIUS;
 	public static int bubbleOpacity = 100;
 	public static int ivFontSize = 16;
     public static boolean proxyRotationEnabled;
@@ -2075,7 +2078,7 @@ public class SharedConfig {
             repeatMode = preferences.getInt("repeatMode", 0);
 	        fontSize = preferences.getInt("fons_size", AndroidUtilities.isTablet() ? 18 : 16);
 	        fontSizeIsDefault = !preferences.contains("fons_size");
-	        bubbleRadius = preferences.getInt("bubbleRadius", 17);
+	        bubbleRadius = preferences.getInt("bubbleRadius", DEFAULT_BUBBLE_RADIUS);
 	        bubbleOpacity = Math.max(30, Math.min(100, preferences.getInt("bubbleOpacity", 100)));
 	        ivFontSize = preferences.getInt("iv_font_size", fontSize);
             allowBigEmoji = preferences.getBoolean("allowBigEmoji", true);

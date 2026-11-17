@@ -881,6 +881,9 @@ public class Theme {
 
         private void generatePath(Path path, Rect bounds, int padding, int rad, int smallRad, int nearRad, int top, boolean drawFullBottom, boolean drawFullTop, boolean customPaint) {
             path.rewind();
+            // The skin's text bubbles have no tail: the corner it hung from is rounded like the rest,
+            // and the bubble keeps its inset on that side so the cell's layout is unchanged.
+            final boolean tailless = SkinSwitch.CHAT_FRAME && currentType != TYPE_MEDIA;
             int heightHalf = (bounds.height() - padding) >> 1;
             if (rad > heightHalf) {
                 rad = heightHalf;
@@ -891,6 +894,8 @@ public class Theme {
                     int radToUse = botButtonsBottom ? nearRad : rad;
                     if (currentType == TYPE_MEDIA) {
                         path.moveTo(bounds.right - dp(8) - radToUse, bounds.bottom - padding);
+                    } else if (tailless) {
+                        path.moveTo(bounds.right - dp(8) - rad, bounds.bottom - padding);
                     } else {
                         path.moveTo(bounds.right - dp(2.6f), bounds.bottom - padding);
                     }
@@ -940,7 +945,11 @@ public class Theme {
                         path.lineTo(bounds.right - padding, top - topY + currentBackgroundHeight);
                     }
                 } else {
-                    if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
+                    if (tailless && (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom)) {
+                        path.lineTo(bounds.right - dp(8), bounds.bottom - padding - rad);
+                        rect.set(bounds.right - dp(8) - rad * 2, bounds.bottom - padding - rad * 2, bounds.right - dp(8), bounds.bottom - padding);
+                        path.arcTo(rect, 0, 90, false);
+                    } else if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
                         path.lineTo(bounds.right - dp(8), bounds.bottom - padding - smallRad - dp(3));
                         rect.set(bounds.right - dp(8), bounds.bottom - padding - smallRad * 2 - dp(9), bounds.right - dp(7) + smallRad * 2, bounds.bottom - padding - dp(1));
                         path.arcTo(rect, 180, -83, false);
@@ -954,6 +963,8 @@ public class Theme {
 
                     if (currentType == TYPE_MEDIA) {
                         path.moveTo(bounds.left + dp(8) + radToUse, bounds.bottom - padding);
+                    } else if (tailless) {
+                        path.moveTo(bounds.left + dp(8) + rad, bounds.bottom - padding);
                     } else {
                         path.moveTo(bounds.left + dp(2.6f), bounds.bottom - padding);
                     }
@@ -997,7 +1008,11 @@ public class Theme {
                         path.lineTo(bounds.left + padding, top - topY + currentBackgroundHeight);
                     }
                 } else {
-                    if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
+                    if (tailless && (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom)) {
+                        path.lineTo(bounds.left + dp(8), bounds.bottom - padding - rad);
+                        rect.set(bounds.left + dp(8), bounds.bottom - padding - rad * 2, bounds.left + dp(8) + rad * 2, bounds.bottom - padding);
+                        path.arcTo(rect, 180, -90, false);
+                    } else if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
                         path.lineTo(bounds.left + dp(8), bounds.bottom - padding - smallRad - dp(3));
                         rect.set(bounds.left + dp(7) - smallRad * 2, bounds.bottom - padding - smallRad * 2 - dp(9), bounds.left + dp(8), bounds.bottom - padding - dp(1));
                         path.arcTo(rect, 0, 83, false);
