@@ -4114,6 +4114,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
         senderSelectView = new SenderSelectView(getContext());
+        senderSelectView.setSkin(skinFrame);
         senderSelectView.setOnClickListener(v -> {
             if (isLiveComment ? isPopupShowing() : getTranslationY() != 0) {
                 onEmojiSearchClosed = () -> senderSelectView.callOnClick();
@@ -4448,6 +4449,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
         botCommandsMenuButton = new BotCommandsMenuView(getContext());
+        botCommandsMenuButton.setSkin(skinFrame);
         botCommandsMenuButton.setOnClickListener(view -> {
             boolean open = !botCommandsMenuButton.isOpened();
             botCommandsMenuButton.setOpened(open);
