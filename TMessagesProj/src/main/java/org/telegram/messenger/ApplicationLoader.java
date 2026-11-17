@@ -152,7 +152,7 @@ public class ApplicationLoader extends Application {
                 return packageName;
             }
         }
-        return "app.mango.im";
+        return "r.xs.rp";
     }
 
     public static String getAccountType() {
