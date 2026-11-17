@@ -2717,7 +2717,11 @@ public class ChatActivityEnterView extends FrameLayout implements
             @Override
             protected void dispatchDraw(@NonNull Canvas canvas) {
                 if (skinFrame && !recordingAudioVideo && sendButtonContainer != null && sendButtonContainer.getVisibility() == VISIBLE) {
-                    final float x = messageEditTextContainer.getRight() - dp(2);
+                    float x = messageEditTextContainer.getRight() - dp(2);
+                    if (sendButton != null && sendButton.getVisibility() == VISIBLE && sendButton.hasPrice()) {
+                        // A paid message's price is engraved before the knob, so the groove sits between them.
+                        x = sendButtonContainer.getX() + sendButton.getX() + sendButton.knobLeft() - dp(5);
+                    }
                     final float cy = getHeight() - dp(22);
                     SkinMetal.drawGroove(canvas, x, cy - dp(12), cy + dp(12), skinMaterials(), 1f);
                 }
@@ -14963,7 +14967,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 canvas.scale(s, s, x + drawable.getIntrinsicWidth() / 2f, y + drawable.getIntrinsicHeight() / 2f);
                 canvas.rotate(60 * (1f - appear), x + drawable.getIntrinsicWidth() / 2f, y + drawable.getIntrinsicHeight() / 2f);
                 drawable.setBounds(x, y, x + drawable.getIntrinsicWidth(), y + drawable.getIntrinsicHeight());
-                drawable.setAlpha((int) (0xFF * (1.0f - priceProgress)));
+                drawable.setAlpha(skinKnob ? 0xFF : (int) (0xFF * (1.0f - priceProgress)));
                 drawable.draw(canvas);
                 canvas.restore();
             }
@@ -15030,7 +15034,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     canvas.scale(s, s, right - w / 2.0f, cy);
                     invalidate();
                 }
-                if (priceProgress > 0) {
+                if (priceProgress > 0 && !skinKnob) {
                     if (newCounterPos) {
                         priceText.setBounds(right - priceText.getAnimateToWidth() - dp(11), cy - h / 2, right - dp(11), cy + h / 2);
                     } else if (isNewDesignSendButton) {
@@ -15052,6 +15056,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                     canvas.restore();
                 }
                 canvas.restore();
+            }
+
+            if (skinKnob && priceProgress > 0) {
+                // Engraved on the metal before the knob, outside the pill Telegram clips its price to.
+                priceText.setBounds(backgroundRect.left + dp(4), backgroundRect.top, backgroundRect.right - backgroundRect.height() - dp(6), backgroundRect.bottom);
+                priceText.setAlpha((int) (0xFF * priceProgress * (1.0f - loadingShown)));
+                priceText.draw(canvas);
             }
 
             final float countScale = count.isNotEmpty() * (1.0f - priceProgress);
@@ -15114,7 +15125,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         public int width(int h) {
             final float openProgress = isOpen() ? 1.0f : 0.0f;
             final float priceProgress = starsPrice > 0 ? 1.0f : 0.0f;
-            return (int) lerp(circlePadX + getCircleWidth() + circlePadX, dp(9 + 9) + dp(isNewDesignSendButton ? (10 + 10) : (11 + 11)) + priceText.getAnimateToWidth(), priceProgress * openProgress);
+            final float priced = skinKnob
+                ? dp(9 + 9) + dpf2(38) + skinPriceRoom(priceText.getAnimateToWidth())
+                : dp(9 + 9) + dp(isNewDesignSendButton ? (10 + 10) : (11 + 11)) + priceText.getAnimateToWidth();
+            return (int) lerp(circlePadX + getCircleWidth() + circlePadX, priced, priceProgress * openProgress);
         }
 
         public int height() {
@@ -15138,16 +15152,27 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         private int drawableColor;
+        private boolean skinPriceTypeface;
 
+        /** The knob at the key's right end; a paid message's price is engraved on the metal before it. */
         private void drawSkinKnob(Canvas canvas) {
             final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider));
-            final boolean lit = !isInactive();
-            if (backgroundRect.width() > backgroundRect.height() + 1) {
-                // A paid message widens the key to show its price: a capsule of the same metal.
-                SkinMetal.drawCapsule(canvas, backgroundRect, lit, m, 1f);
-            } else {
-                SkinMetal.drawKnob(canvas, backgroundRect.centerX(), backgroundRect.centerY(), backgroundRect.height() / 2f, lit, m, 1f);
-            }
+            final float r = backgroundRect.height() / 2f;
+            SkinMetal.drawKnob(canvas, backgroundRect.right - r, backgroundRect.centerY(), r, !isInactive(), m, 1f);
+        }
+
+        public boolean hasPrice() {
+            return starsPrice > 0;
+        }
+
+        /** The left edge of the knob within this view. */
+        public float knobLeft() {
+            return backgroundRect.right - backgroundRect.height();
+        }
+
+        /** The room before the knob that a paid message's price takes on the skin. */
+        private float skinPriceRoom(float priceWidth) {
+            return priceWidth > 0 ? dpf2(4 + 6) + priceWidth : 0;
         }
 
         public void updateColors() {
@@ -15156,7 +15181,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                     : Theme.getColor(Theme.key_chat_messagePanelSend, resourcesProvider);
             if (color != drawableColor) {
                 if (skinKnob) {
-                    priceText.setTextColor(color);
+                    // The price is engraved in the skin's ink, in its numerals.
+                    final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider));
+                    priceText.setTextColor(m.ink);
+                    if (!skinPriceTypeface) {
+                        skinPriceTypeface = true;
+                        priceText.setTypeface(SkinStyle.numerals(false));
+                    }
                     count.setTextColor(color);
                 }
                 drawableColor = color;
@@ -15233,7 +15264,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         private void checkBackgroundRect() {
             final float margin = dpf2(3);
             final float height = dpf2(38);
-            final float width = Math.max(height, dpf2(10 + 10) + priceText.getCurrentWidth());
+            final float width = skinKnob ? height + skinPriceRoom(priceText.getCurrentWidth()) : Math.max(height, dpf2(10 + 10) + priceText.getCurrentWidth());
             backgroundRect.set(
                     getMeasuredWidth() - width - margin,
                     getMeasuredHeight() - height - margin,
