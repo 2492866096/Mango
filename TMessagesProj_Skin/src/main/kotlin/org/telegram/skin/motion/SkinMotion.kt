@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.util.function.BooleanSupplier
 import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.ln
@@ -170,6 +171,24 @@ object SkinMotion {
             }
         }
         return (1 - rest).toFloat()
+    }
+
+    /**
+     * A knock's path through [spring]: what a thing at rest does when struck,
+     * scaled so its furthest swing is 1. It leaves 0 at once, peaks, swings a
+     * little past 0 the other way and dies out; a slip seating in its slot
+     * moves this way. Only for underdamped springs; others give 0.
+     */
+    @JvmStatic
+    fun springKick(spring: MotionSpring, ms: Float): Float {
+        val z = spring.damping.toDouble()
+        if (ms <= 0f || z >= 1.0) return 0f
+        val w = sqrt(spring.stiffness.toDouble())
+        val wd = w * sqrt(1 - z * z)
+        val peakT = atan2(wd, z * w) / wd
+        val peak = exp(-z * w * peakT) * sin(wd * peakT)
+        val t = ms / 1000.0
+        return (exp(-z * w * t) * sin(wd * t) / peak).toFloat()
     }
 
     // Reduced motion.

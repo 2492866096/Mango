@@ -206,6 +206,7 @@ import org.telegram.messenger.utils.PhotoUtilities;
 import org.telegram.messenger.utils.RectFMergeBounding;
 import org.telegram.messenger.utils.tlutils.TlUtils;
 import org.telegram.messenger.voip.VoIPService;
+import org.telegram.skin.motion.SkinMotion;
 import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
@@ -8240,7 +8241,12 @@ public class ChatActivity extends BaseFragment implements
             @Override
             protected void dispatchDraw(Canvas canvas) {
                 if (SkinSwitch.CHAT_FRAME) {
+                    canvas.save();
+                    canvas.translate(0, skinSlipSeat(this));
                     drawSkinSlip(canvas, this);
+                    super.dispatchDraw(canvas);
+                    canvas.restore();
+                    return;
                 }
                 super.dispatchDraw(canvas);
             }
@@ -11114,6 +11120,33 @@ public class ChatActivity extends BaseFragment implements
      * forwarded or previewed) as a porcelain slip set into the console, with
      * an engraved line between it and the field.
      */
+    private float skinSlipProgress;
+    private long skinSlipKnockAt;
+    private float skinSlipKnockSign;
+
+    /**
+     * Where the slip sits in its slot. Arriving, it clicks in: sinks a little and
+     * springs back; starting to leave, it is first pulled up out of the slot. The
+     * slide itself stays Telegram's, timed with the messages moving over it.
+     */
+    private float skinSlipSeat(View panel) {
+        final float progress = chatActivityEnterView != null ? chatActivityEnterView.getTopViewEnterProgress() : 1f;
+        final long now = SystemClock.uptimeMillis();
+        if (progress >= 1f && skinSlipProgress < 1f || progress < 1f && skinSlipProgress >= 1f) {
+            if (!SkinMotion.reduced()) {
+                skinSlipKnockAt = now;
+                skinSlipKnockSign = progress >= 1f ? 1f : -1f;
+            }
+        }
+        skinSlipProgress = progress;
+        final float t = now - skinSlipKnockAt;
+        if (skinSlipKnockAt == 0 || t > SkinMotion.SEAT.getSettleMs()) {
+            return 0f;
+        }
+        panel.invalidate();
+        return skinSlipKnockSign * dp(1.5f) * SkinMotion.springKick(SkinMotion.SEAT, t);
+    }
+
     private void drawSkinSlip(Canvas canvas, View panel) {
         final CanvasMaterials m = skinSlipMaterials();
         final float w = panel.getWidth();

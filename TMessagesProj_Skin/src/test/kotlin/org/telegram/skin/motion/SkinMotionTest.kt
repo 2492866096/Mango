@@ -90,6 +90,17 @@ class SkinMotionTest {
     }
 
     @Test
+    fun aKickPeaksOnceAndDiesOut() {
+        val samples = (0..600 step 2).map { SkinMotion.springKick(SkinMotion.SEAT, it.toFloat()) }
+        assertEquals(0f, samples.first(), 0f)
+        assertEquals(1f, samples.max(), 0.01f)
+        // A slight swing back past rest, then still.
+        assertTrue(samples.min() < 0f && samples.min() > -0.2f)
+        assertEquals(0f, samples.last(), 0.01f)
+        assertEquals(0f, SkinMotion.springKick(SkinMotion.PRESS_DOWN, 40f), 0f)
+    }
+
+    @Test
     fun curvesAreTimingCurves() {
         val curves = listOf(
             SkinMotion.STATE, SkinMotion.MORPH, SkinMotion.GLAZE, SkinMotion.EXIT,
