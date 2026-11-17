@@ -167,6 +167,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.BasePermissionsActivity;
 import org.telegram.ui.Business.BusinessLinksController;
 import org.telegram.ui.Business.QuickRepliesController;
+import org.telegram.skin.motion.SkinHaptics;
 import org.telegram.skin.motion.SkinMotion;
 import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ChatActivity;
@@ -2236,6 +2237,10 @@ public class ChatActivityEnterView extends FrameLayout implements
                 return 1;
             }
             if (startTranslation - lockAnimatedTranslation >= dp(57)) {
+                if (skinFrame && !sendButtonVisible) {
+                    // The latch clicks shut.
+                    SkinHaptics.confirm(this);
+                }
                 sendButtonVisible = true;
                 if (controlsView != null) {
                     controlsView.showPauseHint();
@@ -2509,8 +2514,35 @@ public class ChatActivityEnterView extends FrameLayout implements
                 return;
             }
             // The knob keeps its size under the thumb; the voice shows in its celadon rim.
-            final float rim = dpf2(2.5f) + dpf2(1.5f) * amplitude;
+            final float rim = dpf2(2.5f) + dpf2(1.5f) * skinVoiceLevel();
             SkinMetal.drawKnob(canvas, x, y, skinKnobRadius(r), true, rim, skinMaterials(), paint.getAlpha() / 255f);
+        }
+
+        private float skinLevel;
+        private long skinLevelAt;
+        private boolean skinReduced;
+        private long skinReducedAt;
+
+        /**
+         * How loud the voice is, as the rim breathes it: up at once with each
+         * syllable, sinking back slowly between them. Still, with motion reduced;
+         * the meter in the console still shows the level.
+         */
+        private float skinVoiceLevel() {
+            final long now = SystemClock.uptimeMillis();
+            // Settings can change mid-recording; looking twice a second is enough.
+            if (now - skinReducedAt > 500) {
+                skinReducedAt = now;
+                skinReduced = SkinMotion.reduced();
+            }
+            if (skinReduced) {
+                skinLevel = 0f;
+                return 0f;
+            }
+            final float elapsed = skinLevelAt == 0 ? 0f : Math.min(100f, now - skinLevelAt);
+            skinLevelAt = now;
+            skinLevel = SkinMotion.follow(skinLevel, animateToAmplitude, elapsed);
+            return skinLevel;
         }
 
         /** The knob's radius for a circle radius: the circle's grow-and-shrink kept, its swelling with the voice taken out. */
@@ -3112,6 +3144,9 @@ public class ChatActivityEnterView extends FrameLayout implements
                             recordingAudioVideo = false;
                             updateRecordInterface(RECORD_STATE_CANCEL_BY_GESTURE, true);
                         } else {
+                            if (skinFrame) {
+                                SkinHaptics.confirm(audioVideoButtonContainer);
+                            }
                             sendButtonVisible = true;
                             startLockTransition();
                         }
@@ -7673,14 +7708,27 @@ public class ChatActivityEnterView extends FrameLayout implements
                 binRect.set(0, 0, dp(44), h);
             }
 
+            // The keys rise into the console one after another: the bin, the seal, then pause.
             if (!binRect.isEmpty()) {
-                drawGlyph(canvas, bin, binRect, m.textSecondary, p * (pressed == BIN ? .6f : 1f));
+                final float k = keyIn(p, 0);
+                canvas.save();
+                canvas.translate(0, dp(6) * (1f - k));
+                drawGlyph(canvas, bin, binRect, m.textSecondary, k * (pressed == BIN ? .6f : 1f));
+                canvas.restore();
             }
             if (!pauseRect.isEmpty()) {
-                drawGlyph(canvas, paused ? (isInVideoMode() ? video : mic) : pause, pauseRect, m.textSecondary, p * (pressed == PAUSE ? .6f : 1f));
+                final float k = keyIn(p, 2);
+                canvas.save();
+                canvas.translate(0, dp(6) * (1f - k));
+                drawGlyph(canvas, paused ? (isInVideoMode() ? video : mic) : pause, pauseRect, m.textSecondary, k * (pressed == PAUSE ? .6f : 1f));
+                canvas.restore();
             }
             if (!sealRect.isEmpty()) {
-                drawSeal(canvas, m, p * (pressed == SEAL ? .6f : 1f));
+                final float k = keyIn(p, 1);
+                canvas.save();
+                canvas.translate(0, dp(6) * (1f - k));
+                drawSeal(canvas, m, k * (pressed == SEAL ? .6f : 1f));
+                canvas.restore();
             }
             if (!paused) {
                 drawMeter(canvas, m, p, right - dp(10));
@@ -7690,11 +7738,24 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
         }
 
+        private PorterDuffColorFilter glyphFilter;
+        private int glyphColor;
+
+        /** Key [index]'s share of the keys' appearance at [p]: each starts a little after the one before. */
+        private float keyIn(float p, int index) {
+            return Math.max(0f, Math.min(1f, (p - 0.12f * index) / 0.76f));
+        }
+
         private void drawGlyph(Canvas canvas, Drawable d, RectF rect, int color, float alpha) {
             final int size = dp(22);
             final int l = (int) (rect.centerX() - size / 2f);
             final int t = (int) (rect.centerY() - size / 2f);
-            d.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+            // The meter redraws every frame while recording; the tint is built once per colour.
+            if (glyphFilter == null || glyphColor != color) {
+                glyphColor = color;
+                glyphFilter = new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN);
+            }
+            d.setColorFilter(glyphFilter);
             d.setAlpha((int) (255 * alpha));
             d.setBounds(l, t, l + size, t + size);
             d.draw(canvas);
