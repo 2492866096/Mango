@@ -219,6 +219,13 @@ internal fun designOverrides(c: SkinColors, out: Bubble = c.bubbleOut): Map<Stri
         put("actionBarDefaultSubtitle", c.textSecondary)
         // The chat header's "online" and typing in celadon ink.
         put("chat_status", c.ink)
+        // The profile's header and its shared-media tabs.
+        put("profile_status", c.ink)
+        put("profile_title", c.text)
+        put("avatar_subtitleInProfileBlue", c.textSecondary)
+        put("profile_tabText", c.textSecondary)
+        put("profile_tabSelectedText", c.text)
+        put("profile_tabSelectedLine", c.led)
         put("actionBarDefaultSelector", selection)
         put("actionBarDefaultSearch", c.text)
         put("actionBarDefaultSearchPlaceholder", c.textSecondary)

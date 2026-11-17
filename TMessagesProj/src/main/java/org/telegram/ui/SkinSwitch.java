@@ -17,6 +17,13 @@ public final class SkinSwitch {
      */
     public static final boolean CHAT_FRAME = true;
 
+    /**
+     * Profiles keep Telegram's engine and layout, drawn in the skin's style:
+     * the squircle avatar and its story ring, the serif name, the actions as
+     * aluminium keys, celadon for what is current.
+     */
+    public static final boolean PROFILE = true;
+
     private SkinSwitch() {
     }
 }

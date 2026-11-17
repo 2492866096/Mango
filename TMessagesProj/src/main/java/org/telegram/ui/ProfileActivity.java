@@ -5526,7 +5526,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             nameTextView[a].setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(a == 0 ? 12 : 4));
             nameTextView[a].setTextSize(18);
             nameTextView[a].setGravity(Gravity.LEFT);
-            nameTextView[a].setTypeface(AndroidUtilities.bold());
+            nameTextView[a].setTypeface(SkinSwitch.PROFILE ? SkinStyle.serif() : AndroidUtilities.bold());
             nameTextView[a].setLeftDrawableTopPadding(-AndroidUtilities.dp(1.3f));
             nameTextView[a].setPivotX(0);
             nameTextView[a].setPivotY(0);
@@ -6409,6 +6409,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private int getSmallAvatarRoundRadius() {
+        if (SkinSwitch.PROFILE) {
+            // The skin's squircle at the avatar's 100dp, tightened like Telegram's forum corner when a story ring insets it.
+            return needInsetForStories() ? dp(20) : SkinStyle.avatarRadius(dp(100));
+        }
         if (chatId != 0) {
             TLRPC.Chat chatLocal = getMessagesController().getChat(chatId);
             if (ChatObject.isForum(chatLocal)) {
