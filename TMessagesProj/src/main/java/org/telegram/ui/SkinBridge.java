@@ -3,12 +3,16 @@ package org.telegram.ui;
 import android.text.TextUtils;
 
 import org.telegram.PhoneFormat.PhoneFormat;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.skin.SkinHostView;
+import org.telegram.skin.motion.SkinMotion;
 import org.telegram.skin.ui.SkinHost;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
@@ -31,12 +35,14 @@ public final class SkinBridge {
     private SkinBridge() {
     }
 
-    /** Hands the skin a way to draw real avatars. Safe to call more than once. */
+    /** Hands the skin a way to draw real avatars, and what its motion follows. Safe to call more than once. */
     public static void install() {
         if (installed) {
             return;
         }
         installed = true;
+        SkinMotion.install(ApplicationLoader.applicationContext, SkinBridge::chatAnimationsOff);
+        LiteMode.addOnPowerSaverAppliedListener(applied -> SkinMotion.refresh());
         SkinHost.setAvatarViews((context, account, peerId) -> {
             BackupImageView view = new BackupImageView(context);
             view.getImageReceiver().setCurrentAccount(account);
@@ -60,6 +66,19 @@ public final class SkinBridge {
             user = UserConfig.getInstance(account).getCurrentUser();
         }
         return user;
+    }
+
+    /**
+     * Telegram's "Animations in Chats" switch, read the way its power saving
+     * page shows it (on tablets the two-column forum is not part of it). Battery
+     * saving turns the whole group off.
+     */
+    private static boolean chatAnimationsOff() {
+        int flags = LiteMode.FLAGS_CHAT;
+        if (AndroidUtilities.isTablet()) {
+            flags &= ~LiteMode.FLAG_CHAT_FORUM_TWOCOLUMN;
+        }
+        return !LiteMode.isEnabled(flags);
     }
 
     /** Skin screens follow Telegram's theme and language, not the system's. */

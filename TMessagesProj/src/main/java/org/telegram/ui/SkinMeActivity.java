@@ -22,6 +22,7 @@ import org.telegram.skin.me.MeStrings;
 import org.telegram.skin.me.MeToggle;
 import org.telegram.skin.me.MeTool;
 import org.telegram.skin.me.MeView;
+import org.telegram.skin.motion.SkinMotion;
 import org.telegram.skin.ui.Glyph;
 import org.telegram.skin.ui.Peer;
 import org.telegram.tgnet.TLRPC;
@@ -145,6 +146,7 @@ public class SkinMeActivity extends BaseFragment implements NotificationCenter.N
     @Override
     public void onResume() {
         super.onResume();
+        SkinMotion.refresh();
         fill();
     }
 

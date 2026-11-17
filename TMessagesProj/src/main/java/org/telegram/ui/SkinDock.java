@@ -36,6 +36,7 @@ import org.telegram.skin.dock.DockState;
 import org.telegram.skin.dock.DockStrings;
 import org.telegram.skin.dock.DockTab;
 import org.telegram.skin.dock.DockView;
+import org.telegram.skin.motion.SkinMotion;
 import org.telegram.skin.ui.Glyph;
 import org.telegram.skin.ui.Peer;
 import org.telegram.tgnet.ConnectionsManager;
@@ -305,6 +306,7 @@ final class SkinDock implements NotificationCenter.NotificationCenterDelegate {
     }
 
     void onResume() {
+        SkinMotion.refresh();
         refreshOrder();
         refreshTabs();
     }
