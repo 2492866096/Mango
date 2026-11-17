@@ -33,6 +33,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
@@ -56,6 +57,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -10657,6 +10660,70 @@ public class ChatActivity extends BaseFragment implements
             });
             searchCalendarButton.setContentDescription(LocaleController.getString(R.string.JumpToDate));
         }
+
+        if (SkinSwitch.CHAT_FRAME) {
+            // The console's knob closes the search; the rest of the bar keeps clear of it.
+            ((FrameLayout.LayoutParams) searchExpandList.getLayoutParams()).rightMargin = dp(SKIN_SEARCH_KNOB);
+            final FrameLayout.LayoutParams otherParams = (FrameLayout.LayoutParams) searchOtherButton.getLayoutParams();
+            otherParams.rightMargin = dp(SKIN_SEARCH_KNOB);
+            otherParams.topMargin = otherParams.bottomMargin = dp(1);
+            ((FrameLayout.LayoutParams) searchCountText.getLayoutParams()).rightMargin = dp(97.33f + SKIN_SEARCH_KNOB);
+            if (searchCalendarButton != null) {
+                searchCalendarButton.setImageResource(org.telegram.skin.R.drawable.skin_search_calendar);
+            }
+            if (searchUserButton != null) {
+                searchUserButton.setImageResource(org.telegram.skin.R.drawable.skin_search_user);
+            }
+            final Drawable closeGlyph = ContextCompat.getDrawable(getContext(), org.telegram.skin.R.drawable.skin_slip_close).mutate();
+            skinSearchClose = new View(getContext()) {
+                @Override
+                protected void onDraw(Canvas canvas) {
+                    final CanvasMaterials m = skinSlipMaterials();
+                    final float r = dp(19);
+                    final float cx = getWidth() - dp(3) - r;
+                    final float cy = getHeight() / 2f;
+                    SkinMetal.drawGroove(canvas, dp(2), cy - dp(12), cy + dp(12), m, 1f);
+                    SkinMetal.drawKnob(canvas, cx, cy, r, false, m, 1f);
+                    final int half = dp(9);
+                    closeGlyph.setColorFilter(new PorterDuffColorFilter(m.text, PorterDuff.Mode.SRC_IN));
+                    closeGlyph.setBounds((int) cx - half, (int) cy - half, (int) cx + half, (int) cy + half);
+                    closeGlyph.draw(canvas);
+                }
+            };
+            skinSearchClose.setContentDescription(LocaleController.getString(R.string.Close));
+            skinSearchClose.setOnClickListener(v -> {
+                if (actionBar != null && actionBar.isSearchFieldVisible()) {
+                    actionBar.closeSearchField();
+                }
+            });
+            searchContainer.addView(skinSearchClose, LayoutHelper.createFrame(SKIN_SEARCH_KNOB, LayoutHelper.MATCH_PARENT, Gravity.RIGHT));
+            updateSkinSearchColors();
+        }
+    }
+
+    private static final int SKIN_SEARCH_KNOB = 48;
+    private View skinSearchClose;
+
+    /** The search console in the skin's inks; "show other messages" covers the bar, so it gets the metal itself. */
+    private void updateSkinSearchColors() {
+        if (!SkinSwitch.CHAT_FRAME || searchContainer == null) {
+            return;
+        }
+        final CanvasMaterials m = skinSlipMaterials();
+        searchCountText.setTextColor(m.text);
+        searchExpandList.setTextColor(m.ink);
+        searchOtherButton.setTextColor(m.text);
+        final GradientDrawable metal = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{m.sheenTop, m.sheenMid, m.sheenBottom});
+        metal.setCornerRadii(new float[]{dp(22), dp(22), 0, 0, 0, 0, dp(22), dp(22)});
+        searchOtherButton.setBackground(new RippleDrawable(ColorStateList.valueOf(Theme.multAlpha(m.text, 0.1f)), metal, null));
+        final PorterDuffColorFilter icons = new PorterDuffColorFilter(m.textSecondary, PorterDuff.Mode.MULTIPLY);
+        if (searchCalendarButton != null) {
+            searchCalendarButton.setColorFilter(icons);
+        }
+        if (searchUserButton != null) {
+            searchUserButton.setColorFilter(icons);
+        }
+        skinSearchClose.invalidate();
     }
 
     private void showSearchShowOther(boolean show) {
@@ -42782,6 +42849,9 @@ public class ChatActivity extends BaseFragment implements
         themeDescriptions.add(new ThemeDescription(searchCalendarButton, ThemeDescription.FLAG_BACKGROUNDFILTER | ThemeDescription.FLAG_DRAWABLESELECTEDSTATE, null, null, null, null, Theme.key_actionBarActionModeDefaultSelector));
         themeDescriptions.add(new ThemeDescription(searchUserButton, ThemeDescription.FLAG_IMAGECOLOR, null, null, null, null, Theme.key_chat_searchPanelIcons));
         themeDescriptions.add(new ThemeDescription(searchUserButton, ThemeDescription.FLAG_BACKGROUNDFILTER | ThemeDescription.FLAG_DRAWABLESELECTEDSTATE, null, null, null, null, Theme.key_actionBarActionModeDefaultSelector));
+        if (SkinSwitch.CHAT_FRAME) {
+            themeDescriptions.add(new ThemeDescription(null, 0, null, null, null, this::updateSkinSearchColors, Theme.key_chat_searchPanelIcons));
+        }
 
         themeDescriptions.add(new ThemeDescription(bottomOverlayText, ThemeDescription.FLAG_TEXTCOLOR, null, null, null, null, Theme.key_chat_secretChatStatusText));
         if (SkinSwitch.CHAT_FRAME) {
