@@ -165,6 +165,7 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.browser.Browser;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLObject;
@@ -15470,6 +15471,32 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     private void writeButtonSetBackground() {
         if (writeButton == null) return;
+        if (SkinSwitch.PROFILE) {
+            // The floating key is the skin's knob, its glyph in the metal's ink.
+            final CanvasMaterials m = SkinMetal.materials(getThemedColor(Theme.key_windowBackgroundWhite));
+            writeButton.setBackground(new Drawable() {
+                @Override
+                public void draw(@NonNull Canvas canvas) {
+                    final Rect b = getBounds();
+                    SkinMetal.drawKnob(canvas, b.exactCenterX(), b.exactCenterY(), Math.min(b.width(), b.height()) / 2f - dp(4), false, m, 1f);
+                }
+
+                @Override
+                public void setAlpha(int alpha) {
+                }
+
+                @Override
+                public void setColorFilter(@Nullable ColorFilter colorFilter) {
+                }
+
+                @Override
+                public int getOpacity() {
+                    return PixelFormat.TRANSLUCENT;
+                }
+            });
+            writeButton.setColorFilter(new PorterDuffColorFilter(m.text, PorterDuff.Mode.MULTIPLY));
+            return;
+        }
         try {
             Drawable shadowDrawable = fragmentView.getContext().getResources().getDrawable(R.drawable.floating_shadow_profile).mutate();
             shadowDrawable.setColorFilter(new PorterDuffColorFilter(Color.BLACK, PorterDuff.Mode.MULTIPLY));
