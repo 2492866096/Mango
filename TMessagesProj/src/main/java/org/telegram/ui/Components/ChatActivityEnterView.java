@@ -521,12 +521,48 @@ public class ChatActivityEnterView extends FrameLayout implements
             invalidate();
         }
 
+        private Theme.ResourcesProvider skinResources;
+        private boolean skin;
+        private TextPaint skinTextPaint;
+
+        /** Shows the countdown on the console's knob, its LED out, in place of Telegram's bare figure. */
+        public void setSkin(Theme.ResourcesProvider resourcesProvider) {
+            skin = true;
+            skinResources = resourcesProvider;
+            skinTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+            skinTextPaint.setTypeface(SkinStyle.numerals(false));
+            skinTextPaint.setTextAlign(Paint.Align.CENTER);
+            invalidate();
+        }
+
         public CharSequence getText() {
             return textView.getText();
         }
 
         @Override
         protected void onDraw(Canvas canvas) {
+            if (skin && !isPremiumMode) {
+                final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, skinResources));
+                final float r = dp(19);
+                final float cx = getMeasuredWidth() - dp(3) - r;
+                final float cy = getMeasuredHeight() - dp(3) - r;
+                SkinMetal.drawKnob(canvas, cx, cy, r, false, m, 1f);
+                final CharSequence text = textView.getText();
+                if (text != null && text.length() > 0) {
+                    // The figure has to sit inside the cap, whose diameter is 0.78 of the knob's.
+                    final String figure = text.toString();
+                    final float room = 2 * r * 0.78f - dp(5);
+                    skinTextPaint.setTextSize(dp(12));
+                    final float width = skinTextPaint.measureText(figure);
+                    if (width > room) {
+                        skinTextPaint.setTextSize(dp(12) * room / width);
+                    }
+                    skinTextPaint.setColor(m.text);
+                    final Paint.FontMetrics fm = skinTextPaint.getFontMetrics();
+                    canvas.drawText(figure, cx, cy - (fm.ascent + fm.descent) / 2f, skinTextPaint);
+                }
+                return;
+            }
             if (isPremiumMode) {
                 canvas.save();
                 int heightRect = dp(26);
@@ -541,6 +577,10 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         @Override
         protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+            if (child == textView && skin && !isPremiumMode) {
+                // The knob carries the figure; see onDraw.
+                return false;
+            }
             if (child instanceof SimpleTextView && isPremiumMode) {
                 SimpleTextView simpleTextView = (SimpleTextView) child;
                 canvas.save();
@@ -3437,6 +3477,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         slowModeButton.setPadding(0, 0, dp(10), 0);
         slowModeButton.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         slowModeButton.setTextColor(getThemedColor(Theme.key_glass_defaultIcon));
+        if (skinFrame) {
+            slowModeButton.setSkin(resourcesProvider);
+        }
         sendButtonContainer.addView(slowModeButton, LayoutHelper.createFrame(74, DEFAULT_HEIGHT, Gravity.RIGHT | Gravity.BOTTOM));
         slowModeButton.setOnClickListener(v -> {
             if (delegate != null) {
