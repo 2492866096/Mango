@@ -2068,13 +2068,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             scrollableViewNoiseSuppressor = new DownscaleScrollableNoiseSuppressor();
             //iBlur3SourceGlassFrosted = new BlurredBackgroundSourceRenderNode(null);
             iBlur3SourceGlass = new BlurredBackgroundSourceRenderNode(null);
-            iBlur3FactoryLiquidGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceGlass);
+            iBlur3FactoryLiquidGlass = BlurredBackgroundDrawableViewFactory.skin(new BlurredBackgroundDrawableViewFactory(iBlur3SourceGlass));
             iBlur3FactoryLiquidGlass.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
         } else {
             scrollableViewNoiseSuppressor = null;
             //iBlur3SourceGlassFrosted = null;
             iBlur3SourceGlass = null;
-            iBlur3FactoryLiquidGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
+            iBlur3FactoryLiquidGlass = BlurredBackgroundDrawableViewFactory.skin(new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor));
         }
     }
 

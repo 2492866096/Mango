@@ -1549,7 +1549,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         iBlur3SourceColor.setColor(getThemedColor(Theme.key_windowBackgroundWhite));
 
         if (iBlur3FactoryLiquidGlass == null) {
-            iBlur3FactoryLiquidGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
+            iBlur3FactoryLiquidGlass = BlurredBackgroundDrawableViewFactory.skin(new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor));
         }
 
         this.viewType = viewType;

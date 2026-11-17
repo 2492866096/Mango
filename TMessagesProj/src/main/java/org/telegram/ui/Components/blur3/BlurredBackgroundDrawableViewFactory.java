@@ -12,6 +12,7 @@ import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundColorPro
 import org.telegram.ui.Components.blur3.source.BlurredBackgroundSource;
 import org.telegram.ui.Components.chat.ViewPositionWatcher;
 import org.telegram.ui.SkinMetalBackground;
+import org.telegram.ui.SkinSwitch;
 
 import me.vkryl.core.reference.ReferenceList;
 
@@ -58,6 +59,16 @@ public class BlurredBackgroundDrawableViewFactory {
     private boolean metal;
 
     /** Builds the skin's aluminium instead of glass. The shapes stay the same, so callers don't change. */
+    /**
+     * The factory with the skin's aluminium in place of glass, for the everyday
+     * screens whose controls float (attach and share sheets, the emoji panel,
+     * calls, topics, profiles). Screens over photos and stories keep glass.
+     */
+    public static BlurredBackgroundDrawableViewFactory skin(BlurredBackgroundDrawableViewFactory factory) {
+        factory.setMetal(SkinSwitch.CONTROLS);
+        return factory;
+    }
+
     public void setMetal(boolean metal) {
         this.metal = metal;
     }
