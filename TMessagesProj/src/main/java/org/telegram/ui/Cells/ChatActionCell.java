@@ -145,6 +145,8 @@ import org.telegram.ui.Stories.StoriesUtilities;
 import org.telegram.ui.Stories.UploadingDotsSpannable;
 import org.telegram.ui.Stories.recorder.HintView2;
 import org.telegram.ui.Stories.recorder.PreviewView;
+import org.telegram.ui.SkinStyle;
+import org.telegram.ui.SkinSwitch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1678,6 +1680,8 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
             paint = (TextPaint) getThemedPaint(Theme.key_paint_chatActionText3);
         } else if (currentMessageObject != null && currentMessageObject.drawServiceWithDefaultTypeface) {
             paint = (TextPaint) getThemedPaint(Theme.key_paint_chatActionText2);
+        } else if (isSkinDate()) {
+            paint = skinDatePaint();
         } else {
             paint = (TextPaint) getThemedPaint(Theme.key_paint_chatActionText);
         }
@@ -3234,7 +3238,8 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
         }
         Paint backgroundPaint = getThemedPaint(Theme.key_paint_chatActionBackground);
         Paint darkenBackgroundPaint = getThemedPaint(Theme.key_paint_chatActionBackgroundDarken);
-        textPaint = (TextPaint) getThemedPaint(Theme.key_paint_chatActionText);
+        // A date keeps its own paint here too, or the text would be laid out again on every frame.
+        textPaint = isSkinDate() ? skinDatePaint() : (TextPaint) getThemedPaint(Theme.key_paint_chatActionText);
         if (overrideBackground >= 0) {
             int color = getThemedColor(overrideBackground);
             if (overrideBackgroundPaint == null) {
@@ -3896,6 +3901,27 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
 
     private int getThemedColor(int key) {
         return Theme.getColor(key, themeDelegate);
+    }
+
+    private static TextPaint skinDateTextPaint;
+
+    /** A day's date, between messages or floating over them, which the skin sets as a small serif chip. */
+    private boolean isSkinDate() {
+        return SkinSwitch.CHAT_FRAME && (customDate != 0 || currentMessageObject != null && currentMessageObject.type == MessageObject.TYPE_DATE);
+    }
+
+    /** The service text's colour in the skin's serif, small and widely tracked. */
+    private TextPaint skinDatePaint() {
+        if (skinDateTextPaint == null) {
+            skinDateTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+            skinDateTextPaint.setTypeface(SkinStyle.serif());
+            skinDateTextPaint.setLetterSpacing(0.25f);
+        }
+        final int color = getThemedPaint(Theme.key_paint_chatActionText).getColor();
+        skinDateTextPaint.setTextSize(dp(12));
+        skinDateTextPaint.setColor(color);
+        skinDateTextPaint.linkColor = color;
+        return skinDateTextPaint;
     }
 
     protected Paint getThemedPaint(String paintKey) {
