@@ -1265,6 +1265,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void showPauseHint() {
+            if (skinFrame) {
+                // The pause key sits in plain sight in the console.
+                return;
+            }
             if (MessagesController.getGlobalMainSettings().getInt("voicepausehint", 0) > 3) {
                 return;
             }
@@ -1287,6 +1291,22 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         public void showOnceHint() {
             hideHintView();
+            if (skinFrame) {
+                // The seal is in the console, not beside the latch, so the note comes up from the bottom.
+                if (parentFragment != null) {
+                    final int text;
+                    if (isInVideoMode) {
+                        text = voiceOnce ? R.string.VideoSetOnceHintEnabled : R.string.VideoSetOnceHint;
+                    } else {
+                        text = voiceOnce ? R.string.VoiceSetOnceHintEnabled : R.string.VoiceSetOnceHint;
+                    }
+                    if (!voiceOnce) {
+                        MessagesController.getGlobalMainSettings().edit().putInt("voiceoncehint", MessagesController.getGlobalMainSettings().getInt("voiceoncehint", 0) + 1).apply();
+                    }
+                    BulletinFactory.of(parentFragment).createSimpleBulletin(voiceOnce ? R.raw.fire_on : R.raw.chats_infotip, AndroidUtilities.replaceTags(getString(text))).show();
+                }
+                return;
+            }
             onceHint = new HintView2(getContext(), HintView2.DIRECTION_RIGHT);
             onceHint.setJoint(1, 0);
             onceHint.setMultilineText(true);
@@ -1485,7 +1505,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             float progressToSeekbarStep1 = 0f;
             float progressToSeekbarStep2 = 0;
             float exitProgress2 = 0f;
-            float hidePause = hidePauseT.set(isInVideoMode && millisecondsRecorded >= 59_000);
+            // On the skin the console carries pause and resume once the recording is locked, so the latch folds away.
+            float hidePause = hidePauseT.set(isInVideoMode && millisecondsRecorded >= 59_000 || skinFrame && sendButtonVisible);
 
             if (transformToSeekbar != 0 && audioTimelineView != null) {
                 float step1Time = 0.38f;
@@ -1663,7 +1684,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             final float cy = lerp(lockY, getMeasuredHeight() - dp(118), Math.max(exitTransition, Math.min(progressToSeekbarStep1, slideToCancelLockProgress))) + dy + dp(38) * hidePause;
             rectF.set(cx - dpf2(18), cy, cx + dpf2(18), cy + lockSize);
-            onceVisible = delegate != null && delegate.onceVoiceAvailable();
+            onceVisible = !skinFrame && delegate != null && delegate.onceVoiceAvailable();
             if (onceVisible) {
                 final float onceOffset = dpf2(12);
                 rectF.set(
@@ -1792,65 +1813,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             } else if (event.getAction() == MotionEvent.ACTION_UP) {
                 if (pausePressed && pauseRect.contains(x, y)) {
-                    if (isInVideoMode()) {
-                        if (slideText != null) {
-                            slideText.setEnabled(false);
-                        }
-                        delegate.toggleVideoRecordingPause();
-                    } else {
-                        final Runnable resume = () -> {
-                            if (!MediaController.getInstance().isRecordingPaused()) {
-                                MessagesController.getGlobalMainSettings().edit().putInt("voicepausehint", 3).apply();
-                            }
-                            if (sendButtonVisible) {
-                                calledRecordRunnable = true;
-                            }
-                            MediaController.getInstance().toggleRecordingPause(voiceOnce);
-                            delegate.needStartRecordAudio(0);
-                            if (slideText != null) {
-                                slideText.setEnabled(false);
-                            }
-                        };
-                        if (pauseHint != null && pauseHint.shown()) {
-                            hideHintView();
-                        }
-                        if (audioTimelineView != null) {
-                            audioTimelineView.setPlaying(false);
-                        }
-                        if (MediaController.getInstance().isRecordingPaused() && (audioTimelineView.getAudioLeft() > 0.01f || audioTimelineView.getAudioRight() < 0.99f)) {
-                            final Runnable trim = () -> {
-                                millisecondsRecorded = audioTimelineView.getAudioRightMs() - audioTimelineView.getAudioLeftMs();
-                                MediaController.getInstance().trimCurrentRecording(audioTimelineView.getAudioLeftMs(), audioTimelineView.getAudioRightMs(), resume);
-                            };
-                            if (MessagesController.getGlobalMainSettings().getBoolean("trimvoicehint", true)) {
-                                new AlertDialog.Builder(getContext(), resourcesProvider)
-                                    .setTitle(getString(R.string.RecordingTrimTitle))
-                                    .setMessage(getString(R.string.RecordingTrimText))
-                                    .setPositiveButton(getString(R.string.OK), (di, w) -> {
-                                        trim.run();
-                                        MessagesController.getGlobalMainSettings().edit().putBoolean("trimvoicehint", false).apply();
-                                    })
-                                    .setNegativeButton(getString(R.string.Cancel), null)
-                                    .show();
-                            } else {
-                                trim.run();
-                            }
-                        } else {
-                            resume.run();
-                        }
-                    }
+                    togglePause();
                     pausePressed = oncePressed = false;
                     return true;
                 } else if (oncePressed && onceRect.contains(x, y)) {
-                    voiceOnce = !voiceOnce;
-                    periodDrawable.setValue(1, voiceOnce, true);
-                    MediaDataController.getInstance(currentAccount).toggleDraftVoiceOnce(dialog_id, parentFragment != null && parentFragment.isTopic ? parentFragment.getTopicId() : 0, voiceOnce);
-                    if (voiceOnce) {
-                        showOnceHint();
-                    } else {
-                        hideHintView();
-                    }
-                    invalidate();
+                    toggleOnce();
                     pausePressed = oncePressed = false;
                     return true;
                 }
@@ -1859,6 +1826,73 @@ public class ChatActivityEnterView extends FrameLayout implements
                 pausePressed = oncePressed = false;
             }
             return pausePressed || oncePressed;
+        }
+
+        /** Pauses a locked recording, or resumes a paused one (trimming it first if its ends were moved). */
+        public void togglePause() {
+            if (isInVideoMode()) {
+                if (slideText != null) {
+                    slideText.setEnabled(false);
+                }
+                delegate.toggleVideoRecordingPause();
+            } else {
+                final Runnable resume = () -> {
+                    if (!MediaController.getInstance().isRecordingPaused()) {
+                        MessagesController.getGlobalMainSettings().edit().putInt("voicepausehint", 3).apply();
+                    }
+                    if (sendButtonVisible) {
+                        calledRecordRunnable = true;
+                    }
+                    MediaController.getInstance().toggleRecordingPause(voiceOnce);
+                    delegate.needStartRecordAudio(0);
+                    if (slideText != null) {
+                        slideText.setEnabled(false);
+                    }
+                };
+                if (pauseHint != null && pauseHint.shown()) {
+                    hideHintView();
+                }
+                if (audioTimelineView != null) {
+                    audioTimelineView.setPlaying(false);
+                }
+                if (MediaController.getInstance().isRecordingPaused() && (audioTimelineView.getAudioLeft() > 0.01f || audioTimelineView.getAudioRight() < 0.99f)) {
+                    final Runnable trim = () -> {
+                        millisecondsRecorded = audioTimelineView.getAudioRightMs() - audioTimelineView.getAudioLeftMs();
+                        MediaController.getInstance().trimCurrentRecording(audioTimelineView.getAudioLeftMs(), audioTimelineView.getAudioRightMs(), resume);
+                    };
+                    if (MessagesController.getGlobalMainSettings().getBoolean("trimvoicehint", true)) {
+                        new AlertDialog.Builder(getContext(), resourcesProvider)
+                            .setTitle(getString(R.string.RecordingTrimTitle))
+                            .setMessage(getString(R.string.RecordingTrimText))
+                            .setPositiveButton(getString(R.string.OK), (di, w) -> {
+                                trim.run();
+                                MessagesController.getGlobalMainSettings().edit().putBoolean("trimvoicehint", false).apply();
+                            })
+                            .setNegativeButton(getString(R.string.Cancel), null)
+                            .show();
+                    } else {
+                        trim.run();
+                    }
+                } else {
+                    resume.run();
+                }
+            }
+        }
+
+        /** Turns view-once on or off for the message being recorded. */
+        public void toggleOnce() {
+            voiceOnce = !voiceOnce;
+            periodDrawable.setValue(1, voiceOnce, true);
+            MediaDataController.getInstance(currentAccount).toggleDraftVoiceOnce(dialog_id, parentFragment != null && parentFragment.isTopic ? parentFragment.getTopicId() : 0, voiceOnce);
+            if (voiceOnce) {
+                showOnceHint();
+            } else {
+                hideHintView();
+            }
+            invalidate();
+            if (skinRecordKeys != null) {
+                skinRecordKeys.invalidate();
+            }
         }
 
         @Override
@@ -2068,6 +2102,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             tinyWaveDrawable.setValue((float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE), false);
 
             animateToAmplitude = (float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE);
+            if (skinFrame) {
+                skinLevels[skinLevelCount++ % skinLevels.length] = animateToAmplitude;
+            }
             animateAmplitudeDiff = (animateToAmplitude - amplitude) / (100 + 500.0f * WaveDrawable.animationSpeedCircle);
 
             invalidate();
@@ -2437,6 +2474,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             super.invalidate();
             if (controlsView != null) {
                 controlsView.invalidate();
+            }
+            if (skinRecordKeys != null) {
+                skinRecordKeys.invalidate();
             }
         }
 
@@ -4025,6 +4065,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         audioTimelineView = new RecordedAudioPlayerView(getContext(), resourcesProvider);
         audioTimelineView.setSkin(skinFrame);
         recordedAudioPanel.addView(audioTimelineView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 32, Gravity.CENTER_VERTICAL | Gravity.LEFT, DEFAULT_HEIGHT, 0, 4, 0));
+        ensureSkinRecordKeys();
 
         updateFieldRight(lastAttachVisible);
     }
@@ -7415,6 +7456,355 @@ public class ChatActivityEnterView extends FrameLayout implements
 
     private final RectF skinWellRect = new RectF();
 
+    private SkinRecordKeys skinRecordKeys;
+    /** The voice's recent levels for the console's meter, newest at {@code skinLevelCount - 1}. */
+    private final float[] skinLevels = new float[96];
+    private int skinLevelCount;
+
+    private void ensureSkinRecordKeys() {
+        if (!skinFrame) {
+            return;
+        }
+        if (skinRecordKeys == null) {
+            skinRecordKeys = new SkinRecordKeys(getContext());
+            messageEditTextContainer.addView(skinRecordKeys, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT, Gravity.BOTTOM));
+        } else {
+            skinRecordKeys.bringToFront();
+        }
+    }
+
+    /**
+     * The console's own keys while a locked recording runs or a paused one is
+     * previewed, in place of the latch above the knob: the bin at the left,
+     * and before the knob the view-once seal and pause (resume once paused).
+     * While recording, the well between them shows the voice as a celadon
+     * meter. Touches outside the keys fall through to the panels below.
+     */
+    private class SkinRecordKeys extends View {
+        private static final int KEY = 38;
+        private static final int BIN = 1, PAUSE = 2, SEAL = 3;
+
+        private final AnimatedFloat shown = new AnimatedFloat(this, 0, 320, CubicBezierInterpolator.EASE_OUT_QUINT);
+        private final RectF binRect = new RectF();
+        private final RectF sealRect = new RectF();
+        private final RectF pauseRect = new RectF();
+        private final RectF tmp = new RectF();
+        private final Paint meterPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint sealText = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final Drawable bin, pause, mic, video;
+        private final Helper helper;
+        private int pressed;
+        private float timerShift = -1;
+        private int previewMargin = -1;
+
+        SkinRecordKeys(Context context) {
+            super(context);
+            bin = glyph(org.telegram.skin.R.drawable.skin_record_trash);
+            pause = glyph(org.telegram.skin.R.drawable.skin_record_pause);
+            mic = glyph(org.telegram.skin.R.drawable.skin_input_mic);
+            video = glyph(org.telegram.skin.R.drawable.skin_input_video);
+            ringPaint.setStyle(Paint.Style.STROKE);
+            ringPaint.setStrokeWidth(dpf2(1.5f));
+            sealText.setTypeface(SkinStyle.serif());
+            sealText.setTextAlign(Paint.Align.CENTER);
+            sealText.setTextSize(dp(12));
+            helper = new Helper(this);
+            ViewCompat.setAccessibilityDelegate(this, helper);
+        }
+
+        private Drawable glyph(int res) {
+            return ContextCompat.getDrawable(getContext(), res).mutate();
+        }
+
+        private boolean active() {
+            return sendButtonVisible && controlsView != null && controlsView.getVisibility() == VISIBLE && exitTransition == 0;
+        }
+
+        private boolean paused() {
+            return transformToSeekbar > .5f;
+        }
+
+        private boolean sealShown() {
+            return delegate != null && delegate.onceVoiceAvailable();
+        }
+
+        private boolean pauseShown() {
+            return !(isInVideoMode && millisecondsRecorded >= 59_000);
+        }
+
+        float getProgress() {
+            return shown.get();
+        }
+
+        /** Room the keys before the knob take at the console's right end. */
+        int reserve() {
+            return dp(KEY) * ((sealShown() ? 1 : 0) + (pauseShown() ? 1 : 0)) + dp(2);
+        }
+
+        /** Moves Telegram's panels clear of the keys: the timer right of the bin, the preview short of the keys. */
+        private void layoutPanels(float p) {
+            final float shift = paused() ? 0 : dp(44) * p;
+            if (recordTimeContainer != null && shift != timerShift) {
+                timerShift = shift;
+                recordTimeContainer.setTranslationX(shift);
+            }
+            final int margin = p > 0 ? reserve() + dp(4) : -1;
+            if (margin != previewMargin) {
+                previewMargin = margin;
+                if (audioTimelineView != null) {
+                    final ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) audioTimelineView.getLayoutParams();
+                    lp.rightMargin = margin < 0 ? dp(4) : margin;
+                    audioTimelineView.setLayoutParams(lp);
+                }
+                if (videoTimelineView != null) {
+                    final ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) videoTimelineView.getLayoutParams();
+                    lp.rightMargin = margin < 0 ? dp(8) : margin;
+                    videoTimelineView.setLayoutParams(lp);
+                }
+            }
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            final float before = shown.get();
+            final float p = shown.set(active());
+            layoutPanels(p);
+            if (p != before && getParent() instanceof View) {
+                // The well behind is drawn by the container.
+                ((View) getParent()).invalidate();
+            }
+            if (p <= 0) {
+                binRect.setEmpty();
+                sealRect.setEmpty();
+                pauseRect.setEmpty();
+                skinLevelCount = 0;
+                return;
+            }
+            final CanvasMaterials m = skinMaterials();
+            final int w = getWidth();
+            final int h = getHeight();
+            final boolean paused = paused();
+
+            float right = w - dp(2);
+            if (pauseShown()) {
+                pauseRect.set(right - dp(KEY), 0, right, h);
+                right -= dp(KEY);
+            } else {
+                pauseRect.setEmpty();
+            }
+            if (sealShown()) {
+                sealRect.set(right - dp(KEY), 0, right, h);
+                right -= dp(KEY);
+            } else {
+                sealRect.setEmpty();
+            }
+            // Paused, Telegram's own delete key sits at the left of the preview.
+            if (paused) {
+                binRect.setEmpty();
+            } else {
+                binRect.set(0, 0, dp(44), h);
+            }
+
+            if (!binRect.isEmpty()) {
+                drawGlyph(canvas, bin, binRect, m.textSecondary, p * (pressed == BIN ? .6f : 1f));
+            }
+            if (!pauseRect.isEmpty()) {
+                drawGlyph(canvas, paused ? (isInVideoMode() ? video : mic) : pause, pauseRect, m.textSecondary, p * (pressed == PAUSE ? .6f : 1f));
+            }
+            if (!sealRect.isEmpty()) {
+                drawSeal(canvas, m, p * (pressed == SEAL ? .6f : 1f));
+            }
+            if (!paused) {
+                drawMeter(canvas, m, p, right - dp(10));
+            }
+            if (p < 1) {
+                invalidate();
+            }
+        }
+
+        private void drawGlyph(Canvas canvas, Drawable d, RectF rect, int color, float alpha) {
+            final int size = dp(22);
+            final int l = (int) (rect.centerX() - size / 2f);
+            final int t = (int) (rect.centerY() - size / 2f);
+            d.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+            d.setAlpha((int) (255 * alpha));
+            d.setBounds(l, t, l + size, t + size);
+            d.draw(canvas);
+        }
+
+        /** The "1" seal: an engraved ring while off, celadon porcelain while on. */
+        private void drawSeal(Canvas canvas, CanvasMaterials m, float alpha) {
+            final float r = dp(13);
+            final float cx = sealRect.centerX();
+            final float cy = sealRect.centerY();
+            tmp.set(cx - r, cy - r, cx + r, cy + r);
+            final int ink;
+            if (voiceOnce) {
+                SkinMetal.drawPorcelain(canvas, tmp, r, m, false, alpha);
+                ink = m.porcelainText;
+            } else {
+                ringPaint.setColor(m.textSecondary);
+                ringPaint.setAlpha((int) (Color.alpha(m.textSecondary) * alpha));
+                canvas.drawCircle(cx, cy, r - dpf2(0.75f), ringPaint);
+                ink = m.textSecondary;
+            }
+            sealText.setColor(ink);
+            sealText.setAlpha((int) (Color.alpha(ink) * alpha));
+            final Paint.FontMetrics fm = sealText.getFontMetrics();
+            canvas.drawText("1", cx, cy - (fm.ascent + fm.descent) / 2f, sealText);
+        }
+
+        /** The voice so far as celadon bars, newest at the right, from after the timer to before the keys. */
+        private void drawMeter(Canvas canvas, CanvasMaterials m, float alpha, float end) {
+            float start = dp(44 + 13 + 28 + 6 + 10);
+            if (recordTimeContainer != null && recordTimerView != null) {
+                start = (recordPanel != null ? recordPanel.getX() : 0) + recordTimeContainer.getX() + recordTimeContainer.getTranslationX()
+                    + recordTimerView.getX() + recordTimerView.getTextWidth() + dp(12);
+            }
+            final float step = dp(5);
+            final int count = (int) Math.min(skinLevelCount, Math.max(0, (end - start) / step));
+            if (count <= 0) {
+                return;
+            }
+            meterPaint.setColor(m.led);
+            meterPaint.setAlpha((int) (Color.alpha(m.led) * alpha));
+            final float cy = getHeight() / 2f;
+            final float maxHeight = getHeight() - dp(18);
+            for (int i = 0; i < count; i++) {
+                final float level = skinLevels[(skinLevelCount - 1 - i) % skinLevels.length];
+                final float barHeight = Math.min(maxHeight, dp(4) + (float) Math.sqrt(Math.max(0, level)) * dp(20));
+                final float x = end - (i + 1) * step;
+                tmp.set(x, cy - barHeight / 2f, x + dp(3), cy + barHeight / 2f);
+                canvas.drawRoundRect(tmp, dp(1.5f), dp(1.5f), meterPaint);
+            }
+        }
+
+        private int keyAt(float x, float y) {
+            if (binRect.contains(x, y)) {
+                return BIN;
+            } else if (pauseRect.contains(x, y)) {
+                return PAUSE;
+            } else if (sealRect.contains(x, y)) {
+                return SEAL;
+            }
+            return 0;
+        }
+
+        private void perform(int key) {
+            if (key == BIN) {
+                if (slideText != null) {
+                    slideText.onCancelButtonPressed();
+                }
+            } else if (key == PAUSE) {
+                if (controlsView != null) {
+                    controlsView.togglePause();
+                }
+            } else if (key == SEAL) {
+                if (controlsView != null) {
+                    controlsView.toggleOnce();
+                }
+            }
+            invalidate();
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (shown.get() < 1f) {
+                pressed = 0;
+                return false;
+            }
+            final int key = keyAt(event.getX(), event.getY());
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    pressed = key;
+                    invalidate();
+                    return key != 0;
+                case MotionEvent.ACTION_MOVE:
+                    if (pressed != 0 && key != pressed) {
+                        pressed = 0;
+                        invalidate();
+                    }
+                    return pressed != 0;
+                case MotionEvent.ACTION_UP:
+                    final int was = pressed;
+                    pressed = 0;
+                    if (was != 0 && was == key) {
+                        perform(was);
+                    }
+                    invalidate();
+                    return was != 0;
+                case MotionEvent.ACTION_CANCEL:
+                    pressed = 0;
+                    invalidate();
+                    return false;
+            }
+            return false;
+        }
+
+        @Override
+        protected boolean dispatchHoverEvent(MotionEvent event) {
+            return helper.dispatchHoverEvent(event) || super.dispatchHoverEvent(event);
+        }
+
+        private class Helper extends ExploreByTouchHelper {
+            private final android.graphics.Rect bounds = new android.graphics.Rect();
+
+            Helper(View host) {
+                super(host);
+            }
+
+            private RectF rectOf(int key) {
+                return key == BIN ? binRect : key == PAUSE ? pauseRect : sealRect;
+            }
+
+            @Override
+            protected int getVirtualViewAt(float x, float y) {
+                final int key = shown.get() < 1f ? 0 : keyAt(x, y);
+                return key == 0 ? HOST_ID : key;
+            }
+
+            @Override
+            protected void getVisibleVirtualViews(List<Integer> list) {
+                if (shown.get() < 1f) {
+                    return;
+                }
+                for (int key = BIN; key <= SEAL; key++) {
+                    if (!rectOf(key).isEmpty()) {
+                        list.add(key);
+                    }
+                }
+            }
+
+            @Override
+            protected void onPopulateNodeForVirtualView(int key, @NonNull AccessibilityNodeInfoCompat info) {
+                rectOf(key).round(bounds);
+                if (bounds.isEmpty()) {
+                    bounds.set(0, 0, 1, 1);
+                }
+                info.setBoundsInParent(bounds);
+                info.addAction(AccessibilityNodeInfoCompat.ACTION_CLICK);
+                info.setClassName("android.widget.Button");
+                if (key == BIN) {
+                    info.setText(getString(R.string.Delete));
+                } else if (key == PAUSE) {
+                    info.setText(getString(paused() ? R.string.AccActionResume : R.string.AccActionPause));
+                } else {
+                    info.setText(getString(voiceOnce ? R.string.AccActionOnceDeactivate : R.string.AccActionOnceActivate));
+                }
+            }
+
+            @Override
+            protected boolean onPerformActionForVirtualView(int key, int action, @Nullable Bundle args) {
+                if (action == AccessibilityNodeInfoCompat.ACTION_CLICK) {
+                    perform(key);
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+
     /**
      * The sunken well behind the text: from the identity key on the left
      * (send-as or the bot's menu), when there is one, to the attach key, which
@@ -7430,6 +7820,11 @@ public class ChatActivityEnterView extends FrameLayout implements
         float right = container.getWidth() - dp(2);
         if (attachButton != null && attachButton.getVisibility() == VISIBLE && attachButton.getAlpha() > 0f) {
             right = attachButton.getX();
+        }
+        final float keys = skinRecordKeys != null ? skinRecordKeys.getProgress() : 0;
+        if (keys > 0) {
+            left = AndroidUtilities.lerp(left, dp(46), keys);
+            right = AndroidUtilities.lerp(right, container.getWidth() - skinRecordKeys.reserve() - dp(2), keys);
         }
         final float top = dp(3);
         final float bottom = container.getHeight() - dp(3);
@@ -9744,6 +10139,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         recordTimeContainer.addView(recordTimerView = new TimerView(getContext()), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_VERTICAL, 6, 0, 0, 0));
 
         recordPanel.addView(recordTimeContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_VERTICAL));
+        ensureSkinRecordKeys();
     }
 
     @Override
@@ -13534,7 +13930,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (event.getAction() == MotionEvent.ACTION_CANCEL || event.getAction() == MotionEvent.ACTION_UP) {
                 setPressed(false);
             }
-            if (cancelToProgress == 0 || !isEnabled()) {
+            if (cancelToProgress == 0 || !isEnabled() || skinFrame) {
                 return false;
             }
             int x = (int) event.getX();
@@ -13671,9 +14067,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
             int w = cancelLayout.getWidth() + dp(16);
 
-            grayPaint.setColor(getThemedColor(Theme.key_chat_recordTime));
+            grayPaint.setColor(skinFrame ? skinMaterials().textSecondary : getThemedColor(Theme.key_chat_recordTime));
             grayPaint.setAlpha((int) (slideToAlpha * (1f - cancelToProgress) * slideProgress));
-            bluePaint.setAlpha((int) (cancelAlpha * cancelToProgress));
+            bluePaint.setAlpha(skinFrame ? 0 : (int) (cancelAlpha * cancelToProgress));
             arrowPaint.setColor(grayPaint.getColor());
 
             if (smallSize) {
@@ -13736,7 +14132,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
             cancelRect.set((int) xi, (int) yi, (int) (xi + cancelLayout.getWidth()), (int) (yi + cancelLayout.getHeight()));
             cancelRect.inset(-dp(16), -dp(16));
-            if (cancelToProgress > 0) {
+            if (cancelToProgress > 0 && !skinFrame) {
                 selectableBackground.setBounds(
                         getMeasuredWidth() / 2 - w, getMeasuredHeight() / 2 - w,
                         getMeasuredWidth() / 2 + w, getMeasuredHeight() / 2 + w
@@ -13967,6 +14363,10 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (textPaint != null) {
                 textPaint.setColor(skinFrame ? skinMaterials().text : getThemedColor(Theme.key_chat_recordTime));
             }
+        }
+
+        public float getTextWidth() {
+            return textPaint == null || oldString == null ? 0 : textPaint.measureText(oldString);
         }
 
         public float getLeftProperty() {

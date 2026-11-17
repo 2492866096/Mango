@@ -161,6 +161,22 @@ public class RecordedAudioPlayerView extends View {
     };
 
     private final RectF backgroundRect = new RectF();
+    private final RectF trackRect = new RectF();
+    private final RectF touchTrackRect = new RectF();
+
+    /** Room for the play knob at the track's left and the duration at its right, on the skin. */
+    private static final int SKIN_KNOB_ROOM = 36;
+    private static final int SKIN_DURATION_ROOM = 44;
+
+    /** The part of [rect] the waveform and the trim run along. */
+    private RectF track(RectF rect, RectF out) {
+        out.set(rect);
+        if (skin) {
+            out.left += dp(SKIN_KNOB_ROOM);
+            out.right -= dp(SKIN_DURATION_ROOM);
+        }
+        return out;
+    }
     private final RectF badgeRect = new RectF();
     private final RectF handleRect = new RectF();
     private final Path clipPath = new Path();
@@ -174,7 +190,7 @@ public class RecordedAudioPlayerView extends View {
     private final Path waveformPath = new Path();
 
     public void checkWaveform() {
-        final int width = getMeasuredWidth() - dp(14 + 13);
+        final int width = getMeasuredWidth() - dp(14 + 13) - (skin ? dp(SKIN_KNOB_ROOM + SKIN_DURATION_ROOM) : 0);
         if (lastWaveformWidth == width) return;
         final int count = width / dp(3);
         final int minHeight = dp(2);
@@ -255,8 +271,9 @@ public class RecordedAudioPlayerView extends View {
         waveformPaint.setColor(normal);
         handlePaint.setColor(lit);
 
-        final int left  = (int) lerp(rect.left + dp(11.33f), rect.right - dp(11.33f), clamp01(this.left));
-        final int right = (int) lerp(rect.left + dp(11.33f), rect.right - dp(11.33f), clamp01(this.right));
+        final RectF track = track(rect, trackRect);
+        final int left  = (int) lerp(track.left + dp(11.33f), track.right - dp(11.33f), clamp01(this.left));
+        final int right = (int) lerp(track.left + dp(11.33f), track.right - dp(11.33f), clamp01(this.right));
         checkWaveform();
 
         canvas.save();
@@ -265,11 +282,11 @@ public class RecordedAudioPlayerView extends View {
         clipPath.addRoundRect(rect, clipRadius, clipRadius, Path.Direction.CW);
         canvas.clipPath(clipPath);
 
-        canvas.drawRect(rect.left, rect.top, left - dp(1.33f), rect.bottom, darkerBackgroundPaint);
-        canvas.drawRect(right + dp(1.33f), rect.top, rect.right, rect.bottom, darkerBackgroundPaint);
+        canvas.drawRect(track.left, rect.top, left - dp(1.33f), rect.bottom, darkerBackgroundPaint);
+        canvas.drawRect(right + dp(1.33f), rect.top, track.right, rect.bottom, darkerBackgroundPaint);
 
         canvas.save();
-        canvas.translate(rect.left + dp(14), rect.centerY());
+        canvas.translate(track.left + dp(14), rect.centerY());
         waveformPaint.setColor(m != null ? Theme.multAlpha(m.textTertiary, 0.35f) : Theme.multAlpha(normal, 0.3f));
         canvas.drawPath(waveformPath, waveformPaint);
         canvas.restore();
@@ -277,11 +294,11 @@ public class RecordedAudioPlayerView extends View {
         canvas.drawRect(left, rect.top, right, rect.bottom, backgroundPaint);
 
         final float progress = progressPressed ? holdProgress : clamp(player != null ? (float) player.getCurrentPosition() / player.getDuration() : 1.0f, this.right, this.left);
-        final float progressX = clamp(lerp(rect.left + dp(13), rect.right - dp(14), progress), right, left);
+        final float progressX = clamp(lerp(track.left + dp(13), track.right - dp(14), progress), right, left);
         if (progressX < right) {
             canvas.save();
             canvas.clipRect(progressX, rect.top, right, rect.bottom);
-            canvas.translate(rect.left + dp(14), rect.centerY());
+            canvas.translate(track.left + dp(14), rect.centerY());
             waveformPaint.setColor(!wasPlaying || progress >= this.left || progressPressed ? normal : lit);
             canvas.drawPath(waveformPath, waveformPaint);
             canvas.restore();
@@ -289,7 +306,7 @@ public class RecordedAudioPlayerView extends View {
         if (progressX > left) {
             canvas.save();
             canvas.clipRect(left, rect.top, progressX, rect.bottom);
-            canvas.translate(rect.left + dp(14), rect.centerY());
+            canvas.translate(track.left + dp(14), rect.centerY());
             waveformPaint.setColor(isPlaying() || wasPlaying || progressPressed ? lit : normal);
             canvas.drawPath(waveformPath, waveformPaint);
             canvas.restore();
@@ -311,6 +328,31 @@ public class RecordedAudioPlayerView extends View {
 
         leftHandleClickRect.set(left - dp(24), 0, left + dp(6), getHeight());
         rightHandleClickRect.set(right - dp(6), 0, right + dp(24), getHeight());
+
+        if (m != null) {
+            final float r = Math.min(dp(13), rect.height() / 2f - dp(2));
+            final float cx = rect.left + dp(4) + r;
+            final float cy = rect.centerY();
+            SkinMetal.drawKnob(canvas, cx, cy, r, false, m, 1f);
+            badgeClickRect.set(cx - r, cy - r, cx + r, cy + r);
+            badgeClickRect.inset(-dp(6), -dp(6));
+            final int sz = dp(12);
+            canvas.save();
+            canvas.translate(cx - sz / 2f, cy);
+            playPauseDrawable.setBounds(0, -sz / 2, sz, sz / 2);
+            playPauseDrawable.setAlpha(0xFF);
+            playPauseDrawable.draw(canvas);
+            canvas.restore();
+
+            canvas.save();
+            canvas.translate(rect.right - dp(8) - text.getCurrentWidth(), cy - dp(1));
+            text.setBounds(-1, -1, 1, 1);
+            text.setAlpha(0xFF);
+            text.draw(canvas);
+            canvas.restore();
+            canvas.restore();
+            return;
+        }
 
         final float badgeAlpha = showBadge.set(!progressPressed);
         if (badgeAlpha > 0.0f) {
@@ -393,6 +435,7 @@ public class RecordedAudioPlayerView extends View {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent e) {
+        final RectF track = track(backgroundRect, touchTrackRect);
         final boolean playHit = badgeClickRect.contains(e.getX(), e.getY());
         final boolean leftHit = !playHit && leftHandleClickRect.contains(e.getX(), e.getY());
         final boolean rightHit = !playHit && rightHandleClickRect.contains(e.getX(), e.getY());
@@ -416,17 +459,17 @@ public class RecordedAudioPlayerView extends View {
         } else if (e.getAction() == MotionEvent.ACTION_MOVE) {
             if (leftPressed) {
                 final float minLeft = 0;
-                final float maxLeft = clamp01(right - Math.max(1.0f / duration, (float) dp(30) / (backgroundRect.width() - dp(22.66f))));
-                left = clamp(ilerp(e.getX(), backgroundRect.left + dp(11.33f), backgroundRect.right - dp(11.33f)), maxLeft, minLeft);
+                final float maxLeft = clamp01(right - Math.max(1.0f / duration, (float) dp(30) / (track.width() - dp(22.66f))));
+                left = clamp(ilerp(e.getX(), track.left + dp(11.33f), track.right - dp(11.33f)), maxLeft, minLeft);
                 invalidate();
             } else if (rightPressed) {
-                final float minRight = clamp01(left + Math.max(1.0f / duration, (float) dp(30) / (backgroundRect.width() - dp(22.66f))));
+                final float minRight = clamp01(left + Math.max(1.0f / duration, (float) dp(30) / (track.width() - dp(22.66f))));
                 final float maxRight = 1.0f;
-                right = clamp(ilerp(e.getX(), backgroundRect.left + dp(11.33f), backgroundRect.right - dp(11.33f)), maxRight, minRight);
+                right = clamp(ilerp(e.getX(), track.left + dp(11.33f), track.right - dp(11.33f)), maxRight, minRight);
                 invalidate();
             } else if (progressPressed) {
                 if (player != null) {
-                    player.seekTo((long) ((holdProgress = clamp(ilerp(e.getX(), backgroundRect.left + dp(11.33f), backgroundRect.right - dp(11.33f)), right, left)) * player.getDuration()));
+                    player.seekTo((long) ((holdProgress = clamp(ilerp(e.getX(), track.left + dp(11.33f), track.right - dp(11.33f)), right, left)) * player.getDuration()));
                 }
                 invalidate();
             }
