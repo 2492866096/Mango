@@ -102,7 +102,11 @@ public final class SkinStyle {
      * not only in colour.
      */
     public static void drawLed(Canvas canvas, float cx, float cy, boolean lit, int litColor, int unlitColor, float alpha) {
-        final float r = dpf2(4);
+        drawLed(canvas, cx, cy, dpf2(4), lit, litColor, unlitColor, alpha);
+    }
+
+    /** The status light at radius [r]; the knob's rim light is smaller than the list's. */
+    public static void drawLed(Canvas canvas, float cx, float cy, float r, boolean lit, int litColor, int unlitColor, float alpha) {
         if (lit) {
             final float glow = r * 3f;
             if (glowColor != litColor || glowRadius != glow) {

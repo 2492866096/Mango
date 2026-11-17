@@ -11,6 +11,12 @@ public final class SkinSwitch {
     /** The chat list keeps Telegram's engine and draws its rows, tabs and header in the skin's style. */
     public static final boolean CHAT_LIST = true;
 
+    /**
+     * The chat screen's frame: the floating controls turn from glass to
+     * aluminium and the input bar becomes the console with the knob.
+     */
+    public static final boolean CHAT_FRAME = true;
+
     private SkinSwitch() {
     }
 }

@@ -11,6 +11,7 @@ import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableRender
 import org.telegram.ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider;
 import org.telegram.ui.Components.blur3.source.BlurredBackgroundSource;
 import org.telegram.ui.Components.chat.ViewPositionWatcher;
+import org.telegram.ui.SkinMetalBackground;
 
 import me.vkryl.core.reference.ReferenceList;
 
@@ -54,9 +55,16 @@ public class BlurredBackgroundDrawableViewFactory {
         return create(view, null);
     }
 
+    private boolean metal;
+
+    /** Builds the skin's aluminium instead of glass. The shapes stay the same, so callers don't change. */
+    public void setMetal(boolean metal) {
+        this.metal = metal;
+    }
+
     public BlurredBackgroundDrawable create(View view, BlurredBackgroundColorProvider provider) {
-        final BlurredBackgroundDrawable drawable = source.createDrawable();
-        if (isLiquidGlassEffectAllowed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        final BlurredBackgroundDrawable drawable = metal ? new SkinMetalBackground() : source.createDrawable();
+        if (!metal && isLiquidGlassEffectAllowed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (drawable instanceof BlurredBackgroundDrawableRenderNode) {
                 ((BlurredBackgroundDrawableRenderNode) drawable).setLiquidGlassEffectAllowed();
             }

@@ -167,7 +167,10 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.BasePermissionsActivity;
 import org.telegram.ui.Business.BusinessLinksController;
 import org.telegram.ui.Business.QuickRepliesController;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ChatActivity;
+import org.telegram.ui.SkinMetal;
+import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Components.Forum.ForumUtilities;
 import org.telegram.ui.Components.Premium.PremiumFeatureBottomSheet;
 import org.telegram.ui.Components.Premium.boosts.BoostRepository;
@@ -1056,6 +1059,8 @@ public class ChatActivityEnterView extends FrameLayout implements
     private final Theme.ResourcesProvider resourcesProvider;
 
     private final boolean isChat;
+    /** In a chat screen with the skin on, the bar is the aluminium console: a well for the text, a knob to send. */
+    private final boolean skinFrame;
 
     private Runnable runEmojiPanelAnimation = new Runnable() {
         @Override
@@ -2539,6 +2544,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         super(context);
         this.resourcesProvider = resourcesProvider;
         this.isChat = isChat;
+        this.skinFrame = SkinSwitch.CHAT_FRAME && fragment != null;
 
         smoothKeyboard = isChat && !AndroidUtilities.isInMultiwindow && (fragment == null || !fragment.isInBubbleMode());
         dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -2579,6 +2585,16 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         textFieldContainer = new FrameLayout(context) {
             @Override
+            protected void dispatchDraw(@NonNull Canvas canvas) {
+                if (skinFrame && !recordingAudioVideo && sendButtonContainer != null && sendButtonContainer.getVisibility() == VISIBLE) {
+                    final float x = messageEditTextContainer.getRight() - dp(2);
+                    final float cy = getHeight() - dp(22);
+                    SkinMetal.drawGroove(canvas, x, cy - dp(12), cy + dp(12), skinMaterials(), 1f);
+                }
+                super.dispatchDraw(canvas);
+            }
+
+            @Override
             public boolean dispatchTouchEvent(MotionEvent ev) {
                 if (botWebViewButton != null && botWebViewButton.getVisibility() == VISIBLE) {
                     return botWebViewButton.dispatchTouchEvent(ev);
@@ -2618,6 +2634,14 @@ public class ChatActivityEnterView extends FrameLayout implements
                     }
                     animationParamsX.clear();
                 }
+            }
+
+            @Override
+            protected void dispatchDraw(@NonNull Canvas canvas) {
+                if (skinFrame) {
+                    drawSkinWell(canvas, this);
+                }
+                super.dispatchDraw(canvas);
             }
 
             @Override
@@ -3063,7 +3087,11 @@ public class ChatActivityEnterView extends FrameLayout implements
 
                     canvas.save();
                     canvas.scale(s, s, backgroundRect.centerX(), backgroundRect.centerY());
-                    canvas.drawRoundRect(backgroundRect, r, r, paint);
+                    if (skinFrame) {
+                        SkinMetal.drawKnob(canvas, backgroundRect.centerX(), backgroundRect.centerY(), r, false, skinMaterials(), 1f);
+                    } else {
+                        canvas.drawRoundRect(backgroundRect, r, r, paint);
+                    }
                     canvas.restore();
                 }
                 super.dispatchDraw(canvas);
@@ -3323,6 +3351,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 updateAttachButtonTranslationX();
             }
         };
+        sendButton.skinKnob = skinFrame;
         sendButton.setVisibility(INVISIBLE);
         sendButton.setContentDescription(getString(R.string.Send));
         sendButton.setSoundEffectsEnabled(false);
@@ -3748,6 +3777,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 return !doneButtonEnabled;
             }
         };
+        doneButton.skinKnob = skinFrame;
         if (bounceable) {
             ScaleStateListAnimator.apply(doneButton);
         }
@@ -6330,7 +6360,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         audioVideoButtonContainer.setAlpha(audioVideoButtonContainerForbidden ? 0.5f : 1.0f);
         audioVideoButtonContainer.invalidate();
         audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ?
-            getThemedColor(Theme.key_glass_defaultIcon) : Color.WHITE, PorterDuff.Mode.SRC_IN));
+            getThemedColor(Theme.key_glass_defaultIcon) : knobGlyphColor(), PorterDuff.Mode.SRC_IN));
         audioVideoSendButton.invalidate();
         updateFieldHint(false);
         boolean currentModeVideo = isInVideoMode;
@@ -7170,6 +7200,39 @@ public class ChatActivityEnterView extends FrameLayout implements
             send.run();
             return false;
         }
+    }
+
+    private CanvasMaterials skinMaterials() {
+        return SkinMetal.materials(getThemedColor(Theme.key_chat_messagePanelBackground));
+    }
+
+    /** Glyphs on the knob are engraved in the text colour; on Telegram's blue circle they are white. */
+    private int knobGlyphColor() {
+        return skinFrame ? skinMaterials().text : Color.WHITE;
+    }
+
+    private final RectF skinWellRect = new RectF();
+
+    /**
+     * The sunken well behind the text: from the identity key on the left
+     * (send-as or the bot's menu), when there is one, to the attach key, which
+     * stays on the metal.
+     */
+    private void drawSkinWell(Canvas canvas, ViewGroup container) {
+        float left = dp(4);
+        if (senderSelectView != null && senderSelectView.getVisibility() == VISIBLE) {
+            left = senderSelectView.getX() + senderSelectView.getWidth() + dp(4);
+        } else if (botCommandsMenuButton != null && botCommandsMenuButton.getVisibility() == VISIBLE) {
+            left = botCommandsMenuButton.getX() + botCommandsMenuButton.getWidth() + dp(4);
+        }
+        float right = container.getWidth() - dp(2);
+        if (attachButton != null && attachButton.getVisibility() == VISIBLE && attachButton.getAlpha() > 0f) {
+            right = attachButton.getX();
+        }
+        final float top = dp(3);
+        final float bottom = container.getHeight() - dp(3);
+        skinWellRect.set(left, top, right, bottom);
+        SkinMetal.drawWell(canvas, skinWellRect, Math.min(dp(19), skinWellRect.height() / 2f), skinMaterials(), 1f);
     }
 
     private void collapseKeyboardAfterSend() {
@@ -10100,7 +10163,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         if (botKeyboardView != null) {
             botKeyboardView.updateColors();
         }
-        audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ? getThemedColor(Theme.key_glass_defaultIcon) : Color.WHITE, PorterDuff.Mode.SRC_IN));
+        audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ? getThemedColor(Theme.key_glass_defaultIcon) : knobGlyphColor(), PorterDuff.Mode.SRC_IN));
         emojiButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
         emojiButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
     }
@@ -14078,6 +14141,9 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         private boolean isNewDesignSendButton;
 
+        /** Draw as the skin's knob: engraved glyph, light on when a tap sends. */
+        public boolean skinKnob;
+
         public SendButton(Context context, int resId, Theme.ResourcesProvider resourcesProvider, boolean isNewDesignSendButton) {
             super(context);
 
@@ -14247,7 +14313,11 @@ public class ChatActivityEnterView extends FrameLayout implements
             updateColors();
             if (isNewDesignSendButton) {
                 checkBackgroundRect();
-                canvas.drawRoundRect(backgroundRect, dp(RADIUS), dp(RADIUS), backgroundPaint);
+                if (skinKnob) {
+                    drawSkinKnob(canvas);
+                } else {
+                    canvas.drawRoundRect(backgroundRect, dp(RADIUS), dp(RADIUS), backgroundPaint);
+                }
             }
 
             final boolean inactive = isInactive();
@@ -14457,9 +14527,26 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         private int drawableColor;
 
+        private void drawSkinKnob(Canvas canvas) {
+            final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider));
+            final boolean lit = !isInactive();
+            if (backgroundRect.width() > backgroundRect.height() + 1) {
+                // A paid message widens the key to show its price: a capsule of the same metal.
+                SkinMetal.drawCapsule(canvas, backgroundRect, lit, m, 1f);
+            } else {
+                SkinMetal.drawKnob(canvas, backgroundRect.centerX(), backgroundRect.centerY(), backgroundRect.height() / 2f, lit, m, 1f);
+            }
+        }
+
         public void updateColors() {
-            int color = isNewDesignSendButton ? Color.WHITE : Theme.getColor(Theme.key_chat_messagePanelSend, resourcesProvider);
+            int color = isNewDesignSendButton
+                    ? (skinKnob ? SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider)).text : Color.WHITE)
+                    : Theme.getColor(Theme.key_chat_messagePanelSend, resourcesProvider);
             if (color != drawableColor) {
+                if (skinKnob) {
+                    priceText.setTextColor(color);
+                    count.setTextColor(color);
+                }
                 drawableColor = color;
                 drawable.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
                 int c = Theme.getColor(Theme.key_glass_defaultIcon, resourcesProvider);

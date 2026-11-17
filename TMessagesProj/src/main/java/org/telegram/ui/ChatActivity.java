@@ -2734,7 +2734,10 @@ public class ChatActivity extends BaseFragment implements
                 navbarContentDrawableFactory = new BlurredBackgroundDrawableViewFactory(navbarContentSourceWallpaper);
             } else {
                 glassBackgroundSourceRenderNode = null;
-                glassBackgroundDrawableFactory = glassBackgroundDrawableFactoryFrosted;
+                // The skin turns this factory to metal, so it can't be the frosted one.
+                glassBackgroundDrawableFactory = SkinSwitch.CHAT_FRAME
+                        ? new BlurredBackgroundDrawableViewFactory(glassBackgroundSourceFrostedRenderNode)
+                        : glassBackgroundDrawableFactoryFrosted;
                 // navbarContentSourceWallpaperAndMessagesRenderNode = new BlurredBackgroundSourceRenderNode(null);
                 // navbarContentSourceWallpaperAndMessagesRenderNode.setOnDrawablesRelativePositionChangeListener(this::invalidateMergedVisibleBlurredPositionsAndSourcesPositions);
                 // navbarContentSourceWallpaperAndMessagesRenderNode.setScrollableNoiseSuppressor(scrollableViewNoiseSuppressor, DownscaleScrollableNoiseSuppressor.DRAW_FROSTED_GLASS_NO_SATURATION);
@@ -2761,6 +2764,10 @@ public class ChatActivity extends BaseFragment implements
         navbarContentDrawableFactory.setLinkedViewsRef(glassAttachedViews);
         glassBackgroundDrawableFactory.setLinkedViewsRef(glassAttachedViews);
         glassBackgroundDrawableFactoryFrosted.setLinkedViewsRef(glassAttachedViews);
+        if (SkinSwitch.CHAT_FRAME) {
+            // The input console and the floating controls are machined aluminium, like the dock.
+            glassBackgroundDrawableFactory.setMetal(true);
+        }
     }
 
     @Override
