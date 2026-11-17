@@ -35,6 +35,14 @@ fun DockAccountsPreview() = PreviewSkin {
     OverPage { DockOverlay(fakeDock(DockMode.Accounts, position = 3f), NoDockActions, restingPick = 1) }
 }
 
+/** A frame of the cards being dealt out of the 我 key, a little under halfway. */
+@PreviewTest
+@SkinPreviews
+@Composable
+fun DockDealingPreview() = PreviewSkin {
+    OverPage { DockOverlay(fakeDock(DockMode.Accounts, position = 3f), NoDockActions, restingDeal = 0.45f) }
+}
+
 @PreviewTest
 @SkinPreviews
 @Composable

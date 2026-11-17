@@ -1,5 +1,6 @@
 package org.telegram.skin.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -158,28 +159,56 @@ fun Knob(turn: Float, size: Dp, modifier: Modifier = Modifier) {
 
 /**
  * A status light. Lit, it glows celadon; unlit, it is an empty ring, so the
- * two states differ in shape as well as colour.
+ * two states differ in shape as well as colour. Switched on it strikes, its
+ * glow blooming past full before it settles; switched off it fades with an
+ * afterglow while the ring comes back.
  */
 @Composable
 fun Led(on: Boolean, modifier: Modifier = Modifier, size: Dp = 7.dp) {
+    val motion = Skin.motion
+    val glow = animateFloatAsState(if (on) 1f else 0f, if (on) motion.ledOn() else motion.ledOff(), label = "led")
+    LedFrame({ glow.value }, modifier, size)
+}
+
+/**
+ * One frame of [Led]: [glow] at 0 is off and at 1 lit; above 1 is the bloom
+ * of striking. Read only while drawing, so an animation redraws the light
+ * without recomposing anything.
+ */
+@Composable
+fun LedFrame(glow: () -> Float, modifier: Modifier = Modifier, size: Dp = 7.dp) {
     val c = Skin.colors
-    if (on) {
-        Box(
-            modifier
-                .size(size)
-                .dropShadow(CircleShape, Shadow(radius = size * 1.3f, color = c.led.copy(alpha = 0.65f)))
-                .dropShadow(CircleShape, Shadow(radius = 0.dp, spread = size * 0.4f, color = c.led.copy(alpha = 0.18f)))
-                .clip(CircleShape)
-                .background(c.led),
-        )
-    } else {
-        Box(
-            modifier
-                .size(size)
-                .drawBehind {
+    Box(
+        modifier
+            .size(size)
+            .drawBehind {
+                val g = glow()
+                val lit = g.coerceIn(0f, 1f)
+                val bloom = ((g - 1f) / 0.2f).coerceIn(0f, 1f)
+                val r = this.size.minDimension / 2
+                if (lit < 1f) {
                     val w = 1.5.dp.toPx()
-                    drawCircle(c.textTertiary, radius = this.size.minDimension / 2 - w / 2, style = Stroke(w))
-                },
-        )
-    }
+                    drawCircle(c.textTertiary.copy(alpha = c.textTertiary.alpha * (1f - lit)), radius = r - w / 2, style = Stroke(w))
+                }
+                if (lit > 0f) {
+                    // A tight glow falling off fast, like the blur it stands for; it
+                    // reaches further and brighter while the light blooms.
+                    val halo = r * 3.2f * (1f + 0.35f * bloom)
+                    val strength = lit * (1f + 0.5f * bloom)
+                    drawCircle(
+                        Brush.radialGradient(
+                            0f to c.led.copy(alpha = (0.5f * strength).coerceAtMost(1f)),
+                            r / halo to c.led.copy(alpha = (0.5f * strength).coerceAtMost(1f)),
+                            1.35f * r / halo to c.led.copy(alpha = (0.2f * strength).coerceAtMost(1f)),
+                            2f * r / halo to c.led.copy(alpha = (0.06f * strength).coerceAtMost(1f)),
+                            1f to Color.Transparent,
+                            center = center,
+                            radius = halo,
+                        ),
+                        radius = halo,
+                    )
+                    drawCircle(c.led.copy(alpha = lit), radius = r)
+                }
+            },
+    )
 }

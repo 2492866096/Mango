@@ -1,8 +1,10 @@
 package org.telegram.skin.theme
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.dropShadow
@@ -10,6 +12,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import org.telegram.skin.motion.SkinIndication
 import org.telegram.skin.motion.SkinMotion
 import org.telegram.skin.motion.SkinMotionSpecs
 
@@ -41,15 +44,20 @@ object Skin {
  * inside the app both follow Telegram's own settings (current theme, chosen
  * language) rather than the system's, so the new screens never disagree with
  * the old ones next to them. Motion follows the system and Telegram's power
- * saving through [SkinMotion].
+ * saving through [SkinMotion]; whatever is pressed without an indication of
+ * its own gets the skin's ink wash.
  */
 @Composable
 fun SkinTheme(dark: Boolean, rtl: Boolean, content: @Composable () -> Unit) {
+    val colors = if (dark) FrostDark else FrostLight
+    val motion = if (SkinMotion.reducedForCompose) SkinMotionSpecs.Reduced else SkinMotionSpecs.Full
+    val indication = remember(colors, motion) { SkinIndication(colors.ink, motion) }
     CompositionLocalProvider(
-        LocalSkinColors provides if (dark) FrostDark else FrostLight,
+        LocalSkinColors provides colors,
         LocalSkinShadows provides if (dark) FrostDarkShadows else FrostLightShadows,
         LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
-        LocalSkinMotion provides if (SkinMotion.reducedForCompose) SkinMotionSpecs.Reduced else SkinMotionSpecs.Full,
+        LocalSkinMotion provides motion,
+        LocalIndication provides indication,
         content = content,
     )
 }

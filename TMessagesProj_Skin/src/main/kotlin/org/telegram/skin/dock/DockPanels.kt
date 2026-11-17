@@ -1,6 +1,10 @@
 package org.telegram.skin.dock
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,13 +28,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -43,6 +55,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.telegram.skin.motion.SkinHaptics
+import org.telegram.skin.motion.SkinMotion
+import org.telegram.skin.motion.pressDepth
 import org.telegram.skin.theme.Skin
 import org.telegram.skin.theme.shadows
 import org.telegram.skin.ui.Avatar
@@ -50,6 +66,7 @@ import org.telegram.skin.ui.FittedText
 import org.telegram.skin.ui.Glyph
 import org.telegram.skin.ui.GlyphIcon
 import org.telegram.skin.ui.Led
+import org.telegram.skin.ui.RollingFigure
 import org.telegram.skin.ui.SkinText
 import org.telegram.skin.ui.metal
 import org.telegram.skin.ui.porcelain
@@ -75,7 +92,7 @@ internal fun CreatePanel(state: DockState, actions: DockActions, room: Dp) {
         val results = state.results
         if (state.query.isBlank() || results == null) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                state.keys.forEach { key -> PanelKey(key, Modifier.weight(1f)) { actions.onKey(key.id) } }
+                state.keys.forEachIndexed { i, key -> PanelKey(key, i, Modifier.weight(1f)) { actions.onKey(key.id) } }
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SkinText(state.strings.recent, t.label, c.textSecondary, Modifier.semantics { heading() }, maxLines = 1)
@@ -155,17 +172,37 @@ private fun SearchWell(state: DockState, actions: DockActions) {
     }
 }
 
-/** One of the four start keys: a small aluminium block with its name under the mark. */
+/**
+ * One of the four start keys: a small aluminium block with its name under the
+ * mark. As the panel opens the keys rise out of the dock one after another;
+ * pressed, a key sinks onto its stop.
+ */
 @Composable
-private fun PanelKey(key: DockKey, modifier: Modifier, onClick: () -> Unit) {
+private fun PanelKey(key: DockKey, index: Int, modifier: Modifier, onClick: () -> Unit) {
     val c = Skin.colors
     val shape = Skin.shapes.tile
+    val motion = Skin.motion
+    val density = LocalDensity.current
+    // A still preview shows the keys at rest.
+    val still = motion.reduced || LocalInspectionMode.current
+    val rise = remember { Animatable(if (still) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        delay(motion.stagger(index).toLong())
+        rise.animateTo(1f, motion.enter())
+    }
+    val source = remember { MutableInteractionSource() }
+    val depth = pressDepth(source)
     Column(
         modifier
             .heightIn(min = 82.dp)
+            .graphicsLayer {
+                val r = rise.value
+                translationY = with(density) { (1f - r) * 14.dp.toPx() + depth.value * SkinMotion.PRESS_SINK_DP.dp.toPx() }
+                alpha = r.coerceIn(0f, 1f)
+            }
             .shadows(Skin.shadows.low, shape)
             .metal(c.metal, shape)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = source, indication = null, onClick = onClick)
             .semantics(mergeDescendants = true) { role = Role.Button }
             .padding(horizontal = 4.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -230,6 +267,13 @@ private fun ResultRow(contact: DockContact, onClick: () -> Unit) {
     }
 }
 
+private class ShownOrder {
+    var value = 0
+}
+
+/** dp per second: about four dp of travel before the tile settles. */
+private const val KNOCK_SPEED = 220f
+
 /**
  * Picks the middle of the dock. Each choice is a tile; picked ones turn to
  * porcelain and carry their place in the bar as a numeral, so the order is
@@ -239,6 +283,7 @@ private fun ResultRow(contact: DockContact, onClick: () -> Unit) {
 internal fun ArrangePanel(state: DockState, actions: DockActions, room: Dp) {
     val c = Skin.colors
     val t = Skin.type
+    val motion = Skin.motion
     var full by remember { mutableStateOf(false) }
     LaunchedEffect(full) {
         if (full) {
@@ -255,7 +300,9 @@ internal fun ArrangePanel(state: DockState, actions: DockActions, room: Dp) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             SkinText(state.strings.arrangeTitle, t.panelTitle, c.text, Modifier.semantics { heading() })
-            SkinText(if (full) state.strings.arrangeFull else state.strings.arrangeHint, t.caption, if (full) c.ink else c.textSecondary)
+            Crossfade(full, animationSpec = motion.state(), label = "hint") { refused ->
+                SkinText(if (refused) state.strings.arrangeFull else state.strings.arrangeHint, t.caption, if (refused) c.ink else c.textSecondary)
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             state.choices.forEach { choice ->
@@ -273,34 +320,68 @@ internal fun ArrangePanel(state: DockState, actions: DockActions, room: Dp) {
                         state.chosen = next
                         actions.onArrange(next)
                     }
+                    next != null
                 }
             }
         }
     }
 }
 
+/**
+ * Picked, a tile fills with glaze from the bottom up, as porcelain is dipped;
+ * dropped, the glaze drains away and the metal shows again. A tile that cannot
+ * be picked (the bar is full) knocks against its stop.
+ */
 @Composable
-private fun ChoiceTile(choice: DockChoice, order: Int, modifier: Modifier, onClick: () -> Unit) {
+private fun ChoiceTile(choice: DockChoice, order: Int, modifier: Modifier, onToggle: () -> Boolean) {
     val c = Skin.colors
     val shape = Skin.shapes.tile
+    val motion = Skin.motion
+    val density = LocalDensity.current
+    val view = LocalView.current
+    val scope = rememberCoroutineScope()
     val on = order >= 0
-    val ink = if (on) c.porcelain.text else c.text
+    val glaze = animateFloatAsState(if (on) 1f else 0f, motion.glaze(), label = "glaze")
+    val knock = remember { Animatable(0f) }
+    // The numeral stays while the glaze drains, then goes with it.
+    val shownOrder = remember { ShownOrder() }
+    if (on) shownOrder.value = order
+    val ink = lerp(c.text, c.porcelain.text, glaze.value)
     Box(
         modifier
             .heightIn(min = 82.dp)
+            .graphicsLayer { translationX = with(density) { knock.value.dp.toPx() } }
             .shadows(if (on) emptyList() else Skin.shadows.low, shape)
-            .then(if (on) Modifier.porcelain(c.porcelain, shape) else Modifier.metal(c.metal, shape))
-            .clickable(onClick = onClick)
+            .metal(c.metal, shape)
+            .clickable {
+                if (onToggle()) {
+                    SkinHaptics.tap(view)
+                } else {
+                    SkinHaptics.reject(view)
+                    scope.launch { knock.animateTo(0f, motion.pressRelease(), initialVelocity = KNOCK_SPEED) }
+                }
+            }
             .semantics(mergeDescendants = true) {
                 role = Role.Checkbox
                 selected = on
             },
     ) {
-        if (on) {
-            SkinText(
-                "${order + 1}",
+        Box(
+            Modifier
+                .matchParentSize()
+                .drawWithContent {
+                    val g = glaze.value
+                    if (g > 0f) {
+                        clipRect(top = size.height * (1f - g)) { this@drawWithContent.drawContent() }
+                    }
+                }
+                .porcelain(c.porcelain, shape),
+        )
+        if (glaze.value > 0f) {
+            RollingFigure(
+                "${shownOrder.value + 1}",
                 Skin.type.figure.copy(fontWeight = FontWeight.SemiBold),
-                ink,
+                ink.copy(alpha = glaze.value.coerceIn(0f, 1f)),
                 Modifier.align(Alignment.TopStart).padding(start = 10.dp, top = 8.dp),
             )
         }

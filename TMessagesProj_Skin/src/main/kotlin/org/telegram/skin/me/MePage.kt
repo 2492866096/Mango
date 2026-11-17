@@ -1,5 +1,14 @@
 package org.telegram.skin.me
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,9 +77,10 @@ private val DockClearance = 64.dp + 8.dp + 16.dp
 fun MePage(state: MeState, actions: MeActions, modifier: Modifier = Modifier) {
     val c = Skin.colors
     val density = LocalDensity.current
+    val motion = Skin.motion
     val scroll = rememberScrollState()
     LaunchedEffect(state.scrollToTop) {
-        if (state.scrollToTop > 0) scroll.animateScrollTo(0)
+        if (state.scrollToTop > 0) scroll.animateScrollTo(0, motion.settle())
     }
     val top = with(density) { state.topInset.toDp() }
     val bottom = with(density) { state.bottomInset.toDp() }
@@ -89,7 +99,20 @@ fun MePage(state: MeState, actions: MeActions, modifier: Modifier = Modifier) {
                 .verticalScroll(scroll)
                 .padding(start = Skin.space.gutter, end = Skin.space.gutter, top = top + Skin.space.gutter, bottom = bottom + DockClearance),
         ) {
-            state.card?.let { CardStack(it, state, actions) }
+            state.card?.let { card ->
+                // Switching accounts, the next card comes forward off the stack
+                // as the one that was on top drops back into it.
+                AnimatedContent(
+                    targetState = card,
+                    contentKey = { it.peer.account },
+                    transitionSpec = {
+                        (slideInVertically(motion.enter()) { it / 8 } + scaleIn(motion.enter(), initialScale = 0.94f) + fadeIn(motion.state()))
+                            .togetherWith(scaleOut(motion.exit(), targetScale = 0.94f) + fadeOut(motion.exit()))
+                            .using(SizeTransform(clip = false))
+                    },
+                    label = "card",
+                ) { shown -> CardStack(shown, state, actions) }
+            }
             state.accountsHint?.let { hint ->
                 SkinText(
                     hint,
@@ -106,7 +129,10 @@ fun MePage(state: MeState, actions: MeActions, modifier: Modifier = Modifier) {
                     align = TextAlign.Center,
                 )
             }
-            state.notices.forEach { notice -> Notice(notice) { actions.onNotice(notice.id) } }
+            // A notice coming or going moves what is below it smoothly.
+            Column(Modifier.animateContentSize(motion.settle())) {
+                state.notices.forEach { notice -> Notice(notice) { actions.onNotice(notice.id) } }
+            }
             if (state.toggles.isNotEmpty()) {
                 Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     state.toggles.forEach { toggle -> ToggleTile(toggle, actions, Modifier.weight(1f)) }

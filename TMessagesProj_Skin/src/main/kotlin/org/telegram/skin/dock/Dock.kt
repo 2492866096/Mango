@@ -1,9 +1,13 @@
 package org.telegram.skin.dock
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
@@ -15,6 +19,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,7 +43,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -68,17 +75,21 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.min
+import org.telegram.skin.motion.SkinMotion
+import org.telegram.skin.motion.pressDepth
 import org.telegram.skin.theme.Skin
 import org.telegram.skin.theme.shadows
 import org.telegram.skin.ui.Avatar
 import org.telegram.skin.ui.FittedText
 import org.telegram.skin.ui.GlyphIcon
-import org.telegram.skin.ui.SkinText
 import org.telegram.skin.ui.Groove
 import org.telegram.skin.ui.Knob
+import org.telegram.skin.ui.RollingFigure
 import org.telegram.skin.ui.metal
 import org.telegram.skin.ui.porcelain
+import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sign
 
 /** From this width on the dock stands as a rail along the start edge instead. */
 internal val RailBreakpoint = 600.dp
@@ -94,10 +105,17 @@ private val DockGap = 8.dp
  * so the page underneath works as usual.
  *
  * [restingPick] draws the account fan with that card lifted, as while a finger
- * rests on it; it exists for previews, the app never sets it.
+ * rests on it, and [restingDeal] draws the fan that far through being dealt
+ * (0 to 1). Both exist for previews; the app never sets them.
  */
 @Composable
-fun DockOverlay(state: DockState, actions: DockActions, modifier: Modifier = Modifier, restingPick: Int = -1) {
+fun DockOverlay(
+    state: DockState,
+    actions: DockActions,
+    modifier: Modifier = Modifier,
+    restingPick: Int = -1,
+    restingDeal: Float = -1f,
+) {
     val c = Skin.colors
     val density = LocalDensity.current
     val focus = LocalFocusManager.current
@@ -138,7 +156,8 @@ fun DockOverlay(state: DockState, actions: DockActions, modifier: Modifier = Mod
 
         // A thick cool fog by day and a near-black veil at night, so nothing
         // behind ghosts through the panels and readouts laid over it.
-        val veil by animateFloatAsState(if (state.isOpen) 1f else 0f, label = "veil")
+        val motion = Skin.motion
+        val veil by animateFloatAsState(if (state.isOpen) 1f else 0f, if (state.isOpen) motion.state() else motion.exit(), label = "veil")
         if (veil > 0f) {
             val scrim = if (c.isDark) c.chat.copy(alpha = 0.9f) else c.page.copy(alpha = 0.95f)
             Box(
@@ -150,8 +169,19 @@ fun DockOverlay(state: DockState, actions: DockActions, modifier: Modifier = Mod
             )
         }
 
-        if (state.mode == DockMode.Accounts) {
-            AccountFan(state, actions, fan, vertical, top, open)
+        // The cards are dealt out of the 我 key and gathered back into it.
+        if (restingDeal >= 0f && state.mode == DockMode.Accounts) {
+            AccountFan(state, actions, fan, vertical, top, open, deal = { restingDeal })
+        } else AnimatedVisibility(
+            visible = state.mode == DockMode.Accounts,
+            enter = fadeIn(motion.state()),
+            exit = fadeOut(motion.exit()),
+        ) {
+            val deal = transition.animateFloat(
+                transitionSpec = { if (targetState == EnterExitState.Visible) motion.enter() else motion.exit() },
+                label = "deal",
+            ) { if (it == EnterExitState.Visible) 1f else 0f }
+            AccountFan(state, actions, fan, vertical, top, open, deal = { deal.value })
         }
 
         val railRoom = maxHeight - top - bottom - 24.dp
@@ -165,8 +195,8 @@ fun DockOverlay(state: DockState, actions: DockActions, modifier: Modifier = Mod
             ) {
                 AnimatedVisibility(
                     visible = state.shown,
-                    enter = slideInHorizontally { -it } + fadeIn(),
-                    exit = slideOutHorizontally { -it } + fadeOut(),
+                    enter = slideInHorizontally(motion.enter()) { -it } + fadeIn(motion.state()),
+                    exit = slideOutHorizontally(motion.exit()) { -it } + fadeOut(motion.exit()),
                 ) {
                     DockSurface(state, actions, fan, vertical = true, panelRoom = panelRoom, railRoom = railRoom, open = open)
                 }
@@ -180,8 +210,8 @@ fun DockOverlay(state: DockState, actions: DockActions, modifier: Modifier = Mod
             ) {
                 AnimatedVisibility(
                     visible = state.shown,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut(),
+                    enter = slideInVertically(motion.enter()) { it } + fadeIn(motion.state()),
+                    exit = slideOutVertically(motion.exit()) { it } + fadeOut(motion.exit()),
                 ) {
                     DockSurface(state, actions, fan, vertical = false, panelRoom = panelRoom, railRoom = 0.dp, open = open)
                 }
@@ -201,6 +231,7 @@ private fun DockSurface(
     open: (DockMode) -> Unit,
 ) {
     val c = Skin.colors
+    val motion = Skin.motion
     val panel = state.mode == DockMode.Create || state.mode == DockMode.Arrange
     val collapsed = state.collapsed && state.mode == DockMode.Rail && !vertical
     val radius by animateDpAsState(
@@ -209,45 +240,86 @@ private fun DockSurface(
             collapsed -> 22.dp
             else -> 26.dp
         },
+        motion.settle(),
         label = "radius",
     )
     val shape = RoundedCornerShape(radius)
-    // The shadow sits outside the size animation, which clips to its bounds.
+    // The panel keeps showing what it showed while it folds away.
+    val shown = remember { ShownPanel() }
+    if (panel) shown.mode = state.mode
+    // The shadow sits outside the clip of the metal. The parts inside animate
+    // their own sizes, and the slab follows them.
     val surface = Modifier
         .shadows(Skin.shadows.floating, shape)
-        .animateContentSize()
         .metal(c.metal, shape)
         .onGloballyPositioned { fan.dock = it.boundsInRoot() }
 
     if (vertical) {
         Row(surface) {
             VerticalRail(state, actions, fan, railRoom, open)
-            AnimatedVisibility(panel, enter = expandHorizontally() + fadeIn(), exit = shrinkHorizontally() + fadeOut()) {
+            AnimatedVisibility(
+                panel,
+                enter = expandHorizontally(motion.enter(), expandFrom = Alignment.Start) + fadeIn(motion.state()),
+                exit = shrinkHorizontally(motion.exit(), shrinkTowards = Alignment.Start) + fadeOut(motion.exit()),
+            ) {
                 Row {
                     Groove(vertical = true, Modifier.padding(vertical = 14.dp))
-                    Box(Modifier.width(360.dp)) { Panels(state, actions, panelRoom) }
+                    Box(Modifier.width(360.dp)) { Panels(shown.mode, state, actions, panelRoom) }
                 }
             }
         }
     } else {
-        Column(if (collapsed) surface else Modifier.fillMaxWidth().then(surface)) {
-            AnimatedVisibility(panel, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+        Column(surface) {
+            AnimatedVisibility(
+                panel,
+                enter = expandVertically(motion.enter(), expandFrom = Alignment.Bottom) + fadeIn(motion.state()),
+                exit = shrinkVertically(motion.exit(), shrinkTowards = Alignment.Bottom) + fadeOut(motion.exit()),
+            ) {
                 Column {
-                    Panels(state, actions, panelRoom)
+                    Panels(shown.mode, state, actions, panelRoom)
                     Groove(vertical = false, Modifier.padding(start = 14.dp, end = 14.dp, top = 4.dp))
                 }
             }
-            if (collapsed) CollapsedRail(state, open) else HorizontalRail(state, actions, fan, open)
+            // Folding, the keys draw in under the current one; unfolding, they
+            // open out from it again.
+            AnimatedContent(
+                targetState = collapsed,
+                transitionSpec = {
+                    (fadeIn(motion.state()) togetherWith fadeOut(motion.exit()))
+                        .using(SizeTransform(clip = true) { _, _ -> if (targetState) motion.settle() else motion.enter() })
+                },
+                contentAlignment = Alignment.Center,
+                label = "fold",
+            ) { folded ->
+                if (folded) CollapsedRail(state, open) else HorizontalRail(state, actions, fan, open)
+            }
         }
     }
 }
 
+private class ShownPanel {
+    var mode = DockMode.Create
+}
+
+/** The 起点 and arranging panels; switching between them crossfades while the slab resizes. */
 @Composable
-private fun Panels(state: DockState, actions: DockActions, room: Dp) {
-    when (state.mode) {
-        DockMode.Create -> CreatePanel(state, actions, room)
-        DockMode.Arrange -> ArrangePanel(state, actions, room)
-        else -> Unit
+private fun Panels(mode: DockMode, state: DockState, actions: DockActions, room: Dp) {
+    val motion = Skin.motion
+    AnimatedContent(
+        targetState = mode,
+        transitionSpec = {
+            (fadeIn(motion.state()) togetherWith fadeOut(motion.exit()))
+                .using(SizeTransform(clip = true) { _, _ -> motion.settle() })
+        },
+        label = "panel",
+    ) { shownMode ->
+        // Results coming and going change the panel's height; the slab follows smoothly.
+        Box(Modifier.animateContentSize(motion.settle())) {
+            when (shownMode) {
+                DockMode.Arrange -> ArrangePanel(state, actions, room)
+                else -> CreatePanel(state, actions, room)
+            }
+        }
     }
 }
 
@@ -258,12 +330,13 @@ private fun HorizontalRail(state: DockState, actions: DockActions, fan: FanTrack
             val count = state.tabs.size
             if (count > 0) {
                 val tabWidth = maxWidth / count
-                Inlay(state, Modifier.width(tabWidth).fillMaxHeight().padding(horizontal = 2.dp, vertical = 6.dp)) { position ->
+                val keys = rememberKeyPresses(count)
+                Inlay(state, keys, Modifier.width(tabWidth).fillMaxHeight().padding(horizontal = 2.dp, vertical = 6.dp)) { position ->
                     IntOffset((position * tabWidth.toPx()).roundToInt(), 0)
                 }
                 Row(Modifier.fillMaxSize()) {
                     state.tabs.forEachIndexed { index, tab ->
-                        TabKey(state, actions, fan, index, tab, labels = true, open = open, modifier = Modifier.weight(1f).fillMaxHeight())
+                        TabKey(state, actions, fan, index, tab, keys.sources[index], labels = true, open = open, modifier = Modifier.weight(1f).fillMaxHeight())
                     }
                 }
             }
@@ -285,13 +358,14 @@ private fun VerticalRail(state: DockState, actions: DockActions, fan: FanTracker
             // there is no longer room for them.
             val tabHeight = min(60.dp, max(40.dp, (room - KnobSize - 40.dp) / count))
             val labels = tabHeight >= 52.dp
+            val keys = rememberKeyPresses(count)
             Box(Modifier.height(tabHeight * count).fillMaxWidth()) {
-                Inlay(state, Modifier.fillMaxWidth().height(tabHeight).padding(horizontal = 6.dp, vertical = 2.dp)) { position ->
+                Inlay(state, keys, Modifier.fillMaxWidth().height(tabHeight).padding(horizontal = 6.dp, vertical = 2.dp)) { position ->
                     IntOffset(0, (position * tabHeight.toPx()).roundToInt())
                 }
                 Column(Modifier.fillMaxSize()) {
                     state.tabs.forEachIndexed { index, tab ->
-                        TabKey(state, actions, fan, index, tab, labels = labels, open = open, modifier = Modifier.fillMaxWidth().height(tabHeight))
+                        TabKey(state, actions, fan, index, tab, keys.sources[index], labels = labels, open = open, modifier = Modifier.fillMaxWidth().height(tabHeight))
                     }
                 }
             }
@@ -301,10 +375,48 @@ private fun VerticalRail(state: DockState, actions: DockActions, fan: FanTracker
     }
 }
 
-/** The porcelain under the current key. It glides with the pages as they are swiped. */
+/** The keys' press sources, and how far down each one is. */
+private class KeyPresses(val sources: List<MutableInteractionSource>, val depths: List<State<Float>>) {
+
+    /**
+     * Where pressing pulls the porcelain: an eighth of a key toward a pressed
+     * key, as if the glaze were drawn to the finger. Pressing the current key
+     * instead presses the porcelain itself.
+     */
+    fun lean(position: Float): Float {
+        var lean = 0f
+        depths.forEachIndexed { i, depth ->
+            val d = depth.value
+            if (d > 0f && abs(i - position) >= 0.5f) lean += sign(i - position) * LEAN * d
+        }
+        return lean
+    }
+
+    fun squash(position: Float): Float {
+        val current = depths.getOrNull(position.roundToInt())?.value ?: 0f
+        return 1f - (1f - SkinMotion.PRESS_SCALE) * current
+    }
+
+    private companion object {
+        const val LEAN = 0.125f
+    }
+}
+
+@Composable
+private fun rememberKeyPresses(count: Int): KeyPresses {
+    val sources = remember(count) { List(count) { MutableInteractionSource() } }
+    val depths = sources.map { source -> key(source) { pressDepth(source) } }
+    return KeyPresses(sources, depths)
+}
+
+/**
+ * The porcelain under the current key. It glides with the pages as they are
+ * swiped, leans toward a key being pressed, and gives under a press of its own.
+ */
 @Composable
 private fun Inlay(
     state: DockState,
+    keys: KeyPresses,
     modifier: Modifier,
     offset: Density.(position: Float) -> IntOffset,
 ) {
@@ -312,9 +424,17 @@ private fun Inlay(
     val last = (state.tabs.size - 1).coerceAtLeast(0).toFloat()
     Box(
         modifier
-            // Read in the layout phase only, so a swipe moves the glaze
-            // without recomposing the keys.
-            .offset { offset(state.position.coerceIn(0f, last)) }
+            // Read in the layout and draw phases only, so a swipe or a press
+            // moves the glaze without recomposing the keys.
+            .offset {
+                val position = state.position.coerceIn(0f, last)
+                offset((position + keys.lean(position)).coerceIn(0f, last))
+            }
+            .graphicsLayer {
+                val squash = keys.squash(state.position.coerceIn(0f, last))
+                scaleX = squash
+                scaleY = squash
+            }
             .porcelain(p, Skin.shapes.inlay),
     )
 }
@@ -327,13 +447,14 @@ private fun TabKey(
     fan: FanTracker,
     index: Int,
     tab: DockTab,
+    source: MutableInteractionSource,
     labels: Boolean,
     open: (DockMode) -> Unit,
     modifier: Modifier,
 ) {
     val c = Skin.colors
     val selected = state.position.roundToInt() == index
-    val tint by animateColorAsState(if (selected) c.porcelain.text else c.textSecondary, label = "tint")
+    val tint by animateColorAsState(if (selected) c.porcelain.text else c.textSecondary, Skin.motion.state(), label = "tint")
     val isMe = tab.avatar != null
     var center by remember { mutableStateOf(Rect.Zero) }
 
@@ -344,13 +465,13 @@ private fun TabKey(
     val gesture = when {
         isMe -> Modifier.meKeyGestures(state, actions, fan, index, open)
         tab.arrangeable -> Modifier.combinedClickable(
-            interactionSource = remember { MutableInteractionSource() },
+            interactionSource = source,
             indication = null,
             onClick = tap,
             onLongClick = { open(DockMode.Arrange) },
         )
         else -> Modifier.combinedClickable(
-            interactionSource = remember { MutableInteractionSource() },
+            interactionSource = source,
             indication = null,
             onClick = tap,
             onLongClick = { actions.onTabMenu(index, center.center.x, center.center.y) },
@@ -386,7 +507,7 @@ private fun TabKey(
             LabelWithFigure(
                 label = { FittedText(tab.label, style, tint) },
                 figure = tab.readout?.let { readout ->
-                    { SkinText(readout, Skin.type.figureSmall.copy(fontSize = Skin.type.micro.fontSize * 0.92f), tint.copy(alpha = 0.8f), maxLines = 1) }
+                    { RollingFigure(readout, Skin.type.figureSmall.copy(fontSize = Skin.type.micro.fontSize * 0.92f), tint.copy(alpha = 0.8f)) }
                 },
             )
         }
@@ -412,11 +533,11 @@ private fun LabelWithFigure(label: @Composable () -> Unit, figure: (@Composable 
         val name = measurables[0].measure(loose)
         val number = measurables.getOrNull(1)?.measure(loose.copy(maxWidth = Constraints.Infinity))
         val fits = number != null && name.width + gap + number.width <= constraints.maxWidth
-        val width = if (fits) name.width + gap + number!!.width else name.width
-        val height = maxOf(name.height, if (fits) number!!.height else 0)
+        val width = if (fits) name.width + gap + number.width else name.width
+        val height = maxOf(name.height, if (fits) number.height else 0)
         layout(width, height) {
             name.placeRelative(0, height - name.height)
-            if (fits) number!!.placeRelative(name.width + gap, height - number.height)
+            if (fits) number.placeRelative(name.width + gap, height - number.height)
         }
     }
 }
@@ -445,7 +566,7 @@ private fun CollapsedRail(state: DockState, open: (DockMode) -> Unit) {
             }
             FittedText(tab.label, Skin.type.caption.copy(fontSize = Skin.type.label.fontSize, fontWeight = FontWeight.SemiBold), c.porcelain.text, Modifier.weight(1f, fill = false))
             if (tab.readout != null) {
-                FittedText(tab.readout, Skin.type.figureSmall, c.porcelain.text.copy(alpha = 0.8f))
+                RollingFigure(tab.readout, Skin.type.figureSmall, c.porcelain.text.copy(alpha = 0.8f))
             }
         }
         Groove(vertical = true, Modifier.height(26.dp).padding(horizontal = 6.dp))
@@ -453,14 +574,22 @@ private fun CollapsedRail(state: DockState, open: (DockMode) -> Unit) {
     }
 }
 
+/** The knob turns its cross into a close mark and clicks into place; pressed, it gives a little. */
 @Composable
 private fun DockKnob(state: DockState, size: Dp, open: (DockMode) -> Unit) {
-    val turn by animateFloatAsState(if (state.isOpen) 1f else 0f, label = "turn")
+    val turn by animateFloatAsState(if (state.isOpen) 1f else 0f, Skin.motion.seat(), label = "turn")
+    val source = remember { MutableInteractionSource() }
+    val depth = pressDepth(source)
     Knob(
         turn = turn,
         size = size,
         modifier = Modifier
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+            .graphicsLayer {
+                val scale = 1f - (1f - SkinMotion.PRESS_SCALE) * depth.value
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(interactionSource = source, indication = null) {
                 open(if (state.isOpen) DockMode.Rail else DockMode.Create)
             }
             .semantics {

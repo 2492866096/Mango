@@ -6,9 +6,9 @@ import android.os.Build
 import android.provider.Settings
 import android.view.animation.Interpolator
 import android.view.animation.PathInterpolator
-import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -219,39 +219,39 @@ class MotionCurve(val x1: Float, val y1: Float, val x2: Float, val y2: Float) {
 @Immutable
 class SkinMotionSpecs private constructor(val reduced: Boolean) {
 
-    fun <T> pressDown(): AnimationSpec<T> = springOf(SkinMotion.PRESS_DOWN)
+    fun <T> pressDown(): FiniteAnimationSpec<T> = springOf(SkinMotion.PRESS_DOWN)
 
-    fun <T> pressRelease(): AnimationSpec<T> = springOf(SkinMotion.PRESS_RELEASE)
+    fun <T> pressRelease(): FiniteAnimationSpec<T> = springOf(SkinMotion.PRESS_RELEASE)
 
-    fun <T> state(): AnimationSpec<T> = tweenOf(SkinMotion.STATE_MS, SkinMotion.STATE)
+    fun <T> state(): FiniteAnimationSpec<T> = tweenOf(SkinMotion.STATE_MS, SkinMotion.STATE)
 
-    fun <T> morph(): AnimationSpec<T> = tweenOf(SkinMotion.MORPH_MS, SkinMotion.MORPH)
+    fun <T> morph(): FiniteAnimationSpec<T> = tweenOf(SkinMotion.MORPH_MS, SkinMotion.MORPH)
 
-    fun <T> toggle(): AnimationSpec<T> = springOf(SkinMotion.TOGGLE)
+    fun <T> toggle(): FiniteAnimationSpec<T> = springOf(SkinMotion.TOGGLE)
 
-    fun <T> glaze(): AnimationSpec<T> = tweenOf(SkinMotion.GLAZE_MS, SkinMotion.GLAZE)
+    fun <T> glaze(): FiniteAnimationSpec<T> = tweenOf(SkinMotion.GLAZE_MS, SkinMotion.GLAZE)
 
-    fun <T> enter(): AnimationSpec<T> = springOf(SkinMotion.ENTER)
+    fun <T> enter(): FiniteAnimationSpec<T> = springOf(SkinMotion.ENTER)
 
-    fun <T> exit(): AnimationSpec<T> = tweenOf(SkinMotion.EXIT_MS, SkinMotion.EXIT)
+    fun <T> exit(): FiniteAnimationSpec<T> = tweenOf(SkinMotion.EXIT_MS, SkinMotion.EXIT)
 
-    fun <T> seat(): AnimationSpec<T> = springOf(SkinMotion.SEAT)
+    fun <T> seat(): FiniteAnimationSpec<T> = springOf(SkinMotion.SEAT)
 
-    fun <T> settle(): AnimationSpec<T> = springOf(SkinMotion.SETTLE)
+    fun <T> settle(): FiniteAnimationSpec<T> = springOf(SkinMotion.SETTLE)
 
-    fun <T> ledOn(): AnimationSpec<T> = springOf(SkinMotion.LED_ON)
+    fun <T> ledOn(): FiniteAnimationSpec<T> = springOf(SkinMotion.LED_ON)
 
-    fun <T> ledOff(): AnimationSpec<T> = tweenOf(SkinMotion.LED_OFF_MS, SkinMotion.LED_OFF)
+    fun <T> ledOff(): FiniteAnimationSpec<T> = tweenOf(SkinMotion.LED_OFF_MS, SkinMotion.LED_OFF)
 
-    fun <T> roll(): AnimationSpec<T> = tweenOf(SkinMotion.ROLL_MS, SkinMotion.ROLL)
+    fun <T> roll(): FiniteAnimationSpec<T> = tweenOf(SkinMotion.ROLL_MS, SkinMotion.ROLL)
 
     /** The delay before the [index]th of several things growing out one after another. */
     fun stagger(index: Int): Int = if (reduced) 0 else index * SkinMotion.STAGGER_MS
 
-    private fun <T> springOf(s: MotionSpring): AnimationSpec<T> =
+    private fun <T> springOf(s: MotionSpring): FiniteAnimationSpec<T> =
         if (reduced) snap() else spring(dampingRatio = s.damping, stiffness = s.stiffness)
 
-    private fun <T> tweenOf(durationMs: Int, curve: MotionCurve): AnimationSpec<T> =
+    private fun <T> tweenOf(durationMs: Int, curve: MotionCurve): FiniteAnimationSpec<T> =
         if (reduced) snap() else tween(durationMs, easing = curve.easing)
 
     companion object {

@@ -1,6 +1,6 @@
 package org.telegram.skin.motion
 
-import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.SnapSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -80,7 +80,7 @@ class SkinMotionTest {
     @Test
     fun reducedMotionGoesStraightToTheEnd() {
         val r = SkinMotionSpecs.Reduced
-        val specs = listOf<AnimationSpec<Float>>(
+        val specs = listOf<FiniteAnimationSpec<Float>>(
             r.pressDown(), r.pressRelease(), r.state(), r.morph(), r.toggle(), r.glaze(),
             r.enter(), r.exit(), r.seat(), r.settle(), r.ledOn(), r.ledOff(), r.roll(),
         )

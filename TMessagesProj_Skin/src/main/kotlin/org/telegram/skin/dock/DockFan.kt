@@ -1,8 +1,8 @@
 package org.telegram.skin.dock
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -25,13 +25,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.inset
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.Layout
@@ -39,8 +43,8 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -50,6 +54,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import org.telegram.skin.motion.SkinHaptics
 import org.telegram.skin.theme.Skin
 import org.telegram.skin.theme.shadows
 import org.telegram.skin.ui.Avatar
@@ -137,7 +142,7 @@ internal fun Modifier.meKeyGestures(
     index: Int,
     open: (DockMode) -> Unit,
 ): Modifier {
-    val haptics = LocalHapticFeedback.current
+    val view = LocalView.current
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     return this
         .onGloballyPositioned { fan.meKey = it.boundsInRoot() }
@@ -177,7 +182,7 @@ internal fun Modifier.meKeyGestures(
                         actions.onTab(index)
                     }
                     Press.Next, Press.Previous -> {
-                        haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                        SkinHaptics.confirm(view)
                         actions.onCycleAccount(press == Press.Next)
                         do {
                             val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
@@ -185,7 +190,7 @@ internal fun Modifier.meKeyGestures(
                         } while (change.pressed)
                     }
                     Press.Fan -> {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        SkinHaptics.confirm(view)
                         open(DockMode.Accounts)
                         fan.armed = true
                         fan.finger = fan.meKey.topLeft + down.position + total
@@ -198,14 +203,18 @@ internal fun Modifier.meKeyGestures(
                             val picked = fan.hit(point, vertical, rtl)
                             if (picked != fan.picked) {
                                 fan.picked = picked
-                                if (picked >= 0) haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                                if (picked >= 0) SkinHaptics.tap(view)
                             }
                         }
                         val picked = fan.cards.getOrNull(fan.picked)
                         fan.armed = false
                         fan.finger = null
                         fan.picked = -1
-                        if (picked != null) choose(picked, actions, open)
+                        if (picked != null) {
+                            // Felt only when letting go does something; the current account just closes the fan.
+                            if (picked.kind != FanKind.Account || picked.account?.current == false) SkinHaptics.confirm(view)
+                            choose(picked, actions, open)
+                        }
                     }
                     Press.None -> Unit
                 }
@@ -230,8 +239,10 @@ internal fun AccountFan(
     vertical: Boolean,
     top: Dp,
     open: (DockMode) -> Unit,
+    deal: () -> Float = { 1f },
 ) {
     val c = Skin.colors
+    val motion = Skin.motion
     val density = LocalDensity.current
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -255,14 +266,16 @@ internal fun AccountFan(
         }
         // Beside a rail the readout starts past it; padding is mirrored in right-to-left, so measure from that side.
         val readoutStart = if (vertical) with(density) { (if (rtl) width - fan.dock.left else fan.dock.right).toDp() } + 24.dp else 22.dp
-        Column(
-            Modifier
-                .padding(start = readoutStart, top = top + 28.dp, end = 22.dp)
-                .semantics(mergeDescendants = true) {},
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            SkinText(line, Skin.type.label.copy(letterSpacing = Skin.type.caption.letterSpacing), c.textSecondary)
-            if (name != null) SkinText(name, Skin.type.hero, c.text, maxLines = 1)
+        Crossfade(
+            targetState = line to name,
+            modifier = Modifier.padding(start = readoutStart, top = top + 28.dp, end = 22.dp),
+            animationSpec = motion.state(),
+            label = "readout",
+        ) { (shownLine, shownName) ->
+            Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                SkinText(shownLine, Skin.type.label.copy(letterSpacing = Skin.type.caption.letterSpacing), c.textSecondary)
+                if (shownName != null) SkinText(shownName, Skin.type.hero, c.text, maxLines = 1)
+            }
         }
 
         Layout(
@@ -270,7 +283,8 @@ internal fun AccountFan(
             content = {
                 cards.forEachIndexed { i, card ->
                     val lifted = i == fan.picked
-                    val lift by animateFloatAsState(if (lifted) 1f else 0f, label = "lift")
+                    // A card rises to meet the finger and seats there, and settles back when the finger moves off.
+                    val lift by animateFloatAsState(if (lifted) 1f else 0f, if (lifted) motion.seat() else motion.settle(), label = "lift")
                     val liftPx = with(density) { 18.dp.toPx() }
                     FanCardView(
                         card = card,
@@ -282,8 +296,17 @@ internal fun AccountFan(
                             // the next, where its name is, in view.
                             .zIndex(if (lifted) cards.size.toFloat() else (cards.size - 1 - i).toFloat())
                             .graphicsLayer {
-                                rotationZ = card.rotation
-                                translationY = -lift * liftPx
+                                // Dealt from the 我 key: each card leaves it a moment after
+                                // the one before, turning and growing into its place.
+                                val p = dealt(deal(), i, cards.size)
+                                val home = fan.meKey.center - card.center
+                                translationX = home.x * (1f - p)
+                                translationY = home.y * (1f - p) - lift * liftPx
+                                rotationZ = card.rotation * p
+                                val scale = 0.55f + 0.45f * p
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = (p * 2.5f).coerceAtMost(1f)
                             },
                         onClick = { choose(card, actions, open) },
                     )
@@ -300,6 +323,13 @@ internal fun AccountFan(
             }
         }
     }
+}
+
+/** How far card [index] of [count] is along, when the deal as a whole is at [progress]. */
+private fun dealt(progress: Float, index: Int, count: Int): Float {
+    if (count <= 1) return progress.coerceIn(0f, 1f)
+    val spread = minOf(0.12f, 0.5f / (count - 1))
+    return ((progress - index * spread) / (1f - (count - 1) * spread)).coerceIn(0f, 1f)
 }
 
 /**
@@ -396,6 +426,9 @@ private fun FanCardView(card: FanCard, picked: Boolean, state: DockState, width:
     val c = Skin.colors
     val shape = Skin.shapes.card
     val strings = state.strings
+    val motion = Skin.motion
+    // The edge of the card under the finger strikes like an LED and fades when the finger moves on.
+    val glow = animateFloatAsState(if (picked) 1f else 0f, if (picked) motion.ledOn() else motion.ledOff(), label = "edge")
     val base = modifier
         .width(width)
         .heightIn(min = CardHeight)
@@ -406,7 +439,16 @@ private fun FanCardView(card: FanCard, picked: Boolean, state: DockState, width:
                 base
                     .shadows(Skin.shadows.floating, shape)
                     .metalCard(c.metal, shape)
-                    .then(if (picked) Modifier.border(1.5.dp, c.led, shape) else Modifier)
+                    .drawWithContent {
+                        drawContent()
+                        val g = glow.value
+                        if (g > 0f) {
+                            val w = 1.5.dp.toPx() * (1f + 0.6f * ((g - 1f) / 0.2f).coerceIn(0f, 1f))
+                            inset(w / 2) {
+                                drawOutline(shape.createOutline(size, layoutDirection, this), c.led.copy(alpha = g.coerceIn(0f, 1f)), style = Stroke(w))
+                            }
+                        }
+                    }
                     .clickable(onClick = onClick)
                     .semantics(mergeDescendants = true) {
                         contentDescription = account.name + "，" + account.meta
@@ -441,9 +483,9 @@ private fun FanCardView(card: FanCard, picked: Boolean, state: DockState, width:
                     .drawBehind {
                         val w = 1.5.dp.toPx()
                         drawRoundRect(
-                            color = if (picked) c.led else dash,
+                            color = lerp(dash, c.led, glow.value.coerceIn(0f, 1f)),
                             topLeft = Offset(w / 2, w / 2),
-                            size = androidx.compose.ui.geometry.Size(size.width - w, size.height - w),
+                            size = Size(size.width - w, size.height - w),
                             cornerRadius = CornerRadius(18.dp.toPx() - w / 2),
                             style = Stroke(width = w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx()))),
                         )
