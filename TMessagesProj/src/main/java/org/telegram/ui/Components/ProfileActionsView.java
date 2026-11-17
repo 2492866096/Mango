@@ -25,6 +25,7 @@ import android.text.Layout;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
+import android.util.SparseIntArray;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -38,7 +39,10 @@ import org.telegram.messenger.BuildConfig;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.Utilities;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.SkinMetal;
+import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.ProfileActivity;
 
 import java.util.ArrayList;
@@ -295,6 +299,10 @@ public class ProfileActionsView extends View {
                         action.rect.width() / 2.0f * (1.0f - action.getScale()),
                         action.rect.height() / 2.0f * (1.0f - action.getScale())
                     );
+                    if (SkinSwitch.PROFILE) {
+                        SkinMetal.drawKey(canvas, AndroidUtilities.rectTmp, r, skinMaterials(), action.getAlpha() * alphaFraction1);
+                        continue;
+                    }
                     int wasAlpha = paint.getAlpha();
                     int newAlpha = (int) (action.getAlpha() * alphaFraction1 * wasAlpha);
                     paint.setAlpha((int) (newAlpha * (radialGradient != null ? 0.1f : 1f)));
@@ -330,7 +338,7 @@ public class ProfileActionsView extends View {
     }
 
     private void drawRenderNode(Canvas canvas) {
-        if (renderNode == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || !renderNode.hasDisplayList() || !canvas.isHardwareAccelerated()) {
+        if (SkinSwitch.PROFILE || renderNode == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || !renderNode.hasDisplayList() || !canvas.isHardwareAccelerated()) {
             return;
         }
 
@@ -405,8 +413,14 @@ public class ProfileActionsView extends View {
         if (isButtonColorLight && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             useFilledWhiteIcon = 0f;
         }
+        int labelColor = 0;
+        if (SkinSwitch.PROFILE) {
+            // One glyph in the metal's ink; the label in its quieter ink.
+            useFilledWhiteIcon = 0f;
+            labelColor = skinMaterials().textSecondary;
+        }
 
-        final int textColor = ColorUtils.blendARGB(Color.BLACK, Color.WHITE, useFilledWhiteIcon);
+        final int textColor = SkinSwitch.PROFILE ? skinMaterials().text : ColorUtils.blendARGB(Color.BLACK, Color.WHITE, useFilledWhiteIcon);
         if (lastColorFilter == null || lastColorFilterColor != textColor) {
             lastColorFilterColor = textColor;
             lastColorFilter = new PorterDuffColorFilter(textColor, PorterDuff.Mode.SRC_IN);
@@ -425,7 +439,7 @@ public class ProfileActionsView extends View {
         final float textY = action.bounds.bottom + action.bounds.top - action.text.getHeight() * action.textScale / 2.0f - dp(4.66f);
         canvas.save();
         canvas.scale(action.textScale, action.textScale, cx, textY + action.text.getHeight() * action.textScale / 2.0f);
-        action.text.draw(canvas, cx - action.text.getWidth() / 2f, textY, textColor, alpha);
+        action.text.draw(canvas, cx - action.text.getWidth() / 2f, textY, SkinSwitch.PROFILE ? labelColor : textColor, alpha);
         canvas.restore();
 
         if (action.iconTranslationY != 0) {
@@ -476,11 +490,13 @@ public class ProfileActionsView extends View {
             if (action.loadingDrawable == null) {
                 action.loadingDrawable = new LoadingDrawable();
                 action.loadingDrawable.setCallback(this);
+                // On the skin's metal keys the shimmer runs in the metal's ink rather than white.
+                final int shimmer = SkinSwitch.PROFILE ? skinMaterials().text : Color.WHITE;
                 action.loadingDrawable.setColors(
-                        Theme.multAlpha(Color.WHITE, .1f),
-                        Theme.multAlpha(Color.WHITE, .3f),
-                        Theme.multAlpha(Color.WHITE, .35f),
-                        Theme.multAlpha(Color.WHITE, .8f)
+                        Theme.multAlpha(shimmer, .1f),
+                        Theme.multAlpha(shimmer, .3f),
+                        Theme.multAlpha(shimmer, .35f),
+                        Theme.multAlpha(shimmer, .8f)
                 );
                 action.loadingDrawable.setAppearByGradient(true);
                 action.loadingDrawable.strokePaint.setStrokeWidth(dpf2(1.25f));
@@ -1187,6 +1203,17 @@ public class ProfileActionsView extends View {
 
         @SuppressLint("UseCompatLoadingForDrawables")
         public void updateDrawable(@RawRes int animatedRes, @DrawableRes int filledRes, @DrawableRes int outlineRes) {
+            if (SkinSwitch.PROFILE) {
+                // The skin's line glyph, still: a tap's animation alone (no icon given) keeps the glyph shown.
+                final int glyph = skinGlyph(filledRes != 0 ? filledRes : outlineRes);
+                if (glyph != 0) {
+                    drawableAnimated = null;
+                    drawableFilled = null;
+                    drawableOutline = getResources().getDrawable(glyph).mutate();
+                    checkBounds();
+                }
+                return;
+            }
             if (animatedRes != 0) {
                 RLottieDrawable drawable = new RLottieDrawable(animatedRes, String.valueOf(animatedRes),
                     dp(56), dp(56), false, null);
@@ -1203,35 +1230,59 @@ public class ProfileActionsView extends View {
         }
     }
 
+    private CanvasMaterials skinMaterials() {
+        return SkinMetal.materials(Theme.getColor(Theme.key_windowBackgroundWhite));
+    }
+
+    private static SparseIntArray skinGlyphs;
+
+    /** The skin's glyph for one of Telegram's action icons (filled or outline), or 0. */
+    private static int skinGlyph(int telegramIcon) {
+        if (telegramIcon == 0) {
+            return 0;
+        }
+        if (skinGlyphs == null) {
+            skinGlyphs = new SparseIntArray();
+            for (ActionButton button : ActionButton.values()) {
+                skinGlyphs.put(button.filledIcon, button.skinIcon);
+                skinGlyphs.put(button.outlineIcon, button.skinIcon);
+            }
+        }
+        return skinGlyphs.get(telegramIcon);
+    }
+
     public enum ActionButton {
-        MESSAGE(R.string.ProfileActionsMessage, R.drawable.filled_profile_message_24, R.drawable.outline_profile_message_24),
-        NOTIFICATION_MUTE(R.string.ProfileButtonMute, R.drawable.filled_profile_mute_24, R.drawable.outline_profile_mute_24),
-        NOTIFICATION_UNMUTE(R.string.ProfileButtonUnmute, R.drawable.filled_profile_unmute_24, R.drawable.outline_profile_unmute_24),
-        DISCUSS(R.string.ProfileActionsDiscuss, R.drawable.filled_profile_message_24, R.drawable.outline_profile_message_24),
-        GIFT(R.string.ProfileActionsGift, R.drawable.gift, R.drawable.input_gift_s),
-        SHARE(R.string.ProfileActionsShare, R.drawable.action_share, R.drawable.msg_share),
-        CALL(R.string.ProfileActionsCall, R.drawable.filled_profile_call_24, R.drawable.outline_profile_call_24),
-        VIDEO(R.string.ProfileActionsVideo, R.drawable.filled_profile_video_24, R.drawable.outline_profile_video_24),
-        JOIN(R.string.ProfileActionsJoin, R.drawable.filled_profile_member_24, R.drawable.outline_profile_member_24),
-        REPORT(R.string.ProfileActionsReport, R.drawable.report, R.drawable.msg_report),
-        LEAVE(R.string.ProfileActionsLeave, R.drawable.leave, R.drawable.leave),
-        VOICE_CHAT(R.string.ProfileActionsVoiceChat, R.drawable.live_stream, R.drawable.live_stream),
-        STREAM(R.string.ProfileActionsLiveStream, R.drawable.live_stream, R.drawable.live_stream),
-        STORY(R.string.ProfileActionsAddStory, R.drawable.filled_profile_story, R.drawable.outline_profile_story),
-        STOP(R.string.ProfileActionsStop, R.drawable.filled_profile_stop_24, R.drawable.outline_profile_stop_24),
-        SET_PHOTO(R.string.ProfileActionsEditPhoto2, R.drawable.filled_profile_photo, R.drawable.outline_profile_photo),
-        EDIT_USERNAME(R.string.ProfileActionsEditUsername, R.drawable.filled_profile_edit_24, R.drawable.outline_profile_edit_24),
-        EDIT_INFO(R.string.ProfileActionsEditInfo, R.drawable.filled_profile_edit_24, R.drawable.outline_profile_edit_24),
-        SETTINGS(R.string.Settings, R.drawable.filled_profile_settings, R.drawable.outline_profile_settings),;
+        MESSAGE(R.string.ProfileActionsMessage, R.drawable.filled_profile_message_24, R.drawable.outline_profile_message_24, org.telegram.skin.R.drawable.skin_search_chat),
+        NOTIFICATION_MUTE(R.string.ProfileButtonMute, R.drawable.filled_profile_mute_24, R.drawable.outline_profile_mute_24, org.telegram.skin.R.drawable.skin_key_quiet),
+        NOTIFICATION_UNMUTE(R.string.ProfileButtonUnmute, R.drawable.filled_profile_unmute_24, R.drawable.outline_profile_unmute_24, org.telegram.skin.R.drawable.skin_input_bell),
+        DISCUSS(R.string.ProfileActionsDiscuss, R.drawable.filled_profile_message_24, R.drawable.outline_profile_message_24, org.telegram.skin.R.drawable.skin_search_chat),
+        GIFT(R.string.ProfileActionsGift, R.drawable.gift, R.drawable.input_gift_s, org.telegram.skin.R.drawable.skin_input_gift),
+        SHARE(R.string.ProfileActionsShare, R.drawable.action_share, R.drawable.msg_share, org.telegram.skin.R.drawable.skin_profile_share),
+        CALL(R.string.ProfileActionsCall, R.drawable.filled_profile_call_24, R.drawable.outline_profile_call_24, org.telegram.skin.R.drawable.skin_profile_call),
+        VIDEO(R.string.ProfileActionsVideo, R.drawable.filled_profile_video_24, R.drawable.outline_profile_video_24, org.telegram.skin.R.drawable.skin_input_video),
+        JOIN(R.string.ProfileActionsJoin, R.drawable.filled_profile_member_24, R.drawable.outline_profile_member_24, org.telegram.skin.R.drawable.skin_profile_join),
+        REPORT(R.string.ProfileActionsReport, R.drawable.report, R.drawable.msg_report, org.telegram.skin.R.drawable.skin_profile_report),
+        LEAVE(R.string.ProfileActionsLeave, R.drawable.leave, R.drawable.leave, org.telegram.skin.R.drawable.skin_search_exit),
+        VOICE_CHAT(R.string.ProfileActionsVoiceChat, R.drawable.live_stream, R.drawable.live_stream, org.telegram.skin.R.drawable.skin_profile_broadcast),
+        STREAM(R.string.ProfileActionsLiveStream, R.drawable.live_stream, R.drawable.live_stream, org.telegram.skin.R.drawable.skin_profile_broadcast),
+        STORY(R.string.ProfileActionsAddStory, R.drawable.filled_profile_story, R.drawable.outline_profile_story, org.telegram.skin.R.drawable.skin_profile_story),
+        STOP(R.string.ProfileActionsStop, R.drawable.filled_profile_stop_24, R.drawable.outline_profile_stop_24, org.telegram.skin.R.drawable.skin_profile_stop),
+        SET_PHOTO(R.string.ProfileActionsEditPhoto2, R.drawable.filled_profile_photo, R.drawable.outline_profile_photo, org.telegram.skin.R.drawable.skin_profile_camera),
+        EDIT_USERNAME(R.string.ProfileActionsEditUsername, R.drawable.filled_profile_edit_24, R.drawable.outline_profile_edit_24, org.telegram.skin.R.drawable.skin_slip_edit),
+        EDIT_INFO(R.string.ProfileActionsEditInfo, R.drawable.filled_profile_edit_24, R.drawable.outline_profile_edit_24, org.telegram.skin.R.drawable.skin_slip_edit),
+        SETTINGS(R.string.Settings, R.drawable.filled_profile_settings, R.drawable.outline_profile_settings, org.telegram.skin.R.drawable.skin_profile_settings),;
 
         final @StringRes int title;
         final @DrawableRes int filledIcon;
         final @DrawableRes int outlineIcon;
+        /** The skin's line glyph for the action. */
+        final @DrawableRes int skinIcon;
 
-        ActionButton(@StringRes int title, @DrawableRes int filledIcon, @DrawableRes int outlineIcon) {
+        ActionButton(@StringRes int title, @DrawableRes int filledIcon, @DrawableRes int outlineIcon, @DrawableRes int skinIcon) {
             this.title = title;
             this.filledIcon = filledIcon;
             this.outlineIcon = outlineIcon;
+            this.skinIcon = skinIcon;
         }
     }
 }

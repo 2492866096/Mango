@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings. The skin's profile key glyph: 24-unit grid, round strokes,
+     drawn white so Telegram's tint colours it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M9,12a3,3 0,1 0,6,0a3,3 0,1 0,-6,0zM12,2.5v3M12,18.5v3M4.2,7l2.6,1.5M17.2,15.5l2.6,1.5M4.2,17l2.6,-1.5M17.2,8.5l2.6,-1.5"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

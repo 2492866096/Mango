@@ -61,6 +61,11 @@ public final class SkinMetal {
     private static CanvasMaterials glazeRecessMaterials;
     private static float crackleWidth;
     private static float crackleHeight;
+    private static final Paint keyPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Path keyPath = new Path();
+    private static CanvasMaterials keyMaterials;
+    private static float keyTop;
+    private static float keyBottom;
 
     static {
         linePaint.setStyle(Paint.Style.STROKE);
@@ -263,6 +268,44 @@ public final class SkinMetal {
             cracklePaint.setAlpha((int) (Color.alpha(m.crackle) * alpha));
             canvas.drawPath(cracklePath, cracklePaint);
         }
+        canvas.restore();
+    }
+
+    /**
+     * A flat aluminium key, as the console's slab in small: the vertical sheen,
+     * a lit top edge, a cut along the bottom and, when opaque, a soft shadow.
+     */
+    public static void drawKey(Canvas canvas, RectF bounds, float radius, CanvasMaterials m, float alpha) {
+        if (bounds.isEmpty() || alpha <= 0) {
+            return;
+        }
+        if (alpha >= 1f) {
+            shadowPaint.setColor(m.sheenMid);
+            shadowPaint.setShadowLayer(dpf2(3), 0, dpf2(1), m.castShadow);
+            canvas.drawRoundRect(bounds, radius, radius, shadowPaint);
+        }
+        if (keyMaterials != m || keyTop != bounds.top || keyBottom != bounds.bottom) {
+            keyMaterials = m;
+            keyTop = bounds.top;
+            keyBottom = bounds.bottom;
+            keyPaint.setShader(new LinearGradient(0, bounds.top, 0, bounds.bottom,
+                    new int[]{m.sheenTop, m.sheenMid, m.sheenBottom}, new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
+        }
+        keyPaint.setAlpha((int) (255 * alpha));
+        canvas.drawRoundRect(bounds, radius, radius, keyPaint);
+
+        keyPath.rewind();
+        keyPath.addRoundRect(bounds, radius, radius, Path.Direction.CW);
+        canvas.save();
+        canvas.clipPath(keyPath);
+        final float px = dpf2(1);
+        linePaint.setStrokeWidth(px);
+        linePaint.setColor(m.highlight);
+        linePaint.setAlpha((int) (Color.alpha(m.highlight) * alpha));
+        canvas.drawLine(bounds.left, bounds.top + px / 2, bounds.right, bounds.top + px / 2, linePaint);
+        linePaint.setColor(m.grooveCut);
+        linePaint.setAlpha((int) (Color.alpha(m.grooveCut) * alpha));
+        canvas.drawLine(bounds.left, bounds.bottom - px / 2, bounds.right, bounds.bottom - px / 2, linePaint);
         canvas.restore();
     }
 
