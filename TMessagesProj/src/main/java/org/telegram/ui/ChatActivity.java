@@ -3835,6 +3835,7 @@ public class ChatActivity extends BaseFragment implements
             actionBar.setVisibility(View.GONE);
         }
         actionBarBackgroundPaint.setColor(getThemedColor(Theme.key_actionBarDefault));
+        updateSkinHeader();
         sharedResources = new ChatMessageSharedResources(context);
 
         ArrayList<ChatMessageCell> chatMessagesCache = chatMessageCellsCache.get(currentAccount);
@@ -11195,6 +11196,21 @@ public class ChatActivity extends BaseFragment implements
         }
     }
 
+    private int skinHeaderColor() {
+        return getThemedColor(Theme.key_windowBackgroundWhite);
+    }
+
+    /** The chat's header on the skin: the surface colour, ending in a hairline, its keys in the quieter ink. */
+    private void updateSkinHeader() {
+        if (!SkinSwitch.CHAT_FRAME || actionBar == null || isReport()) {
+            return;
+        }
+        if (searchItem == null || !actionBar.isSearchFieldVisible()) {
+            actionBar.setBackgroundColor(skinHeaderColor());
+        }
+        actionBar.setItemsColor(getThemedColor(Theme.key_actionBarDefaultSubtitle), false);
+    }
+
     private void updateSkinSlipColors() {
         if (!SkinSwitch.CHAT_FRAME || replyNameTextView == null) {
             return;
@@ -18299,7 +18315,15 @@ public class ChatActivity extends BaseFragment implements
                 }
             }
             if (child == actionBar && parentLayout != null) {
-                parentLayout.drawHeaderShadow(canvas, actionBar.getVisibility() == VISIBLE ? (int) actionBar.getTranslationY() + actionBar.getMeasuredHeight() + (actionBarSearchTags != null ? actionBarSearchTags.getCurrentHeight() : 0) + (hashtagSearchTabs != null ? hashtagSearchTabs.getCurrentHeight() : 0) : 0);
+                final int headerBottom = actionBar.getVisibility() == VISIBLE ? (int) actionBar.getTranslationY() + actionBar.getMeasuredHeight() + (actionBarSearchTags != null ? actionBarSearchTags.getCurrentHeight() : 0) + (hashtagSearchTabs != null ? hashtagSearchTabs.getCurrentHeight() : 0) : 0;
+                if (SkinSwitch.CHAT_FRAME) {
+                    // The skin's header ends in a hairline rather than a shadow.
+                    if (actionBar.getVisibility() == VISIBLE) {
+                        canvas.drawRect(0, headerBottom, getMeasuredWidth(), headerBottom + Math.max(1, AndroidUtilities.dp(0.5f)), getThemedPaint(Theme.key_paint_divider));
+                    }
+                } else {
+                    parentLayout.drawHeaderShadow(canvas, headerBottom);
+                }
             }
             return result;
         }
@@ -38991,7 +39015,7 @@ public class ChatActivity extends BaseFragment implements
                 int color2 = getThemedColor(Theme.key_actionBarActionModeDefaultSelector);
                 actionBar.setItemsBackgroundColor(ColorUtils.blendARGB(color1, color2, searchAnimationProgress), false);
 
-                actionBar.setBackgroundColor(ColorUtils.blendARGB(getThemedColor(Theme.key_actionBarDefault), getThemedColor(Theme.key_actionBarActionModeDefault), searchAnimationProgress));
+                actionBar.setBackgroundColor(ColorUtils.blendARGB(SkinSwitch.CHAT_FRAME ? skinHeaderColor() : getThemedColor(Theme.key_actionBarDefault), getThemedColor(Theme.key_actionBarActionModeDefault), searchAnimationProgress));
                 actionBar.setSearchTextColor(ColorUtils.blendARGB(Theme.getColor(Theme.key_actionBarDefaultSearch), getThemedColor(Theme.key_windowBackgroundWhiteBlackText), searchAnimationProgress), false);
                 actionBar.setSearchTextColor(ColorUtils.blendARGB(Theme.getColor(Theme.key_actionBarDefaultSearchPlaceholder), getThemedColor(Theme.key_windowBackgroundWhiteGrayText), searchAnimationProgress), true);
                 actionBar.setSearchCursorColor(ColorUtils.blendARGB(Theme.getColor(Theme.key_actionBarDefaultSearch), getThemedColor(Theme.key_windowBackgroundWhiteBlueText), searchAnimationProgress));
@@ -42505,6 +42529,7 @@ public class ChatActivity extends BaseFragment implements
                 chatActivityEnterTopView.getEditView().updateColors();
             }
             updateSkinSlipColors();
+            updateSkinHeader();
             if (chatActivityEnterTopView != null) {
                 chatActivityEnterTopView.invalidate();
             }

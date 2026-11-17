@@ -217,6 +217,8 @@ internal fun designOverrides(c: SkinColors, out: Bubble = c.bubbleOut): Map<Stri
         // missing from the stock theme files and so falling back to Telegram blue.
         put("telegram_color_dialogsLogo", c.text)
         put("actionBarDefaultSubtitle", c.textSecondary)
+        // The chat header's "online" and typing in celadon ink.
+        put("chat_status", c.ink)
         put("actionBarDefaultSelector", selection)
         put("actionBarDefaultSearch", c.text)
         put("actionBarDefaultSearchPlaceholder", c.textSecondary)
