@@ -8655,6 +8655,9 @@ public class Theme {
                 chat_forwardNamePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
                 chat_adminPaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
                 chat_timePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
+                if (SkinSwitch.CHAT_FRAME) {
+                    SkinStyle.useNumerals(chat_timePaint, false);
+                }
                 chat_msgTextCodePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
                 chat_msgTextCodePaint.setTypeface(Typeface.MONOSPACE);
                 chat_msgTextCode2Paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -8737,6 +8740,10 @@ public class Theme {
             chat_gamePaint.setTypeface(AndroidUtilities.bold());
             chat_shipmentPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
             chat_timePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
+            if (SkinSwitch.CHAT_FRAME) {
+                // Message times in the skin's numerals, a size smaller to match its figures elsewhere.
+                SkinStyle.useNumerals(chat_timePaint, false);
+            }
             chat_adminPaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
             chat_namePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
             chat_namePaint.setTypeface(AndroidUtilities.bold());
@@ -9040,7 +9047,7 @@ public class Theme {
             chat_forwardNamePaint.setTextSize(dp(smallerDp));
             chat_adminPaint.setTextSize(dp(smallerDp - 1));
             float timeDp = 2 * (SharedConfig.fontSize - 16) / 3f + 12;
-            chat_timePaint.setTextSize(dp(12));
+            chat_timePaint.setTextSize(dp(SkinSwitch.CHAT_FRAME ? 11 : 12));
             chat_gamePaint.setTextSize(dp(13));
             chat_shipmentPaint.setTextSize(dp(13));
             chat_instantViewPaint.setTextSize(dp(13));
