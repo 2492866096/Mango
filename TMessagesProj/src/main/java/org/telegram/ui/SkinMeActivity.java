@@ -52,7 +52,6 @@ public class SkinMeActivity extends BaseFragment implements NotificationCenter.N
     private static final int ROW_STORIES = 101;
 
     private static final int TOOL_CENTER = 300;
-    private static final int TOOL_BROADCAST = 301;
     private static final int TOOL_RULES = 302;
     private static final int TOOL_SECURITY = 303;
     private static final int TOOL_PERFORMANCE = 304;
@@ -199,7 +198,6 @@ public class SkinMeActivity extends BaseFragment implements NotificationCenter.N
 
         state.setTools(Arrays.asList(
                 new MeTool(TOOL_CENTER, Glyph.Checklist, LocaleController.getString(R.string.SkinTabCenter)),
-                new MeTool(TOOL_BROADCAST, Glyph.Broadcast, LocaleController.getString(R.string.SkinToolBroadcast)),
                 new MeTool(TOOL_RULES, Glyph.Rules, LocaleController.getString(R.string.SkinToolRules)),
                 new MeTool(TOOL_SECURITY, Glyph.ShieldCheck, LocaleController.getString(R.string.SkinToolSecurity)),
                 new MeTool(TOOL_PERFORMANCE, Glyph.Gauge, LocaleController.getString(R.string.SkinToolPerformance)),
@@ -370,9 +368,6 @@ public class SkinMeActivity extends BaseFragment implements NotificationCenter.N
             switch (id) {
                 case TOOL_CENTER:
                     presentForAccount(new MessageManagementActivity(false));
-                    break;
-                case TOOL_BROADCAST:
-                    presentForAccount(new MangoUserBroadcastActivity());
                     break;
                 case TOOL_RULES:
                     presentForAccount(new MangoNotificationRulesActivity());

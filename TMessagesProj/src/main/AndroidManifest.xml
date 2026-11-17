@@ -490,9 +490,6 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="org.telegram.messenger.MangoUserBroadcastService"
-            android:exported="false" android:foregroundServiceType="dataSync" />
-
         <service
             android:name=".AuthenticatorService"
             android:exported="true"

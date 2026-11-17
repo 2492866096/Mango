@@ -387,7 +387,6 @@ public class MessagesController extends BaseController implements NotificationCe
     private static final String PREF_UNLIMITED_PIN = "unlimited_pin";
     private static final String PREF_CHINESE_READ_STATUS_TEXT = "chinese_read_status_text";
     private static final String PREF_DIALOGS_TITLE_TEXT = "dialogs_title_text";
-    private static final String PREF_UNREAD_DIALOGS_TAB = "unread_dialogs_tab";
     private static final String PREF_CONTINUE_SCROLL_CHANNEL_JUMP = "continue_scroll_channel_jump";
     private static final String PREF_LOCAL_UNLIMITED_PIN_PREFIX = "local_unlimited_pin_";
     private static final String PREF_LOCAL_PINNED_ORDER_PREFIX = "local_pinned_order_";
@@ -1616,24 +1615,12 @@ public class MessagesController extends BaseController implements NotificationCe
         return mainPreferences.getString(PREF_DIALOGS_TITLE_TEXT, null);
     }
 
-    public boolean isUnreadDialogsTabEnabled() {
-        return mainPreferences.getBoolean(PREF_UNREAD_DIALOGS_TAB, false);
-    }
-
     public boolean isContinueScrollChannelJumpEnabled() {
         return mainPreferences.getBoolean(PREF_CONTINUE_SCROLL_CHANNEL_JUMP, true);
     }
 
     public void setContinueScrollChannelJumpEnabled(boolean enabled) {
         mainPreferences.edit().putBoolean(PREF_CONTINUE_SCROLL_CHANNEL_JUMP, enabled).apply();
-    }
-
-    public void setUnreadDialogsTabEnabled(boolean enabled) {
-        if (isUnreadDialogsTabEnabled() == enabled) {
-            return;
-        }
-        mainPreferences.edit().putBoolean(PREF_UNREAD_DIALOGS_TAB, enabled).apply();
-        getNotificationCenter().postNotificationName(NotificationCenter.updateInterfaces, UPDATE_MASK_ALL);
     }
 
     public void setDialogsTitleText(String value) {
@@ -6852,8 +6839,6 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void cleanup() {
-        DailyMessageTasksManager.getInstance(currentAccount).cleanup();
-        PresenceSimulationManager.getInstance(currentAccount).cleanup();
         getContactsController().cleanup();
         MediaController.getInstance().cleanup();
         getNotificationsController().cleanup();
@@ -9702,7 +9687,6 @@ public class MessagesController extends BaseController implements NotificationCe
     public void deleteMessages(ArrayList<Integer> messages, ArrayList<Long> randoms, TLRPC.EncryptedChat encryptedChat, long dialogId, boolean forAll, int mode, boolean cacheOnly, long taskId, TLObject taskRequest, int topicId, boolean movedToScheduled, int movedToScheduledMessageId) {
         final boolean scheduled = mode == ChatActivity.MODE_SCHEDULED;
         final boolean quickReplies = mode == ChatActivity.MODE_QUICK_REPLIES;
-        final boolean autoReplyPreset = quickReplies && AutoReplyManager.getInstance(currentAccount).isAutoReplyPreset(null, topicId);
         if ((messages == null || messages.isEmpty()) && taskId == 0) {
             return;
         }
@@ -9747,12 +9731,6 @@ public class MessagesController extends BaseController implements NotificationCe
                 getMessagesStorage().updateDialogsWithDeletedMessages(dialogId, channelId, messages, null, true);
             }
             getNotificationCenter().postNotificationName(NotificationCenter.messagesDeleted, messages, channelId, scheduled, false, movedToScheduled, movedToScheduledMessageId);
-            if (autoReplyPreset) {
-                AutoReplyManager.getInstance(currentAccount).onLocalPresetMessagesChanged(topicId);
-                getNotificationCenter().postNotificationName(NotificationCenter.quickRepliesDeleted, new ArrayList<>(messages), (long) topicId);
-                getNotificationCenter().postNotificationName(NotificationCenter.quickRepliesUpdated);
-                return;
-            }
         } else {
             if (taskRequest instanceof TLRPC.TL_channels_deleteMessages) {
                 channelId = ((TLRPC.TL_channels_deleteMessages) taskRequest).channel.channel_id;
@@ -10662,15 +10640,6 @@ public class MessagesController extends BaseController implements NotificationCe
         });
     }
 
-    public void refreshExtensionPresence() {
-        Utilities.stageQueue.postRunnable(() -> {
-            statusSettingState = 0;
-            offlineSent = false;
-            lastStatusUpdateTime = 0;
-            updateTimerProc();
-        });
-    }
-
     public void updateTimerProc() {
         long currentTime = System.currentTimeMillis();
 
@@ -10678,9 +10647,7 @@ public class MessagesController extends BaseController implements NotificationCe
         checkReadTasks();
 
         if (getUserConfig().isClientActivated()) {
-            int extensionPresenceMode = PresenceSimulationManager.getInstance(currentAccount).getPresenceMode();
-            if (extensionPresenceMode == PresenceSimulationManager.OFFLINE
-                    || extensionPresenceMode != PresenceSimulationManager.ONLINE && isHideOnlineStatusEnabled()) {
+            if (isHideOnlineStatusEnabled()) {
                 if (statusSettingState != 2 && !offlineSent) {
                     statusSettingState = 2;
                     if (statusRequest != 0) {
@@ -21518,12 +21485,6 @@ public class MessagesController extends BaseController implements NotificationCe
         getMediaDataController().loadReplyMessagesForMessages(messages, dialogId, mode, 0, null, 0, null);
         if (mode == ChatActivity.MODE_QUICK_REPLIES) {
             QuickRepliesController.getInstance(currentAccount).checkLocalMessages(messages);
-        }
-        if (!scheduled && !quickReplies) {
-            AutoReplyManager.getInstance(currentAccount).processNewMessages(messages);
-            AutoReactionManager.getInstance(currentAccount).processNewMessages(messages);
-            MessageEchoManager.process(currentAccount, messages);
-            MangoAutoReadManager.process(currentAccount, messages);
         }
         getNotificationCenter().postNotificationName(NotificationCenter.didReceiveNewMessages, dialogId, messages, scheduled, mode);
 

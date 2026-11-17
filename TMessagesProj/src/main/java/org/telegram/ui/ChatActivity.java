@@ -146,7 +146,6 @@ import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
-import org.telegram.messenger.AutoReplyManager;
 import org.telegram.messenger.BotForumHelper;
 import org.telegram.messenger.BotInlineKeyboard;
 import org.telegram.messenger.BotWebViewVibrationEffect;
@@ -678,9 +677,6 @@ public class ChatActivity extends BaseFragment implements
     public TL_account.TL_businessChatLink businessLink = null;
 
     public String quickReplyShortcut;
-    private String quickReplyTitle;
-    private boolean quickReplyRenameDisabled;
-    private boolean quickReplyLocalPreset;
     private int chatMode;
     private boolean channelChatMode;
     private int scheduledMessagesCount = -1;
@@ -1225,7 +1221,6 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_MESSAGE_TAGS = 126;
     public final static int OPTION_TAG_FAVORITE = 127;
     public final static int OPTION_TAG_TODO = 128;
-    public final static int OPTION_MESSAGE_ECHO = 129;
     public final static int OPTION_MESSAGE_REMINDER = 130;
     public final static int OPTION_BLOCK_SELECTED_WORDS = 131;
 
@@ -1758,13 +1753,6 @@ public class ChatActivity extends BaseFragment implements
     RecyclerListView.OnItemLongClickListenerExtended onItemLongClickListener = new RecyclerListView.OnItemLongClickListenerExtended() {
         @Override
         public boolean onItemClick(View view, int position, float x, float y) {
-            if (!actionBar.isActionModeShowed() && !inPreviewMode && !isInsideContainer && view instanceof ChatMessageCell) {
-                MessageObject messageObject = ((ChatMessageCell) view).getMessageObject();
-                if (isAutoReplyLocalPresetMessage(messageObject) && !textSelectionHelper.isInSelectionMode()) {
-                    showAutoReplyPresetMessageOptions(view, messageObject);
-                    return true;
-                }
-            }
             if (textSelectionHelper.isTryingSelect() || textSelectionHelper.isInSelectionMode() || inPreviewMode || isInsideContainer) {
                 return false;
             }
@@ -1778,13 +1766,6 @@ public class ChatActivity extends BaseFragment implements
                 showMenu = messageObject.messageOwner.action instanceof TLRPC.TL_messageActionSetMessagesTTL || actionCell.getMessageObject().type == MessageObject.TYPE_SUGGEST_PHOTO || actionCell.getMessageObject().isWallpaperAction() || actionCell.getMessageObject().type == MessageObject.TYPE_GIFT_STARS;
             }
             if (!actionBar.isActionModeShowed() && (!isReport() || showMenu)) {
-                if (view instanceof ChatMessageCell) {
-                    MessageObject messageObject = ((ChatMessageCell) view).getMessageObject();
-                    if (isAutoReplyLocalPresetMessage(messageObject)) {
-                        showAutoReplyPresetMessageOptions(view, messageObject);
-                        return true;
-                    }
-                }
                 result = createMenu(view, false, true, x, y, true);
             } else {
                 boolean outside = false;
@@ -2785,9 +2766,6 @@ public class ChatActivity extends BaseFragment implements
         chatMode = arguments.getInt("chatMode", 0);
         channelChatMode = arguments.getBoolean("channel_chat_mode", false);
         quickReplyShortcut = arguments.getString("quick_reply", null);
-        quickReplyTitle = arguments.getString("quick_reply_title", null);
-        quickReplyRenameDisabled = arguments.getBoolean("quick_reply_disable_rename", false);
-        quickReplyLocalPreset = arguments.getBoolean("quick_reply_local_preset", false);
         voiceChatHash = arguments.getString("voicechat", null);
         openVideoChat = arguments.getBoolean("videochat", false);
         livestream = !TextUtils.isEmpty(arguments.getString("livestream", null));
@@ -3911,7 +3889,7 @@ public class ChatActivity extends BaseFragment implements
                     if (actionBar.isActionModeShowed()) {
                         clearSelectionMode();
                     } else {
-                        if (chatMode == MODE_QUICK_REPLIES && !quickReplyLocalPreset && (messages.isEmpty() || threadMessageId == 0)) {
+                        if (chatMode == MODE_QUICK_REPLIES && (messages.isEmpty() || threadMessageId == 0)) {
                             showQuickRepliesRemoveAlert();
                             return;
                         }
@@ -4467,7 +4445,7 @@ public class ChatActivity extends BaseFragment implements
 
         ActionBarMenu menu = actionBar.createMenu();
 
-        if (chatMode == MODE_QUICK_REPLIES && !quickReplyRenameDisabled && !QuickRepliesController.isSpecial(quickReplyShortcut)) {
+        if (chatMode == MODE_QUICK_REPLIES && !QuickRepliesController.isSpecial(quickReplyShortcut)) {
             menu.addItem(edit_quick_reply, R.drawable.group_edit).setContentDescription(LocaleController.getString(R.string.Edit));
         }
 
@@ -19794,101 +19772,6 @@ public class ChatActivity extends BaseFragment implements
         addToSelectedMessages(messageObject, outside, true);
     }
 
-    private boolean canEditMessageInCurrentMode(MessageObject messageObject) {
-        return messageObject != null && (messageObject.canEditMessage(currentChat) || canEditAutoReplyPresetMessage(messageObject));
-    }
-
-    private boolean canDeleteMessageInCurrentMode(MessageObject messageObject) {
-        return messageObject != null && (messageObject.canDeleteMessage(chatMode == MODE_SCHEDULED, currentChat) || isAutoReplyLocalPresetMessage(messageObject));
-    }
-
-    private boolean isAutoReplyLocalPresetChat() {
-        if (chatMode != MODE_QUICK_REPLIES) {
-            return false;
-        }
-        if (quickReplyLocalPreset && getQuickReplyId() != 0) {
-            return true;
-        }
-        return AutoReplyManager.getInstance(currentAccount).getAutoReplyTopicId(quickReplyShortcut, getQuickReplyId()) != 0;
-    }
-
-    private boolean isAutoReplyLocalPresetMessage(MessageObject messageObject) {
-        return isAutoReplyLocalPresetChat() && messageObject != null && messageObject.messageOwner != null;
-    }
-
-    private void ensureAutoReplyPresetMessageMetadata(MessageObject messageObject) {
-        if (!isAutoReplyLocalPresetMessage(messageObject)) {
-            return;
-        }
-        int quickReplyId = getQuickReplyId();
-        if (quickReplyId != 0 && (!messageObject.isQuickReply() || messageObject.getQuickReplyId() != quickReplyId)) {
-            messageObject.applyQuickReply(quickReplyShortcut, quickReplyId);
-        }
-    }
-
-    private boolean canEditAutoReplyPresetMessage(MessageObject messageObject) {
-        if (!isAutoReplyLocalPresetMessage(messageObject)) {
-            return false;
-        }
-        if (messageObject.messageOwner.action != null && !(messageObject.messageOwner.action instanceof TLRPC.TL_messageActionEmpty)) {
-            return false;
-        }
-        return messageObject.type != MessageObject.TYPE_STORY && messageObject.type != MessageObject.TYPE_POLL;
-    }
-
-    private void showAutoReplyPresetMessageOptions(View anchorView, MessageObject messageObject) {
-        if (messageObject == null || getParentActivity() == null) {
-            return;
-        }
-        closeMenu();
-        if (textSelectionHelper != null) {
-            textSelectionHelper.clear(true);
-            textSelectionHelper.cancelAllAnimators();
-        }
-        selectedObject = messageObject;
-        selectedObjectGroup = null;
-        selectedObjectToEditCaption = null;
-        ensureAutoReplyPresetMessageMetadata(messageObject);
-
-        ArrayList<CharSequence> items = new ArrayList<>();
-        ArrayList<Integer> options = new ArrayList<>();
-        if (canEditAutoReplyPresetMessage(messageObject) && !chatActivityEnterView.hasAudioToSend()) {
-            items.add(LocaleController.getString(R.string.Edit));
-            options.add(OPTION_EDIT);
-        }
-        if (canDeleteMessageInCurrentMode(messageObject)) {
-            items.add(LocaleController.getString(R.string.Delete));
-            options.add(OPTION_DELETE);
-        }
-        if (items.isEmpty()) {
-            return;
-        }
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), themeDelegate);
-        builder.setItems(items.toArray(new CharSequence[0]), (dialogInterface, which) -> {
-            if (which < 0 || which >= options.size()) {
-                return;
-            }
-            selectedObject = messageObject;
-            selectedObjectGroup = null;
-            selectedObjectToEditCaption = null;
-            int option = options.get(which);
-            if (option == OPTION_EDIT) {
-                ensureAutoReplyPresetMessageMetadata(messageObject);
-                startEditingMessageObject(messageObject);
-                selectedObject = null;
-                selectedObjectGroup = null;
-                selectedObjectToEditCaption = null;
-            } else if (option == OPTION_DELETE) {
-                selectedObject = messageObject;
-                selectedObjectGroup = null;
-                selectedObjectToEditCaption = null;
-                createDeleteMessagesAlert(messageObject, null, true);
-            }
-        });
-        showDialog(builder.create());
-    }
-
     private void addToSelectedMessages(MessageObject messageObject, boolean outside, boolean last) {
         int prevCantForwardCount = cantForwardMessagesCount;
         if (messageObject != null) {
@@ -19935,10 +19818,10 @@ public class ChatActivity extends BaseFragment implements
                     if (!messageObject.isAnimatedEmoji() && (messageObject.isSticker() || messageObject.isAnimatedSticker()) && MessageObject.isStickerHasSet(messageObject.getDocument())) {
                         selectedMessagesCanStarIds[index].remove(messageObject.getId());
                     }
-                    if (canEditMessageInCurrentMode(messageObject)) {
+                    if (messageObject.canEditMessage(currentChat)) {
                         canEditMessagesCount--;
                     }
-                    if (!canDeleteMessageInCurrentMode(messageObject)) {
+                    if (!messageObject.canDeleteMessage(chatMode == MODE_SCHEDULED, currentChat)) {
                         cantDeleteMessagesCount--;
                     }
                     boolean noforwards = isPeerNoForwards();
@@ -19972,10 +19855,10 @@ public class ChatActivity extends BaseFragment implements
                     if (!messageObject.isAnimatedEmoji() && (messageObject.isSticker() || messageObject.isAnimatedSticker()) && MessageObject.isStickerHasSet(messageObject.getDocument())) {
                         selectedMessagesCanStarIds[index].put(messageObject.getId(), messageObject);
                     }
-                    if (canEditMessageInCurrentMode(messageObject)) {
+                    if (messageObject.canEditMessage(currentChat)) {
                         canEditMessagesCount++;
                     }
-                    if (!canDeleteMessageInCurrentMode(messageObject)) {
+                    if (!messageObject.canDeleteMessage(chatMode == MODE_SCHEDULED, currentChat)) {
                         cantDeleteMessagesCount++;
                     }
                     boolean noforwards = isPeerNoForwards();
@@ -20386,8 +20269,6 @@ public class ChatActivity extends BaseFragment implements
                 avatarContainer.setTitle(LocaleController.getString(R.string.BusinessGreet));
             } else if (QuickRepliesController.AWAY.equalsIgnoreCase(quickReplyShortcut)) {
                 avatarContainer.setTitle(LocaleController.getString(R.string.BusinessAway));
-            } else if (!TextUtils.isEmpty(quickReplyTitle)) {
-                avatarContainer.setTitle(quickReplyTitle);
             } else {
                 avatarContainer.setTitle(quickReplyShortcut);
             }
@@ -31274,9 +31155,6 @@ public class ChatActivity extends BaseFragment implements
         if (message.isSponsored() || threadMessageObjects != null && threadMessageObjects.contains(message) && !isThreadChat()) {
             single = true;
         }
-        if (longpress && isAutoReplyLocalPresetMessage(message)) {
-            single = true;
-        }
 
         selectedObject = null;
         selectedObjectGroup = null;
@@ -31325,7 +31203,7 @@ public class ChatActivity extends BaseFragment implements
         boolean noforwardsOrPaidMedia = noforwards || message.type == MessageObject.TYPE_PAID_MEDIA;
         boolean canForwardSelectedObject = getSendMessagesHelper().canForwardMessageOrBypass(selectedObject);
         boolean allowUnpin = message.getDialogId() != mergeDialogId && allowPin && (pinnedMessageObjects.containsKey(message.getId()) || groupedMessages != null && !groupedMessages.messages.isEmpty() && pinnedMessageObjects.containsKey(groupedMessages.messages.get(0).getId())) && !message.isExpiredStory();
-        boolean allowEdit = canEditMessageInCurrentMode(message) && !chatActivityEnterView.hasAudioToSend() && message.getDialogId() != mergeDialogId && message.type != MessageObject.TYPE_STORY && message.type != MessageObject.TYPE_POLL;
+        boolean allowEdit = message.canEditMessage(currentChat) && !chatActivityEnterView.hasAudioToSend() && message.getDialogId() != mergeDialogId && message.type != MessageObject.TYPE_STORY && message.type != MessageObject.TYPE_POLL;
         if (allowEdit && groupedMessages != null) {
             int captionsCount = 0;
             for (int a = 0, N = groupedMessages.messages.size(); a < N; a++) {
@@ -33834,12 +33712,6 @@ public class ChatActivity extends BaseFragment implements
                 org.telegram.ui.Components.MangoMessageReminderSheet.show(this, selectedObject, resourceProvider);
                 break;
             }
-            case OPTION_MESSAGE_ECHO: {
-                boolean queued = org.telegram.messenger.MessageEchoManager.echo(currentAccount, selectedObject);
-                BulletinFactory.of(this).createSimpleBulletin(queued ? R.raw.contact_check : R.raw.error,
-                        getString(queued ? R.string.V4EchoQueued : R.string.V4EchoUnavailable)).show();
-                break;
-            }
             case OPTION_MESSAGE_TAGS: {
                 MessageTagEditor.show(this, MessageTagsController.fromMessage(currentAccount, selectedObject), () ->
                         BulletinFactory.of(this).createSimpleBulletin(R.raw.ic_save_to_gallery, getString(R.string.MessageTagsUpdated)).show());
@@ -34324,10 +34196,8 @@ public class ChatActivity extends BaseFragment implements
             case OPTION_SUGGESTION_EDIT_MESSAGE:
             case OPTION_EDIT: {
                 if (selectedObjectToEditCaption != null) {
-                    ensureAutoReplyPresetMessageMetadata(selectedObjectToEditCaption);
                     startEditingMessageObject(selectedObjectToEditCaption, option == OPTION_SUGGESTION_EDIT_MESSAGE);
                 } else {
-                    ensureAutoReplyPresetMessageMetadata(selectedObject);
                     startEditingMessageObject(selectedObject, option == OPTION_SUGGESTION_EDIT_MESSAGE);
                 }
                 selectedObject = null;
@@ -35168,7 +35038,7 @@ public class ChatActivity extends BaseFragment implements
         } else if (ChatObject.isMonoForum(currentChat) && !isSubscriberSuggestions && topicsTabs != null && getTopicId() != 0) {
             if (invoked) topicsTabs.selectTopic(0, topicChangedFromMessage);
             return false;
-        } else if (chatMode == MODE_QUICK_REPLIES && !quickReplyLocalPreset && !(QuickRepliesController.GREETING.equalsIgnoreCase(quickReplyShortcut) || QuickRepliesController.AWAY.equalsIgnoreCase(quickReplyShortcut)) && (messages.isEmpty() || threadMessageId == 0)) {
+        } else if (chatMode == MODE_QUICK_REPLIES && !(QuickRepliesController.GREETING.equalsIgnoreCase(quickReplyShortcut) || QuickRepliesController.AWAY.equalsIgnoreCase(quickReplyShortcut)) && (messages.isEmpty() || threadMessageId == 0)) {
             if (invoked) showQuickRepliesRemoveAlert();
             return false;
         } else if (chatMode == MODE_EDIT_BUSINESS_LINK && chatActivityEnterView.businessLinkHasChanges()) {
@@ -37145,7 +37015,7 @@ public class ChatActivity extends BaseFragment implements
 
     @Override
     public boolean canBeginSlide() {
-        if (chatMode == MODE_QUICK_REPLIES && !quickReplyLocalPreset && (messages.isEmpty() || threadMessageId == 0)) {
+        if (chatMode == MODE_QUICK_REPLIES && (messages.isEmpty() || threadMessageId == 0)) {
             return false;
         }
         return swipeBackEnabled && chatActivityEnterView.swipeToBackEnabled() && pullingDownOffset == 0
@@ -37154,7 +37024,7 @@ public class ChatActivity extends BaseFragment implements
 
     @Override
     public boolean isSwipeBackEnabled(MotionEvent event) {
-        if (chatMode == MODE_QUICK_REPLIES && !quickReplyLocalPreset && (messages.isEmpty() || threadMessageId == 0)) {
+        if (chatMode == MODE_QUICK_REPLIES && (messages.isEmpty() || threadMessageId == 0)) {
             return false;
         }
         return swipeBackEnabled && (forwardingPreviewView == null || !forwardingPreviewView.isShowing())
@@ -45752,7 +45622,7 @@ public class ChatActivity extends BaseFragment implements
         boolean noforwardsOrPaidMedia = noforwards || message.type == MessageObject.TYPE_PAID_MEDIA;
         boolean canForwardSelectedObject = getSendMessagesHelper().canForwardMessageOrBypass(selectedObject);
         boolean allowUnpin = message.getDialogId() != mergeDialogId && allowPin && (pinnedMessageObjects.containsKey(message.getId()) || groupedMessages != null && !groupedMessages.messages.isEmpty() && pinnedMessageObjects.containsKey(groupedMessages.messages.get(0).getId())) && !message.isExpiredStory();
-        boolean allowEdit = canEditMessageInCurrentMode(message) && !chatActivityEnterView.hasAudioToSend() && message.getDialogId() != mergeDialogId && message.type != MessageObject.TYPE_STORY && message.type != MessageObject.TYPE_POLL;
+        boolean allowEdit = message.canEditMessage(currentChat) && !chatActivityEnterView.hasAudioToSend() && message.getDialogId() != mergeDialogId && message.type != MessageObject.TYPE_STORY && message.type != MessageObject.TYPE_POLL;
         if (allowEdit && groupedMessages != null) {
             int captionsCount = 0;
             for (int a = 0, N = groupedMessages.messages.size(); a < N; a++) {
@@ -45817,20 +45687,6 @@ public class ChatActivity extends BaseFragment implements
             deleteIconRes = R.drawable.msg_delete_auto;
         } else {
             deleteIconRes = R.drawable.msg_delete;
-        }
-
-        if (isAutoReplyLocalPresetMessage(message)) {
-            if (allowEdit) {
-                items.add(LocaleController.getString(R.string.Edit));
-                options.add(OPTION_EDIT);
-                icons.add(R.drawable.msg_edit);
-            }
-            if (canDeleteMessageInCurrentMode(message)) {
-                items.add(LocaleController.getString(R.string.Delete));
-                options.add(OPTION_DELETE);
-                icons.add(deleteIconRes);
-            }
-            return;
         }
 
         if (type == -1) {
@@ -45940,7 +45796,7 @@ public class ChatActivity extends BaseFragment implements
                     options.add(OPTION_DELETE_ALL_MY_MESSAGES);
                     icons.add(R.drawable.menu_clear_history);
                 }
-                if (canDeleteMessageInCurrentMode(message) && (threadMessageObjects == null || !threadMessageObjects.contains(message)) && !(message != null && message.messageOwner != null && message.messageOwner.action instanceof TLRPC.TL_messageActionTopicCreate)) {
+                if (message.canDeleteMessage(chatMode == MODE_SCHEDULED, currentChat) && (threadMessageObjects == null || !threadMessageObjects.contains(message)) && !(message != null && message.messageOwner != null && message.messageOwner.action instanceof TLRPC.TL_messageActionTopicCreate)) {
                     items.add(LocaleController.getString(chatMode == MODE_SAVED && threadMessageId != getUserConfig().getClientUserId() ? R.string.Remove : R.string.Delete));
                     options.add(OPTION_DELETE);
                     icons.add(deleteIconRes);
@@ -46026,7 +45882,7 @@ public class ChatActivity extends BaseFragment implements
                                     icons.add(R.drawable.msg_pollstop);
                                 }
                             } else if (media instanceof TLRPC.TL_messageMediaToDo) {
-                                if (canEditMessageInCurrentMode(message)) {
+                                if (message.canEditMessage(currentChat)) {
                                     items.add(getString(R.string.EditToDo));
                                     options.add(OPTION_EDIT_TODO);
                                     icons.add(R.drawable.msg_edit);
@@ -46253,7 +46109,7 @@ public class ChatActivity extends BaseFragment implements
                     options.add(OPTION_DELETE_ALL_MY_MESSAGES);
                     icons.add(R.drawable.menu_clear_history);
                 }
-                if (canDeleteMessageInCurrentMode(message) && (threadMessageObjects == null || !threadMessageObjects.contains(message))) {
+                if (message.canDeleteMessage(chatMode == MODE_SCHEDULED, currentChat) && (threadMessageObjects == null || !threadMessageObjects.contains(message))) {
                     items.add(LocaleController.getString(chatMode == MODE_SAVED && threadMessageId != getUserConfig().getClientUserId() ? R.string.Remove : R.string.Delete));
                     options.add(OPTION_DELETE);
                     icons.add(deleteIconRes);
@@ -46377,11 +46233,6 @@ public class ChatActivity extends BaseFragment implements
             items.add(getString(R.string.MangoMessageReminderMenu));
             options.add(OPTION_MESSAGE_REMINDER);
             icons.add(R.drawable.msg_calendar2);
-        }
-        if (org.telegram.messenger.MessageEchoManager.canEcho(currentAccount, message) && chatMode == MODE_DEFAULT) {
-            items.add(getString(R.string.V4MessageEcho));
-            options.add(OPTION_MESSAGE_ECHO);
-            icons.add(R.drawable.msg_send);
         }
         MessageActionSettings.reorderMenu(currentAccount, icons, items, options,
                 OPTION_COPY, OPTION_FORWARD, OPTION_TAG_FAVORITE, OPTION_TAG_TODO);

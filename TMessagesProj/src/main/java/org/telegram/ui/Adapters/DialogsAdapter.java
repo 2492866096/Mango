@@ -796,9 +796,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
     public int lastDialogsEmptyType = -1;
 
     public int dialogsEmptyType() {
-        if (dialogsType == DialogsActivity.DIALOGS_TYPE_UNREAD_UNMUTED) {
-            return DialogsEmptyCell.TYPE_FILTER_NO_CHATS_TO_DISPLAY;
-        } else if (dialogsType == 7 || dialogsType == 8) {
+        if (dialogsType == 7 || dialogsType == 8) {
             if (MessagesController.getInstance(currentAccount).isDialogsEndReached(folderId)) {
                 return DialogsEmptyCell.TYPE_FILTER_NO_CHATS_TO_DISPLAY;
             } else {
@@ -1665,7 +1663,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
                 }
             }
 
-            if (!forceShowEmptyCell && dialogsType != DialogsActivity.DIALOGS_TYPE_UNREAD_UNMUTED && dialogsType != 7 && dialogsType != 8 && !MessagesController.getInstance(currentAccount).isDialogsEndReached(folderId)) {
+            if (!forceShowEmptyCell && dialogsType != 7 && dialogsType != 8 && !MessagesController.getInstance(currentAccount).isDialogsEndReached(folderId)) {
                 if (dialogsCount != 0) {
                     itemInternals.add(new ItemInternal(VIEW_TYPE_FLICKER));
                 }

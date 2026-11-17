@@ -672,7 +672,6 @@ public class UserConfig extends BaseController {
     }
 
     public void clearConfig() {
-        MangoUserBroadcastManager.clearForLogout(currentAccount);
         getPreferences().edit().clear().apply();
 
         sharingMyLocationUntil = 0;

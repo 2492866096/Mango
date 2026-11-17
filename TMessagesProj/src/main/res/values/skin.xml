@@ -53,7 +53,6 @@
     <string name="SkinToggleDataSaverInfo">Data saver: no automatic downloads on mobile data</string>
     <string name="SkinToggleQuiet">Do not disturb</string>
     <string name="SkinToggleQuietInfo">Do not disturb: mute all notifications</string>
-    <string name="SkinToolBroadcast">Broadcast</string>
     <string name="SkinToolRules">Notification rules</string>
     <string name="SkinToolSecurity">Security check</string>
     <string name="SkinToolPerformance">Performance</string>
@@ -70,7 +69,6 @@
     <string name="SkinSetMore">More settings</string>
     <string name="SkinNoticeFrozen">Your account is frozen. Tap for details</string>
     <string name="SkinNoticeSuggestion">Settings has a reminder for you</string>
-    <string name="SkinListUnread">Unread</string>
     <string name="SkinBubbleStyle">Bubble style</string>
     <string name="SkinBubbleStyleFollow">Follow day and night</string>
     <string name="SkinBubbleStyleGraphite">Always graphite</string>

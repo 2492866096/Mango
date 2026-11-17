@@ -39,11 +39,10 @@ private fun fakeMe(): MeState = MeState(FakeMeStrings).apply {
     )
     tools = listOf(
         MeTool(0, Glyph.Checklist, "消息中心"),
-        MeTool(1, Glyph.Broadcast, "群发"),
-        MeTool(2, Glyph.Rules, "通知规则"),
-        MeTool(3, Glyph.ShieldCheck, "安全检查"),
-        MeTool(4, Glyph.Gauge, "性能监控"),
-        MeTool(5, Glyph.Grid, "全部功能"),
+        MeTool(1, Glyph.Rules, "通知规则"),
+        MeTool(2, Glyph.ShieldCheck, "安全检查"),
+        MeTool(3, Glyph.Gauge, "性能监控"),
+        MeTool(4, Glyph.Grid, "全部功能"),
     )
     settings = listOf(
         MeRow(10, Glyph.Person, "账号"),

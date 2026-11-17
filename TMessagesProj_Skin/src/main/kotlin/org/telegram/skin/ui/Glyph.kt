@@ -43,7 +43,6 @@ enum class Glyph(internal val paths: List<String>, internal val mirrors: Boolean
     Camera(listOf("M4 8.5a2 2 0 0 1 2-2h2l1.5-2h5l1.5 2h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z", circle(12f, 13f, 3.5f))),
     Qr(listOf(rect(3.5f, 3.5f, 6.5f, 6.5f, 1.5f), rect(14f, 3.5f, 6.5f, 6.5f, 1.5f), rect(3.5f, 14f, 6.5f, 6.5f, 1.5f), "M14 14h2.5v2.5H14z", "M18 18h2.5v2.5H18z", "M18 14h2.5", "M14 18v2.5")),
     Chevron(listOf("M9 5l7 7-7 7"), mirrors = true, weight = 2f),
-    Broadcast(listOf("M4 10v4h3l6 4V6L7 10z", "M16.5 9a4 4 0 0 1 0 6")),
     Rules(listOf("M4 7h9", "M17 7h3", "M4 17h3", "M11 17h9", "M15 5v4", "M9 15v4")),
     ShieldCheck(listOf("M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z", "M8.5 12l2.5 2.5 4.5-4.5")),
     Gauge(listOf("M4.5 17a8 8 0 1 1 15 0", "M12 13.5l3.5-4")),

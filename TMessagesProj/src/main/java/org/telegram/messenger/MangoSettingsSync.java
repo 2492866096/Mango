@@ -70,7 +70,7 @@ public final class MangoSettingsSync {
     }
 
     public static void onLegacyChanged(int source, String key, Object value) {
-        if (applying || !isEnabled() || !(value instanceof Boolean) || key.startsWith("daily_") || key.startsWith("echo_")) return;
+        if (applying || !isEnabled() || !(value instanceof Boolean)) return;
         propagate(source, "legacy:" + key, (Boolean) value);
     }
 

@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.text.InputFilter;
@@ -26,8 +25,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.AutoReplyManager;
-import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.CustomDownloadPathHelper;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.FileLoader;
@@ -42,11 +39,9 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessageActionSettings;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
-import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.skin.theme.CanvasMaterials;
-import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -79,8 +74,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     private static final int ITEM_ID_UNLIMITED_PIN = 6;
     private static final int ITEM_ID_DIALOGS_TITLE_TEXT = 7;
     private static final int ITEM_ID_KEYWORD_FILTER = 8;
-    private static final int ITEM_ID_UNREAD_DIALOGS_TAB = 9;
-    private static final int ITEM_ID_AUTO_REPLY = 10;
     private static final int ITEM_ID_CONTINUE_SCROLL_CHANNEL_JUMP = 11;
     private static final int ITEM_ID_DOWNLOAD_SPEED = 12;
     private static final int ITEM_ID_CHINESE_READ_STATUS_TEXT = 13;
@@ -96,10 +89,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     private static final int ITEM_ID_INPUT_BAR_TEXT = 24;
     private static final int ITEM_ID_LOCAL_VIRTUAL_GIFT_BUY = 25;
     private static final int ITEM_ID_CLEAR_LOCAL_VIRTUAL_GIFTS = 26;
-    private static final int ITEM_ID_AUTO_REACTION = 27;
-    private static final int ITEM_ID_AUTO_REACTION_EMOJI = 28;
-    private static final int ITEM_ID_AUTO_REACTION_TARGET = 29;
-    private static final int ITEM_ID_BROADCAST_TO_GROUPS = 30;
     private static final int ITEM_ID_CONTACTS_TAB = 32;
     private static final int ITEM_ID_UNLIMITED_CHANNEL_JOIN = 33;
     private static final int ITEM_ID_BLOCKED_USERS = 34;
@@ -110,17 +99,13 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     private static final int ITEM_ID_CUSTOM_VIDEO_WALLPAPER = 39;
     private static final int ITEM_ID_UNLIMITED_DIALOG_FILTERS = 40;
     private static final int ITEM_ID_LOCAL_HOLD_VERIFICATION = 41;
-    private static final int ITEM_ID_AUTO_REACTION_USERS = 42;
     private static final int ITEM_ID_AUDIO_AUTO_PLAY_NEXT = 43;
     private static final int ITEM_ID_PERSONAL_WALLPAPERS = 44;
-    private static final int ITEM_ID_DAILY_MESSAGE_TASKS = 45;
-    private static final int ITEM_ID_PRESENCE_SIMULATION = 46;
     private static final int ITEM_ID_MESSAGE_MANAGEMENT_TAB = 47;
     private static final int ITEM_ID_MESSAGE_MANAGEMENT = 48;
     private static final int ITEM_ID_MESSAGE_ACTION_SETTINGS = 49;
     private static final int ITEM_ID_SAVE_RECALLED = 50;
     private static final int ITEM_ID_RECALLED_ARCHIVE = 51;
-    private static final int ITEM_ID_MESSAGE_ECHO = 52;
     private static final int ITEM_ID_INTERACTION_STATISTICS = 54;
     private static final int ITEM_ID_MESSAGE_MEMORIAL = 55;
     private static final int ITEM_ID_DUPLICATE_FILES = 56;
@@ -128,8 +113,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
     private static final int ITEM_ID_QUICK_FORWARD_ACCOUNT = 58;
     private static final int ITEM_UNIFIED_TAB = 85, ITEM_UNIFIED_INBOX = 86, ITEM_RESTRICTION_TITLE = 87, ITEM_DOWNLOAD_RETENTION = 88;
     private static final int ITEM_PERFORMANCE_MONITOR = 89, ITEM_DOWNLOAD_SPEED_HUD = 90;
-    private static final int ITEM_RANDOM_REPLY_GROUPS = 91;
-    private static final int ITEM_USER_BROADCAST = 92;
     private static final int ITEM_SYNC_SWITCHES = 93, ITEM_SECURITY_CHECK = 94;
     private static final int ITEM_COMMON_CLEAR_CACHE = 20001, ITEM_COMMON_PROXY = 20002,
             ITEM_COMMON_ACCOUNT = 20003, ITEM_COMMON_PRIVACY = 20004;
@@ -297,11 +280,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         super.onResume();
         MangoLegacySettings.initialize(currentAccount);
         MangoLegacySettings.capture(currentAccount);
-        AutoReplyManager.getInstance(currentAccount).loadPresetMessageCounts(() -> {
-            if (listView != null && listView.adapter != null) {
-                listView.adapter.update(false);
-            }
-        });
         if (listView != null && listView.adapter != null) {
             listView.adapter.update(false);
         }
@@ -315,8 +293,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 return MangoFeatureRegistry.PRIVACY;
             case 12: case 14: case 15: case 17: case 18: case 38: case 43: case 56: case ITEM_DOWNLOAD_RETENTION: case ITEM_DOWNLOAD_SPEED_HUD:
                 return MangoFeatureRegistry.MEDIA;
-            case 10: case 27: case 28: case 29: case 30: case 42: case 45: case 46: case 52: case ITEM_RANDOM_REPLY_GROUPS: case ITEM_USER_BROADCAST:
-                return MangoFeatureRegistry.AUTOMATION;
             case 7: case 9: case 13: case 20: case 21: case 23: case 24: case 25: case 26: case 32: case 35: case 36: case 39: case 44: case 47: case ITEM_UNIFIED_TAB: case ITEM_UNIFIED_INBOX: case ITEM_RESTRICTION_TITLE:
                 return MangoFeatureRegistry.APPEARANCE;
             case 19: case 54: case 55: case 57: case ITEM_HISTORY: case ITEM_RESET_ALL: case ITEM_PERFORMANCE_MONITOR: case ITEM_SYNC_SWITCHES:
@@ -337,13 +313,7 @@ public class ExtensionFeaturesActivity extends BaseFragment {
             UItem item = UItem.asSwitch(feature.id, getString(feature.title)).setChecked(MangoSettings.getBoolean(currentAccount, feature.key));
             item.object = feature;
             all.add(item);
-            if ("auto_read_random_reply".equals(feature.key)) {
-                all.add(UItem.asButton(ITEM_RANDOM_REPLY_GROUPS, R.drawable.msg_groups,
-                        getString(R.string.MangoAutoReadReplyGroups)));
-            }
         }
-        all.add(UItem.asButton(ITEM_USER_BROADCAST, R.drawable.msg_send,
-                getString(R.string.MangoBroadcastTitle), getString(R.string.MangoBroadcastInfo)));
         all.add(UItem.asButton(ITEM_NOTIFICATION_RULES, R.drawable.msg_notifications, getString(R.string.MangoNotificationRules)));
         all.add(UItem.asSwitch(ITEM_SYNC_SWITCHES, getString(R.string.MangoSyncSwitches))
                 .setChecked(org.telegram.messenger.MangoSettingsSync.isEnabled()));
@@ -435,13 +405,9 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         items.add(UItem.asShadow(getString(R.string.ExtensionAudioAutoPlayNextInfo)));
         items.add(UItem.asButton(ITEM_ID_PERSONAL_WALLPAPERS, R.drawable.msg_background,
                 getString(R.string.ExtensionPersonalWallpapers)));
-        items.add(UItem.asButton(ITEM_ID_DAILY_MESSAGE_TASKS, R.drawable.msg_send,
-                getString(R.string.ExtensionDailyMessages)));
         items.add(UItem.asSwitch(ITEM_ID_QUICK_FORWARD_ACCOUNT, getString(R.string.ExtensionQuickForwardAccount))
                 .setChecked(MangoSettings.getBoolean(currentAccount, "mango_quick_forward_account_selection", false)));
         items.add(UItem.asShadow(getString(R.string.ExtensionQuickForwardAccountInfo)));
-        items.add(UItem.asButton(ITEM_ID_PRESENCE_SIMULATION, R.drawable.msg_customize,
-                getString(R.string.ExtensionPresence)));
         items.add(UItem.asSwitch(ITEM_ID_MESSAGE_MANAGEMENT_TAB, getString(R.string.MessageManagementBottomTab))
                 .setChecked(MessageActionSettings.isCenterEnabled(currentAccount)));
         items.add(UItem.asButton(ITEM_ID_MESSAGE_MANAGEMENT, R.drawable.msg_select,
@@ -467,7 +433,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 .setChecked(org.telegram.messenger.RecalledMessagesStore.isEnabled(currentAccount)));
         items.add(UItem.asButton(ITEM_ID_RECALLED_ARCHIVE, R.drawable.msg_archive, getString(R.string.V4RecalledArchive)));
         items.add(UItem.asShadow(getString(R.string.V4RecalledInfo)));
-        items.add(UItem.asButton(ITEM_ID_MESSAGE_ECHO, R.drawable.msg_send, getString(R.string.V4MessageEcho)));
         items.add(UItem.asButton(ITEM_ID_INTERACTION_STATISTICS, R.drawable.msg_stats, getString(R.string.V4StatisticsEntry)));
         items.add(UItem.asButton(ITEM_ID_MESSAGE_MEMORIAL, R.drawable.msg_archive, getString(R.string.V4MemorialEntry)));
         items.add(UItem.asButton(ITEM_ID_DUPLICATE_FILES, R.drawable.msg_delete, getString(R.string.V4DuplicateEntry)));
@@ -480,7 +445,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         items.add(UItem.asSwitch(ITEM_ID_ANTI_REVOKE, getString(R.string.AntiRevoke)).setChecked(controller.isAntiRevokeEnabled()));
         items.add(UItem.asSwitch(ITEM_ID_FORCE_FORWARD, getString(R.string.ForceForward)).setChecked(controller.isForceForwardEnabled()));
         items.add(UItem.asSwitch(ITEM_ID_UNLIMITED_PIN, getString(R.string.UnlimitedPin)).setChecked(controller.isUnlimitedPinEnabled()));
-        items.add(UItem.asSwitch(ITEM_ID_UNREAD_DIALOGS_TAB, getString(R.string.UnreadDialogsTab)).setChecked(controller.isUnreadDialogsTabEnabled()));
         items.add(UItem.asSwitch(ITEM_ID_CONTINUE_SCROLL_CHANNEL_JUMP, getString(R.string.ContinueScrollChannelJump)).setChecked(controller.isContinueScrollChannelJumpEnabled()));
         items.add(UItem.asSwitch(ITEM_ID_CHINESE_READ_STATUS_TEXT, getString(R.string.ChineseReadStatusText)).setChecked(controller.isChineseReadStatusTextEnabled()));
         items.add(UItem.asSwitch(ITEM_ID_HIDE_CHANNEL_SEND_AS, getString(R.string.HideChannelSendAsTitle)).setChecked(SharedConfig.isHideChannelSendAsEnabled()));
@@ -507,32 +471,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 R.drawable.msg_translate,
                 getString(R.string.TranslationDisplayModeTitle),
                 SharedConfig.getTranslationDisplayModeText()
-        ));
-        items.add(UItem.asSwitch(ITEM_ID_AUTO_REACTION, getString(R.string.AutoReactionTitle)).setChecked(SharedConfig.isAutoReactionEnabled()));
-        items.add(UItem.asButton(
-                ITEM_ID_AUTO_REACTION_EMOJI,
-                R.drawable.msg_reactions,
-                getString(R.string.AutoReactionEmojiTitle),
-                SharedConfig.getAutoReactionEmoji()
-        ));
-        items.add(UItem.asButton(
-                ITEM_ID_AUTO_REACTION_TARGET,
-                R.drawable.msg_select,
-                getString(R.string.AutoReactionTargetTitle),
-                getAutoReactionTargetText()
-        ));
-        HashSet<Long> autoReactionUsers = SharedConfig.getAutoReactionUserIds(currentAccount);
-        items.add(UItem.asButton(
-                ITEM_ID_AUTO_REACTION_USERS,
-                R.drawable.msg_contacts,
-                getString(R.string.AutoReactionUsersTitle),
-                autoReactionUsers.isEmpty() ? getString(R.string.AutoReactionUsersAll) : LocaleController.formatString(R.string.AutoReactionUsersSelected, autoReactionUsers.size())
-        ));
-        items.add(UItem.asButton(
-                ITEM_ID_BROADCAST_TO_GROUPS,
-                R.drawable.msg_send,
-                getString(R.string.BroadcastToGroupsTitle),
-                getString(R.string.BroadcastToGroupsSummary)
         ));
         items.add(UItem.asSwitch(ITEM_ID_LOCAL_VIRTUAL_GIFT_BUY, getString(R.string.LocalVirtualGiftBuyTitle)).setChecked(SharedConfig.isLocalVirtualGiftBuyEnabled()));
         items.add(UItem.asButton(
@@ -612,14 +550,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                         ? LocaleController.formatString(R.string.KeywordFilterSummaryEnabled, keywordFilterManager.getKeywordsCount(), keywordFilterManager.getWhitelistCount())
                         : getString(R.string.KeywordFilterSummaryDisabled)
         ));
-        AutoReplyManager autoReplyManager = AutoReplyManager.getInstance(currentAccount);
-        items.add(UItem.asButton(
-                ITEM_ID_AUTO_REPLY,
-                getString(R.string.AutoReplySettings),
-                autoReplyManager.isEnabled()
-                        ? LocaleController.formatString(R.string.AutoReplySummaryEnabled, autoReplyManager.getRulesCount(), autoReplyManager.getReplyMessagesCount())
-                        : getString(R.string.AutoReplySummaryDisabled)
-        ));
         items.add(UItem.asShadow(getString(R.string.ExtensionFeaturesInfo)));
     }
 
@@ -668,9 +598,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
             case ITEM_SECURITY_CHECK:
                 presentExtensionPage(new MangoSecurityCheckActivity());
                 return;
-            case ITEM_USER_BROADCAST:
-                presentExtensionPage(new MangoUserBroadcastActivity());
-                return;
             case ITEM_HISTORY:
                 presentExtensionPage(new MangoSettingsHistoryActivity());
                 return;
@@ -680,18 +607,12 @@ public class ExtensionFeaturesActivity extends BaseFragment {
             case ITEM_NOTIFICATION_RULES:
                 presentExtensionPage(new MangoNotificationRulesActivity());
                 return;
-            case ITEM_RANDOM_REPLY_GROUPS:
-                presentExtensionPage(new MangoAutoReadReplyGroupsActivity());
-                return;
             case ITEM_ID_SAVE_RECALLED:
                 enabled = !org.telegram.messenger.RecalledMessagesStore.isEnabled(currentAccount);
                 org.telegram.messenger.RecalledMessagesStore.setEnabled(currentAccount, enabled);
                 break;
             case ITEM_ID_RECALLED_ARCHIVE:
                 presentExtensionPage(new RecalledMessagesActivity());
-                return;
-            case ITEM_ID_MESSAGE_ECHO:
-                presentExtensionPage(new MessageEchoActivity());
                 return;
             case ITEM_ID_INTERACTION_STATISTICS:
                 presentExtensionPage(new InteractionStatisticsActivity());
@@ -712,16 +633,10 @@ public class ExtensionFeaturesActivity extends BaseFragment {
             case ITEM_ID_PERSONAL_WALLPAPERS:
                 presentExtensionPage(new WallpapersListActivity(WallpapersListActivity.TYPE_ALL));
                 return;
-            case ITEM_ID_DAILY_MESSAGE_TASKS:
-                presentExtensionPage(new DailyMessageTasksActivity());
-                return;
             case ITEM_ID_QUICK_FORWARD_ACCOUNT:
                 enabled = !MangoSettings.getBoolean(currentAccount, "mango_quick_forward_account_selection", false);
                 MangoSettings.setBoolean(currentAccount, "mango_quick_forward_account_selection", enabled);
                 break;
-            case ITEM_ID_PRESENCE_SIMULATION:
-                presentExtensionPage(new PresenceSimulationActivity());
-                return;
             case ITEM_UNIFIED_TAB:
                 enabled = !CrossAccountInboxActivity.isEnabled(currentAccount);
                 CrossAccountInboxActivity.setEnabled(currentAccount, enabled);
@@ -782,10 +697,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 enabled = !controller.isUnlimitedPinEnabled();
                 controller.setUnlimitedPinEnabled(enabled);
                 break;
-            case ITEM_ID_UNREAD_DIALOGS_TAB:
-                enabled = !controller.isUnreadDialogsTabEnabled();
-                controller.setUnreadDialogsTabEnabled(enabled);
-                break;
             case ITEM_ID_CONTINUE_SCROLL_CHANNEL_JUMP:
                 enabled = !controller.isContinueScrollChannelJumpEnabled();
                 controller.setContinueScrollChannelJumpEnabled(enabled);
@@ -837,22 +748,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
             case ITEM_ID_TRANSLATION_DISPLAY_MODE:
                 showTranslationDisplayModeDialog();
                 return;
-            case ITEM_ID_AUTO_REACTION:
-                enabled = !SharedConfig.isAutoReactionEnabled();
-                SharedConfig.setAutoReactionEnabled(enabled);
-                break;
-            case ITEM_ID_AUTO_REACTION_EMOJI:
-                showAutoReactionEmojiDialog();
-                return;
-            case ITEM_ID_AUTO_REACTION_TARGET:
-                showAutoReactionTargetDialog();
-                return;
-            case ITEM_ID_AUTO_REACTION_USERS:
-                showAutoReactionUsersDialog();
-                return;
-            case ITEM_ID_BROADCAST_TO_GROUPS:
-                showBroadcastToGroupsDialog();
-                return;
             case ITEM_ID_LOCAL_VIRTUAL_GIFT_BUY:
                 enabled = !SharedConfig.isLocalVirtualGiftBuyEnabled();
                 SharedConfig.setLocalVirtualGiftBuyEnabled(enabled);
@@ -903,9 +798,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
             case ITEM_ID_KEYWORD_FILTER:
                 presentFragment(new KeywordFilterActivity());
                 return;
-            case ITEM_ID_AUTO_REPLY:
-                presentFragment(new AutoReplySettingsActivity());
-                return;
             default:
                 return;
         }
@@ -942,341 +834,6 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         builder.setPositiveButton(getString(R.string.Enable), (dialog, which) -> setAutoTranslateMessagesEnabled(true));
         builder.setNegativeButton(getString(R.string.Cancel), null);
         showDialog(builder.create());
-    }
-
-    private String getAutoReactionTargetText() {
-        switch (SharedConfig.getAutoReactionTarget()) {
-            case SharedConfig.AUTO_REACTION_TARGET_OUTGOING:
-                return getString(R.string.AutoReactionTargetOutgoing);
-            case SharedConfig.AUTO_REACTION_TARGET_BOTH:
-                return getString(R.string.AutoReactionTargetBoth);
-            case SharedConfig.AUTO_REACTION_TARGET_INCOMING:
-            default:
-                return getString(R.string.AutoReactionTargetIncoming);
-        }
-    }
-
-    private void showAutoReactionEmojiDialog() {
-        Context context = getParentActivity();
-        if (context == null) {
-            return;
-        }
-
-        FrameLayout container = new FrameLayout(context);
-        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), 0);
-        EditTextBoldCursor editText = createDialogEditText(context, getString(R.string.AutoReactionEmojiHint), 16);
-        editText.setInputType(InputType.TYPE_CLASS_TEXT);
-        editText.setText(SharedConfig.getAutoReactionEmoji());
-        editText.setSelection(editText.length());
-        container.addView(editText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(context, resourceProvider);
-        builder.setTitle(getString(R.string.AutoReactionEmojiTitle));
-        builder.setMessage(getString(R.string.AutoReactionEmojiInfo));
-        builder.setView(container);
-        builder.setPositiveButton(getString(R.string.Save), (dialog, which) -> {
-            SharedConfig.setAutoReactionEmoji(editText.getText().toString());
-            if (listView != null && listView.adapter != null) {
-                listView.adapter.update(false);
-            }
-        });
-        builder.setNegativeButton(getString(R.string.Cancel), null);
-        showDialog(builder.create());
-        AndroidUtilities.runOnUIThread(() -> {
-            editText.requestFocus();
-            AndroidUtilities.showKeyboard(editText);
-        }, 120);
-    }
-
-    private void showAutoReactionTargetDialog() {
-        Context context = getParentActivity();
-        if (context == null) {
-            return;
-        }
-
-        int[] targets = new int[]{
-                SharedConfig.AUTO_REACTION_TARGET_INCOMING,
-                SharedConfig.AUTO_REACTION_TARGET_OUTGOING,
-                SharedConfig.AUTO_REACTION_TARGET_BOTH
-        };
-        CharSequence[] labels = new CharSequence[]{
-                getString(R.string.AutoReactionTargetIncoming),
-                getString(R.string.AutoReactionTargetOutgoing),
-                getString(R.string.AutoReactionTargetBoth)
-        };
-        AlertDialog.Builder builder = new AlertDialog.Builder(context, resourceProvider);
-        builder.setTitle(getString(R.string.AutoReactionTargetTitle));
-        builder.setItems(labels, (dialog, which) -> {
-            SharedConfig.setAutoReactionTarget(targets[which]);
-            if (listView != null && listView.adapter != null) {
-                listView.adapter.update(false);
-            }
-        });
-        builder.setNegativeButton(getString(R.string.Cancel), null);
-        showDialog(builder.create());
-    }
-
-    private void showAutoReactionUsersDialog() {
-        Context context = getParentActivity();
-        if (context == null) {
-            return;
-        }
-        AlertDialog.Builder builder = new AlertDialog.Builder(context, resourceProvider);
-        builder.setTitle(getString(R.string.AutoReactionUsersTitle));
-        builder.setMessage(getString(R.string.AutoReactionUsersInfo));
-        builder.setItems(new CharSequence[]{
-                getString(R.string.AutoReactionUsersAll),
-                getString(R.string.AutoReactionUsersChoose),
-                getString(R.string.AutoReactionUsersAddByIdOrUsername)
-        }, (dialog, which) -> {
-            if (which == 0) {
-                SharedConfig.setAutoReactionUserIds(currentAccount, null);
-                if (listView != null && listView.adapter != null) {
-                    listView.adapter.update(false);
-                }
-            } else if (which == 1) {
-                showAutoReactionUserSelector();
-            } else {
-                showAutoReactionUserInputDialog();
-            }
-        });
-        builder.setNegativeButton(getString(R.string.Cancel), null);
-        showDialog(builder.create());
-    }
-
-    private void showAutoReactionUserSelector() {
-        Bundle args = new Bundle();
-        args.putBoolean("onlySelect", true);
-        args.putInt("dialogsType", DialogsActivity.DIALOGS_TYPE_FORWARD);
-        args.putBoolean("allowGroups", false);
-        args.putBoolean("allowMegagroups", false);
-        args.putBoolean("allowLegacyGroups", false);
-        args.putBoolean("allowChannels", false);
-        args.putBoolean("allowUsers", true);
-        args.putBoolean("allowBots", true);
-        args.putBoolean("checkCanWrite", false);
-        args.putBoolean("allowGlobalSearch", true);
-        args.putString("selectAlertString", LocaleController.getString(R.string.AutoReactionUsersChoose));
-
-        DialogsActivity fragment = new DialogsActivity(args) {
-            @Override
-            public ArrayList<TLRPC.Dialog> getDialogsArray(int account, int dialogsType, int folderId, boolean frozen) {
-                ArrayList<TLRPC.Dialog> sourceDialogs = super.getDialogsArray(account, DialogsActivity.DIALOGS_TYPE_DEFAULT, folderId, frozen);
-                ArrayList<TLRPC.Dialog> users = new ArrayList<>();
-                for (int i = 0; i < sourceDialogs.size(); i++) {
-                    TLRPC.Dialog dialog = sourceDialogs.get(i);
-                    if (dialog != null && dialog.id > 0) {
-                        users.add(dialog);
-                    }
-                }
-                return users;
-            }
-
-            @Override
-            public boolean shouldShowNextButton(DialogsActivity fragment, ArrayList<Long> dids, CharSequence message, boolean param) {
-                return dids != null && !dids.isEmpty();
-            }
-        };
-        fragment.setDelegate((dialogsActivity, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
-            HashSet<Long> selectedUsers = new HashSet<>();
-            for (int i = 0; i < dids.size(); i++) {
-                long dialogId = dids.get(i).dialogId;
-                if (dialogId > 0) {
-                    selectedUsers.add(dialogId);
-                }
-            }
-            SharedConfig.setAutoReactionUserIds(currentAccount, selectedUsers);
-            if (listView != null && listView.adapter != null) {
-                listView.adapter.update(false);
-            }
-            dialogsActivity.finishFragment();
-            return true;
-        });
-        presentFragment(fragment);
-    }
-
-    private void showAutoReactionUserInputDialog() {
-        Context context = getParentActivity();
-        if (context == null) {
-            return;
-        }
-
-        FrameLayout container = new FrameLayout(context);
-        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), 0);
-        EditTextBoldCursor editText = createDialogEditText(context, getString(R.string.AutoReactionUserInputHint), 64);
-        editText.setInputType(InputType.TYPE_CLASS_TEXT);
-        container.addView(editText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(context, resourceProvider);
-        builder.setTitle(getString(R.string.AutoReactionUsersAddByIdOrUsername));
-        builder.setMessage(getString(R.string.AutoReactionUserInputInfo));
-        builder.setView(container);
-        builder.setPositiveButton(getString(R.string.Add), (dialog, which) -> addAutoReactionUser(editText.getText().toString()));
-        builder.setNegativeButton(getString(R.string.Cancel), null);
-        showDialog(builder.create());
-        AndroidUtilities.runOnUIThread(() -> {
-            editText.requestFocus();
-            AndroidUtilities.showKeyboard(editText);
-        }, 120);
-    }
-
-    private void addAutoReactionUser(String input) {
-        Context context = getParentActivity();
-        if (context == null) {
-            return;
-        }
-        String value = input == null ? "" : input.trim();
-        while (value.startsWith("@")) {
-            value = value.substring(1);
-        }
-        if (TextUtils.isEmpty(value)) {
-            Toast.makeText(context, getString(R.string.AutoReactionUserInputInvalid), Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (AndroidUtilities.isNumeric(value)) {
-            try {
-                long userId = Long.parseLong(value);
-                if (userId > 0) {
-                    saveAutoReactionUser(userId, value);
-                    return;
-                }
-            } catch (NumberFormatException ignore) {
-            }
-            Toast.makeText(context, getString(R.string.AutoReactionUserInputInvalid), Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String username = value;
-        AlertDialog progressDialog = new AlertDialog(context, AlertDialog.ALERT_TYPE_SPINNER, resourceProvider);
-        boolean[] completed = new boolean[1];
-        Runnable[] cancelRequest = new Runnable[1];
-        cancelRequest[0] = getMessagesController().getUserNameResolver().resolve(username, peerId -> {
-            completed[0] = true;
-            progressDialog.dismiss();
-            if (isFinished || getParentActivity() == null) {
-                return;
-            }
-            if (peerId == null || peerId <= 0 || peerId == Long.MAX_VALUE) {
-                Toast.makeText(getParentActivity(), getString(R.string.AutoReactionUserNotFound), Toast.LENGTH_SHORT).show();
-                return;
-            }
-            saveAutoReactionUser(peerId, "@" + username);
-        });
-        if (!completed[0]) {
-            progressDialog.setOnCancelListener(dialog -> {
-                if (cancelRequest[0] != null) {
-                    cancelRequest[0].run();
-                }
-            });
-            showDialog(progressDialog);
-        }
-    }
-
-    private void saveAutoReactionUser(long userId, String label) {
-        HashSet<Long> selectedUsers = SharedConfig.getAutoReactionUserIds(currentAccount);
-        selectedUsers.add(userId);
-        SharedConfig.setAutoReactionUserIds(currentAccount, selectedUsers);
-        if (listView != null && listView.adapter != null) {
-            listView.adapter.update(false);
-        }
-        Context context = getParentActivity();
-        if (context != null) {
-            Toast.makeText(context, LocaleController.formatString(R.string.AutoReactionUserAdded, label), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void showBroadcastToGroupsDialog() {
-        Context context = getParentActivity();
-        if (context == null) {
-            return;
-        }
-
-        FrameLayout container = new FrameLayout(context);
-        container.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), 0);
-
-        EditTextBoldCursor editText = new EditTextBoldCursor(context);
-        editText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
-        editText.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
-        editText.setHintTextColor(Theme.getColor(Theme.key_dialogTextHint));
-        editText.setBackgroundDrawable(Theme.createEditTextDrawable(context, true));
-        editText.setHintText(getString(R.string.BroadcastToGroupsHint));
-        editText.setMinLines(3);
-        editText.setMaxLines(6);
-        editText.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        editText.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(12), AndroidUtilities.dp(4), AndroidUtilities.dp(12));
-        container.addView(editText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(context, resourceProvider);
-        builder.setTitle(getString(R.string.BroadcastToGroupsTitle));
-        builder.setMessage(getString(R.string.BroadcastToGroupsInputInfo));
-        builder.setView(container);
-        builder.setPositiveButton(getString(R.string.OK), (dialog, which) -> {
-            String text = SendMessagesHelper.getTrimmedString(editText.getText().toString());
-            if (TextUtils.isEmpty(text)) {
-                Toast.makeText(context, getString(R.string.BroadcastToGroupsEmptyText), Toast.LENGTH_SHORT).show();
-                return;
-            }
-            ArrayList<Long> targetGroups = getBroadcastTargetGroups();
-            if (targetGroups.isEmpty()) {
-                Toast.makeText(context, getString(R.string.BroadcastToGroupsNoGroups), Toast.LENGTH_SHORT).show();
-                return;
-            }
-            showBroadcastToGroupsConfirm(text, targetGroups);
-        });
-        builder.setNegativeButton(getString(R.string.Cancel), null);
-        showDialog(builder.create());
-        AndroidUtilities.runOnUIThread(() -> {
-            editText.requestFocus();
-            AndroidUtilities.showKeyboard(editText);
-        }, 120);
-    }
-
-    private void showBroadcastToGroupsConfirm(String text, ArrayList<Long> targetGroups) {
-        Context context = getParentActivity();
-        if (context == null) {
-            return;
-        }
-        AlertDialog.Builder builder = new AlertDialog.Builder(context, resourceProvider);
-        builder.setTitle(getString(R.string.BroadcastToGroupsWarningTitle));
-        builder.setMessage(LocaleController.formatString(R.string.BroadcastToGroupsWarningText, targetGroups.size()));
-        builder.setPositiveButton(getString(R.string.OK), (dialog, which) -> sendTextToGroups(text, targetGroups));
-        builder.setNegativeButton(getString(R.string.Cancel), null);
-        showDialog(builder.create());
-    }
-
-    private ArrayList<Long> getBroadcastTargetGroups() {
-        ArrayList<Long> result = new ArrayList<>();
-        ArrayList<TLRPC.Dialog> dialogs = getMessagesController().getDialogs(0);
-        for (int i = 0, size = dialogs.size(); i < size; i++) {
-            TLRPC.Dialog dialog = dialogs.get(i);
-            if (dialog == null || dialog.id >= 0) {
-                continue;
-            }
-            TLRPC.Chat chat = getMessagesController().getChat(-dialog.id);
-            if (chat == null || ChatObject.isNotInChat(chat) || ChatObject.isChannelAndNotMegaGroup(chat) || !ChatObject.canSendMessages(chat)) {
-                continue;
-            }
-            result.add(dialog.id);
-        }
-        return result;
-    }
-
-    private void sendTextToGroups(String text, ArrayList<Long> targetGroups) {
-        if (TextUtils.isEmpty(text) || targetGroups == null || targetGroups.isEmpty()) {
-            return;
-        }
-        SendMessagesHelper sendMessagesHelper = SendMessagesHelper.getInstance(currentAccount);
-        for (int i = 0, size = targetGroups.size(); i < size; i++) {
-            final long dialogId = targetGroups.get(i);
-            final long delay = i * 350L;
-            AndroidUtilities.runOnUIThread(() -> sendMessagesHelper.sendMessage(SendMessagesHelper.SendMessageParams.of(text, dialogId, null, null, null, true, null, null, null, true, 0, 0, null, false)), delay);
-        }
-        Context context = getParentActivity();
-        if (context != null) {
-            Toast.makeText(context, LocaleController.formatString(R.string.BroadcastToGroupsStarted, targetGroups.size()), Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void showDialogsTitleDialog() {

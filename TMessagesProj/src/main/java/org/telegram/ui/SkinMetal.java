@@ -50,7 +50,6 @@ public final class SkinMetal {
 
     private static CanvasMaterials knurlMaterials;
     private static CanvasMaterials capMaterials;
-    private static float capRadius;
     private static CanvasMaterials recessMaterials;
     private static CanvasMaterials capsuleMaterials;
     private static float capsuleTop;
@@ -104,6 +103,10 @@ public final class SkinMetal {
 
     /** As above, its LED part way through coming on or going out ({@link SkinLed}'s glow). */
     public static void drawKnob(Canvas canvas, float cx, float cy, float r, float glow, float rim, CanvasMaterials m, float alpha) {
+        // The recording knob shrinks to nothing on its way out; a radius of 0 would make no gradient.
+        if (!(r > 0f)) {
+            return;
+        }
         final int a = (int) (255 * alpha);
         canvas.save();
         canvas.translate(cx, cy);
@@ -124,14 +127,18 @@ public final class SkinMetal {
         canvas.drawCircle(0, 0, r, knurlPaint);
 
         final float cap = r * 0.78f;
-        if (capMaterials != m || capRadius != cap) {
+        // The cap's light is built once for a cap of radius 1 and scaled to size, so a knob
+        // growing or shrinking frame by frame does not build a new gradient each time.
+        if (capMaterials != m) {
             capMaterials = m;
-            capRadius = cap;
-            capPaint.setShader(new RadialGradient(-0.3f * cap, -0.4f * cap, 2 * cap,
+            capPaint.setShader(new RadialGradient(-0.3f, -0.4f, 2f,
                     new int[]{m.capLit, m.capMid, m.capShade}, null, Shader.TileMode.CLAMP));
         }
         capPaint.setAlpha(a);
-        canvas.drawCircle(0, 0, cap, capPaint);
+        canvas.save();
+        canvas.scale(cap, cap);
+        canvas.drawCircle(0, 0, 1f, capPaint);
+        canvas.restore();
         linePaint.setStrokeWidth(dpf2(1));
         linePaint.setColor(m.highlight);
         linePaint.setAlpha((int) (Color.alpha(m.highlight) * alpha));

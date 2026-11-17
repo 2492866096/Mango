@@ -326,7 +326,7 @@ public class ApplicationLoader extends Application {
                 SendMessagesHelper.getInstance(account).checkUnsentMessages();
             }
         }
-        startExtensionAutomationTicker();
+        startExtensionTicker();
         MangoMessageReminderManager.rescheduleAll();
         BuiltinProxyController.ensureStartupProxyApplied();
         syncProxyWithVpnState(true);
@@ -347,14 +347,14 @@ public class ApplicationLoader extends Application {
         BillingController.getInstance().startConnection();
     }
 
-    private static boolean extensionAutomationTickerStarted;
+    private static boolean extensionTickerStarted;
 
-    private static void startExtensionAutomationTicker() {
+    private static void startExtensionTicker() {
         AndroidUtilities.runOnUIThread(() -> {
-            if (extensionAutomationTickerStarted) {
+            if (extensionTickerStarted) {
                 return;
             }
-            extensionAutomationTickerStarted = true;
+            extensionTickerStarted = true;
             AndroidUtilities.runOnUIThread(new Runnable() {
                 @Override
                 public void run() {
@@ -362,8 +362,6 @@ public class ApplicationLoader extends Application {
                         if (UserConfig.getInstance(account).isClientActivated()) {
                             try {
                                 MangoLegacySettings.initialize(account);
-                                DailyMessageTasksManager.getInstance(account).tick();
-                                PresenceSimulationManager.getInstance(account).tick();
                             } catch (Exception e) {
                                 FileLog.e(e);
                             }
@@ -427,17 +425,6 @@ public class ApplicationLoader extends Application {
             throw new RuntimeException("can't load native libraries " +  Build.CPU_ABI + " lookup folder " + NativeLoader.getAbiFolder());
         }
         new ForegroundDetector(this) {
-            @Override
-            public void onActivityPaused(Activity activity) {
-                super.onActivityPaused(activity);
-                if (extensionAutomationTickerStarted) {
-                    for (int account : UserConfig.getActivatedAccounts()) {
-                        DailyMessageTasksManager.getInstance(account).onAppPaused();
-                        PresenceSimulationManager.getInstance(account).stopTyping();
-                    }
-                }
-            }
-
             @Override
             public void onActivityStarted(Activity activity) {
                 boolean wasInBackground = isBackground();

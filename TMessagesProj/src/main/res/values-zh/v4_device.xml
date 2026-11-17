@@ -10,13 +10,6 @@
     <string name="RootTerminalCancelled">命令已停止</string>
     <string name="RootTerminalFinished">执行结束，退出码 %1$d</string>
     <string name="RootTerminalTruncated">输出超过 64 KB，已截断。</string>
-    <string name="DailyMessageTasksMode">触发模式</string>
-    <string name="DailyMessageTasksRandomMode">在线随机签到</string>
-    <string name="DailyMessageTasksFixedMode">每日固定时间</string>
-    <string name="DailyMessageTasksWindowStart">随机时段开始</string>
-    <string name="DailyMessageTasksWindowEnd">随机时段结束</string>
-    <string name="DailyMessageTasksRandomInfo">在此时段内，前台在线后随机等待 15–90 秒，完成当天一次自动发送。离开应用会暂停，时段内重新上线会再次随机等待。当日执行记录及待执行时间在重启后保留。时间段必须位于同一个自然日内。</string>
-    <string name="DailyMessageTasksInvalidWindow">随机时段的结束时间不能早于开始时间。</string>
     <string name="DuplicateFilesTitle">重复文件智能清理</string>
     <string name="DuplicateFilesInfo">扫描本应用下载的媒体、公开媒体目录和应用专用下载目录。通过文件大小和 SHA-256 校验内容，不按文件名判断。跳过临时、加密、最近写入以及传输中的文件。默认保留最早的一份；取消勾选可保留指定副本，再选择其他副本清理。长按可预览。仅删除本地副本，云端媒体可能再次下载。</string>
     <string name="DuplicateFilesScan">检测重复文件</string>

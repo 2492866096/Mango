@@ -53,7 +53,6 @@
     <string name="SkinToggleDataSaverInfo">省流量：用移动网络时不自动下载</string>
     <string name="SkinToggleQuiet">勿扰</string>
     <string name="SkinToggleQuietInfo">勿扰：暂停全部通知</string>
-    <string name="SkinToolBroadcast">群发</string>
     <string name="SkinToolRules">通知规则</string>
     <string name="SkinToolSecurity">安全检查</string>
     <string name="SkinToolPerformance">性能监控</string>
@@ -70,7 +69,6 @@
     <string name="SkinSetMore">更多设置</string>
     <string name="SkinNoticeFrozen">你的账号已被冻结，点此了解详情</string>
     <string name="SkinNoticeSuggestion">设置里有一条提醒</string>
-    <string name="SkinListUnread">未读</string>
     <string name="SkinBubbleStyle">气泡风格</string>
     <string name="SkinBubbleStyleFollow">跟随浅深色</string>
     <string name="SkinBubbleStyleGraphite">一直石墨</string>

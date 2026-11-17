@@ -4,7 +4,6 @@
     <string name="MangoCategoryChat">聊天</string>
     <string name="MangoCategoryPrivacy">隐私</string>
     <string name="MangoCategoryMedia">媒体</string>
-    <string name="MangoCategoryAutomation">自动化</string>
     <string name="MangoCategoryAppearance">外观</string>
     <string name="MangoCategoryTools">工具</string>
     <string name="MangoSearchSettings">搜索所有功能和设置</string>
@@ -47,14 +46,6 @@
     <string name="MangoDisableSentSoundInfo">关闭消息发送成功的提示音。</string>
     <string name="MangoDisableReceivedSound">禁用消息收到提示音</string>
     <string name="MangoDisableReceivedSoundInfo">关闭新消息提示音，保留其他通知方式。</string>
-    <string name="MangoAutoRead">自动已读消息</string>
-    <string name="MangoAutoReadInfo">应用前台且联网时仅处理新消息。隐藏已读状态设置仍优先生效。</string>
-    <string name="MangoAutoReadRandomReply">自动已读并随机回复</string>
-    <string name="MangoAutoReadRandomReplyInfo">应用前台且联网时仅处理新消息，回复随机组成的 8 个汉字；每个会话最多每 3 秒一次，不发送付费消息。默认仅私聊生效，群组需手动选择。隐藏已读状态设置仍优先生效。</string>
-    <string name="MangoAutoReadReplyGroups">随机回复群组</string>
-    <string name="MangoAutoReadReplyAddGroup">添加群组</string>
-    <string name="MangoAutoReadReplyGroupsInfo">开启“自动已读并随机回复”后，默认只处理私聊。只有在此添加的群组才会自动已读并回复；移除后立即停止，频道不参与。单独的“自动已读”开关不受此范围限制。</string>
-    <string name="MangoAutoReadReplyNoGroups">尚未选择群组，仅私聊生效</string>
     <string name="MangoConfirmSend">发送消息前确认</string>
     <string name="MangoConfirmSendInfo">手动发送消息前增加确认步骤。</string>
     <string name="MangoConfirmVoice">发送语音录音前确认</string>
