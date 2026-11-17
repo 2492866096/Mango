@@ -150,7 +150,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import org.telegram.ui.SkinCrackleWallpaper;
 import org.telegram.ui.SkinStyle;
+import org.telegram.ui.SkinSwitch;
 
 public class Theme {
 
@@ -9830,6 +9832,11 @@ public class Theme {
         return !TextUtils.isEmpty(themedWallpaperLink);
     }
 
+    /** One of the redesign's own themes, whose plain ground the chat screen draws with the celadon crazing. */
+    private static boolean isSkinTheme(ThemeInfo theme) {
+        return SkinSwitch.CHAT_FRAME && theme != null && theme.assetName != null && theme.assetName.startsWith("skin_frost");
+    }
+
     public static boolean hasWallpaperFromTheme() {
         if (currentTheme.firstAccentIsDefault && currentTheme.currentAccentId == DEFALT_THEME_ACCENT_ID) {
             return false;
@@ -10076,7 +10083,7 @@ public class Theme {
                     motionBackgroundDrawable.setPhase(previousPhase);
                     settings.wallpaper = motionBackgroundDrawable;
                 } else if (gradientToColor1 == 0 || gradientToColor1 == backgroundColor) {
-                    settings.wallpaper = new ColorDrawable(backgroundColor);
+                    settings.wallpaper = isSkinTheme(currentTheme) ? new SkinCrackleWallpaper(backgroundColor) : new ColorDrawable(backgroundColor);
                 } else {
                     final int[] colors = {backgroundColor, gradientToColor1};
                     final BackgroundGradientDrawable.Orientation orientation = BackgroundGradientDrawable.getGradientOrientation(rotation);
