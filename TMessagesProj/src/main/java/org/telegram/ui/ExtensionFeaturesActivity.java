@@ -45,6 +45,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -169,15 +170,21 @@ public class ExtensionFeaturesActivity extends BaseFragment {
         top.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite, resourceProvider));
         top.setLayoutDirection(LocaleController.isRTL ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
 
+        final CanvasMaterials skin = SkinSwitch.MANGO_PAGES ? SkinMetal.materials(Theme.getColor(Theme.key_windowBackgroundWhite, resourceProvider)) : null;
         FrameLayout searchContainer = new FrameLayout(context);
-        searchContainer.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(12),
-                Theme.getColor(Theme.key_windowBackgroundGray, resourceProvider)));
+        if (skin != null) {
+            // The search sits in a well sunk into the page, as the input console's field does.
+            searchContainer.setBackground(SkinKeys.well(skin, 14));
+        } else {
+            searchContainer.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.dp(12),
+                    Theme.getColor(Theme.key_windowBackgroundGray, resourceProvider)));
+        }
         LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(-1, AndroidUtilities.dp(48));
         searchParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
         top.addView(searchContainer, searchParams);
 
         ImageView searchIcon = new ImageView(context);
-        searchIcon.setImageResource(R.drawable.msg_search);
+        searchIcon.setImageResource(skin != null ? org.telegram.skin.R.drawable.skin_side_search : R.drawable.msg_search);
         searchIcon.setScaleType(ImageView.ScaleType.CENTER);
         searchIcon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resourceProvider));
         searchIcon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -200,7 +207,7 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 Gravity.FILL, 44, 0, 44, 0));
 
         clearSearchButton = new ImageView(context);
-        clearSearchButton.setImageResource(R.drawable.ic_close_white);
+        clearSearchButton.setImageResource(skin != null ? org.telegram.skin.R.drawable.skin_slip_close : R.drawable.ic_close_white);
         clearSearchButton.setScaleType(ImageView.ScaleType.CENTER);
         clearSearchButton.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resourceProvider));
         clearSearchButton.setBackground(Theme.createSelectorDrawable(
@@ -216,8 +223,15 @@ public class ExtensionFeaturesActivity extends BaseFragment {
                 Gravity.TOP | (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT)));
 
         categoryTabs = new ScrollSlidingTextTabStrip(context, resourceProvider);
-        categoryTabs.setColors(Theme.key_windowBackgroundWhiteBlueText, Theme.key_windowBackgroundWhiteBlueText,
-                Theme.key_windowBackgroundWhiteGrayText, Theme.key_listSelector);
+        if (skin != null) {
+            // The current category in ink with the skin's celadon bar, as the profile's media tabs.
+            categoryTabs.setColors(Theme.key_profile_tabSelectedLine, Theme.key_profile_tabSelectedText,
+                    Theme.key_profile_tabText, Theme.key_profile_tabSelector);
+            categoryTabs.setSkinBar(true);
+        } else {
+            categoryTabs.setColors(Theme.key_windowBackgroundWhiteBlueText, Theme.key_windowBackgroundWhiteBlueText,
+                    Theme.key_windowBackgroundWhiteGrayText, Theme.key_listSelector);
+        }
         categoryTabs.setUseMinimalWidth(true);
         for (int i = 0; i < MangoFeatureRegistry.CATEGORY_LABELS.length; i++) {
             categoryTabs.addTextTab(i, getString(MangoFeatureRegistry.CATEGORY_LABELS[i]));

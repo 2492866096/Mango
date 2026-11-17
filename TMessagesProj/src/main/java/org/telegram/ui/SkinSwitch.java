@@ -31,6 +31,12 @@ public final class SkinSwitch {
      */
     public static final boolean CONTROLS = true;
 
+    /** Page titles in the action bar are set in the skin's serif, as the chat list's is. */
+    public static final boolean TITLES = true;
+
+    /** Mango's own pages (the extension centre and the pages it opens) in the skin's style. */
+    public static final boolean MANGO_PAGES = true;
+
     private SkinSwitch() {
     }
 }

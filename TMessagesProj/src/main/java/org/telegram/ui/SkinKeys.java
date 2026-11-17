@@ -51,6 +51,11 @@ public final class SkinKeys {
         return keys;
     }
 
+    /** A search field's ground: a well sunk into the metal, corner radius [radiusDp]. */
+    public static Drawable well(CanvasMaterials m, float radiusDp) {
+        return new Well(m, radiusDp);
+    }
+
     private abstract static class Base extends Drawable {
         final CanvasMaterials m;
         int alpha = 255;
@@ -134,6 +139,22 @@ public final class SkinKeys {
             edgePaint.setAlpha((int) (Color.alpha(m.grooveCut) * a));
             canvas.drawLine(rect.left, rect.bottom - px / 2, rect.right, rect.bottom - px / 2, edgePaint);
             canvas.restore();
+        }
+    }
+
+    private static final class Well extends Base {
+        private final RectF rect = new RectF();
+        private final float radiusDp;
+
+        Well(CanvasMaterials m, float radiusDp) {
+            super(m);
+            this.radiusDp = radiusDp;
+        }
+
+        @Override
+        public void draw(@NonNull Canvas canvas) {
+            rect.set(getBounds());
+            SkinMetal.drawWell(canvas, rect, Math.min(dpf2(radiusDp), rect.height() / 2f), m, alpha / 255f);
         }
     }
 
