@@ -10553,7 +10553,19 @@ public class ChatActivity extends BaseFragment implements
 
             @Override
             protected void measureChildWithMargins(View child, int parentWidthMeasureSpec, int widthUsed, int parentHeightMeasureSpec, int heightUsed) {
-                if (child == searchCountText) {
+                if (child == searchCountText && SkinSwitch.CHAT_FRAME) {
+                    // Between the up/down keys and the keys before the knob, centred.
+                    int right = SKIN_SEARCH_KNOB + SKIN_SEARCH_KEY + 4;
+                    if (searchCalendarButton != null && searchCalendarButton.getVisibility() != GONE) {
+                        right += SKIN_SEARCH_KEY;
+                    }
+                    if (searchUserButton != null && searchUserButton.getVisibility() != GONE) {
+                        right += SKIN_SEARCH_KEY;
+                    }
+                    final MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
+                    lp.leftMargin = AndroidUtilities.dp(4 + 2 * SKIN_SEARCH_KEY + 4);
+                    lp.rightMargin = AndroidUtilities.dp(right);
+                } else if (child == searchCountText) {
                     int leftMargin = 18;
                     if (searchCalendarButton != null && searchCalendarButton.getVisibility() != GONE) {
                         leftMargin += 48;
@@ -10584,7 +10596,38 @@ public class ChatActivity extends BaseFragment implements
             hashtagHistoryView.bringToFront();
         }
 
-        searchExpandList = new AnimatedTextView(getContext(), true, false, true);
+        searchExpandList = new AnimatedTextView(getContext(), true, false, true) {
+            private Drawable glyph;
+            private int glyphRes;
+
+            @Override
+            protected void onDraw(Canvas canvas) {
+                if (!SkinSwitch.CHAT_FRAME) {
+                    super.onDraw(canvas);
+                    return;
+                }
+                // The console shows the toggle as a key whose glyph names what a tap does.
+                final CharSequence text = getText();
+                final int res;
+                if (text != null && TextUtils.equals(text, LocaleController.getString(R.string.AuthorMessagesOnlyExit))) {
+                    res = org.telegram.skin.R.drawable.skin_search_exit;
+                } else if (text != null && TextUtils.equals(text, LocaleController.getString(R.string.SearchAsChat))) {
+                    res = org.telegram.skin.R.drawable.skin_search_chat;
+                } else {
+                    res = org.telegram.skin.R.drawable.skin_search_list;
+                }
+                if (glyph == null || glyphRes != res) {
+                    glyphRes = res;
+                    glyph = ContextCompat.getDrawable(getContext(), res).mutate();
+                }
+                glyph.setColorFilter(new PorterDuffColorFilter(skinSlipMaterials().textSecondary, PorterDuff.Mode.SRC_IN));
+                final int size = dp(22);
+                final int left = (getWidth() - size) / 2;
+                final int top = (getHeight() - size) / 2;
+                glyph.setBounds(left, top, left + size, top + size);
+                glyph.draw(canvas);
+            }
+        };
         searchExpandList.setAnimationProperties(0, 0, 420, CubicBezierInterpolator.EASE_OUT_QUINT);
         searchExpandList.setScaleProperty(.7f);
         searchExpandList.setTextSize(dp(15));
@@ -10662,18 +10705,29 @@ public class ChatActivity extends BaseFragment implements
         }
 
         if (SkinSwitch.CHAT_FRAME) {
-            // The console's knob closes the search; the rest of the bar keeps clear of it.
-            ((FrameLayout.LayoutParams) searchExpandList.getLayoutParams()).rightMargin = dp(SKIN_SEARCH_KNOB);
+            // The console as a pager: up and down, which result, then the date, member and list keys,
+            // and the knob that closes the search.
+            searchExpandList.setPadding(0, 0, 0, 0);
+            searchExpandList.setLayoutParams(LayoutHelper.createFrame(SKIN_SEARCH_KEY, LayoutHelper.MATCH_PARENT, Gravity.RIGHT, 0, 0, SKIN_SEARCH_KNOB, 0));
+            searchExpandList.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_actionBarActionModeDefaultSelector), 1));
             final FrameLayout.LayoutParams otherParams = (FrameLayout.LayoutParams) searchOtherButton.getLayoutParams();
             otherParams.rightMargin = dp(SKIN_SEARCH_KNOB);
             otherParams.topMargin = otherParams.bottomMargin = dp(1);
-            ((FrameLayout.LayoutParams) searchCountText.getLayoutParams()).rightMargin = dp(97.33f + SKIN_SEARCH_KNOB);
-            if (searchCalendarButton != null) {
-                searchCalendarButton.setImageResource(org.telegram.skin.R.drawable.skin_search_calendar);
-            }
+            searchCountText.setGravity(Gravity.CENTER);
+            searchCountText.setTypeface(SkinStyle.numerals(false));
+            searchCountText.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 30, Gravity.CENTER_VERTICAL));
             if (searchUserButton != null) {
                 searchUserButton.setImageResource(org.telegram.skin.R.drawable.skin_search_user);
+                searchUserButton.setLayoutParams(LayoutHelper.createFrame(SKIN_SEARCH_KEY, 44, Gravity.RIGHT | Gravity.TOP, 0, 0, SKIN_SEARCH_KNOB + SKIN_SEARCH_KEY, 0));
             }
+            if (searchCalendarButton != null) {
+                searchCalendarButton.setImageResource(org.telegram.skin.R.drawable.skin_search_calendar);
+                searchCalendarButton.setLayoutParams(LayoutHelper.createFrame(SKIN_SEARCH_KEY, 44, Gravity.RIGHT | Gravity.TOP, 0, 0,
+                    SKIN_SEARCH_KNOB + SKIN_SEARCH_KEY * (searchUserButton != null ? 2 : 1), 0));
+            }
+            skinSearchUp = skinSearchKey(org.telegram.skin.R.drawable.skin_search_up, 4, true);
+            skinSearchDown = skinSearchKey(org.telegram.skin.R.drawable.skin_search_down, 4 + SKIN_SEARCH_KEY, false);
+            updateSkinSearchKeys();
             final Drawable closeGlyph = ContextCompat.getDrawable(getContext(), org.telegram.skin.R.drawable.skin_slip_close).mutate();
             skinSearchClose = new View(getContext()) {
                 @Override
@@ -10702,7 +10756,35 @@ public class ChatActivity extends BaseFragment implements
     }
 
     private static final int SKIN_SEARCH_KNOB = 48;
+    private static final int SKIN_SEARCH_KEY = 38;
     private View skinSearchClose;
+    private ImageView skinSearchUp, skinSearchDown;
+    private boolean skinSearchUpEnabled, skinSearchDownEnabled;
+
+    private ImageView skinSearchKey(int glyph, int leftMargin, boolean up) {
+        final ImageView key = new ImageView(getContext());
+        key.setScaleType(ImageView.ScaleType.CENTER);
+        key.setImageResource(glyph);
+        key.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_actionBarActionModeDefaultSelector), 1));
+        key.setContentDescription(LocaleController.getString(up ? R.string.AccDescrSearchNext : R.string.AccDescrSearchPrev));
+        key.setOnClickListener(v -> goToNextOrPrevSearchMessage(up));
+        searchContainer.addView(key, LayoutHelper.createFrame(SKIN_SEARCH_KEY, 44, Gravity.LEFT | Gravity.TOP, leftMargin, 0, 0, 0));
+        return key;
+    }
+
+    /** The console's up and down keys: dimmed and inert where Telegram's side buttons would be disabled or hidden. */
+    private void updateSkinSearchKeys() {
+        if (skinSearchUp == null) {
+            return;
+        }
+        final boolean results = !getMediaDataController().searchResultMessages.isEmpty() && searching && !searchingFiltered || chatMode == MODE_SEARCH && searchType == SEARCH_PUBLIC_POSTS && !messages.isEmpty();
+        final boolean up = results && skinSearchUpEnabled;
+        final boolean down = results && skinSearchDownEnabled;
+        skinSearchUp.setEnabled(up);
+        skinSearchUp.setAlpha(up ? 1f : 0.35f);
+        skinSearchDown.setEnabled(down);
+        skinSearchDown.setAlpha(down ? 1f : 0.35f);
+    }
 
     /** The search console in the skin's inks; "show other messages" covers the bar, so it gets the metal itself. */
     private void updateSkinSearchColors() {
@@ -10723,6 +10805,11 @@ public class ChatActivity extends BaseFragment implements
         if (searchUserButton != null) {
             searchUserButton.setColorFilter(icons);
         }
+        if (skinSearchUp != null) {
+            skinSearchUp.setColorFilter(icons);
+            skinSearchDown.setColorFilter(icons);
+        }
+        searchExpandList.invalidate();
         skinSearchClose.invalidate();
     }
 
@@ -17567,8 +17654,9 @@ public class ChatActivity extends BaseFragment implements
         }
         boolean show = !getMediaDataController().searchResultMessages.isEmpty() && searching && !searchingFiltered || chatMode == MODE_SEARCH && searchType == SEARCH_PUBLIC_POSTS && !messages.isEmpty();
 
-        sideControlsButtonsLayout.showButton(ChatActivitySideControlsButtonsLayout.BUTTON_SEARCH_UP, show, animated);
-        sideControlsButtonsLayout.showButton(ChatActivitySideControlsButtonsLayout.BUTTON_SEARCH_DOWN, show, animated);
+        sideControlsButtonsLayout.showButton(ChatActivitySideControlsButtonsLayout.BUTTON_SEARCH_UP, show && !SkinSwitch.CHAT_FRAME, animated);
+        sideControlsButtonsLayout.showButton(ChatActivitySideControlsButtonsLayout.BUTTON_SEARCH_DOWN, show && !SkinSwitch.CHAT_FRAME, animated);
+        updateSkinSearchKeys();
         if (show) {
             sideControlsButtonsLayout.showButton(ChatActivitySideControlsButtonsLayout.BUTTON_PAGE_DOWN, false, animated);
         }
@@ -27343,6 +27431,9 @@ public class ChatActivity extends BaseFragment implements
             sideControlsButtonsLayout.setButtonEnabled(ChatActivitySideControlsButtonsLayout.BUTTON_SEARCH_UP, (mask & (reversed ? 2 : 1)) != 0, true);
             sideControlsButtonsLayout.setButtonEnabled(ChatActivitySideControlsButtonsLayout.BUTTON_SEARCH_DOWN, (mask & (reversed ? 1 : 2)) != 0, true);
         }
+        skinSearchUpEnabled = (mask & (reversed ? 2 : 1)) != 0;
+        skinSearchDownEnabled = (mask & (reversed ? 1 : 2)) != 0;
+        updateSkinSearchKeys();
         searchLastCount = count;
         searchLastIndex = num;
         updateSearchCountText();
@@ -27371,6 +27462,8 @@ public class ChatActivity extends BaseFragment implements
                 searchCountText.setText(LocaleController.formatPluralString("TaggedMessages", searchLastCount), animated);
             } else if (chatMode == MODE_SEARCH || messagesSearchListContainer.getTag() != null) {
                 searchCountText.setText(LocaleController.formatPluralString("SearchMessagesResultCount", searchLastCount, LocaleController.formatNumber(searchLastCount, ' ')), animated);
+            } else if (SkinSwitch.CHAT_FRAME) {
+                searchCountText.setText((searchLastIndex + 1) + " / " + searchLastCount, animated);
             } else {
                 searchCountText.setText(LocaleController.formatString(R.string.Of, searchLastIndex + 1, searchLastCount), animated);
             }
