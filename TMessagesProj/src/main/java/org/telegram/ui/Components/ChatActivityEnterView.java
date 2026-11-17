@@ -169,6 +169,7 @@ import org.telegram.ui.Business.BusinessLinksController;
 import org.telegram.ui.Business.QuickRepliesController;
 import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ChatActivity;
+import org.telegram.ui.SkinKeys;
 import org.telegram.ui.SkinMetal;
 import org.telegram.ui.SkinStyle;
 import org.telegram.ui.SkinSwitch;
@@ -4755,6 +4756,9 @@ public class ChatActivityEnterView extends FrameLayout implements
                     sendPopupLayout.addView(sendWithoutSoundButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT));
                 }
                 sendPopupLayout.setupRadialSelectors(getThemedColor(Theme.key_dialogButtonSelector));
+                if (skinFrame) {
+                    skinPopupKeys(sendPopupLayout, skinMaterials());
+                }
 
                 sendPopupWindow = new ActionBarPopupWindow(sendPopupLayout, LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT) {
                     @Override
@@ -5030,6 +5034,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             });
         }
         options.setupSelectors();
+        skinSendOptions(options, messageSendPreview);
         if (sendWhenOnlineButton != null) {
             TLRPC.User user = parentFragment == null ? null : parentFragment.getCurrentUser();
             if (user != null && !user.bot && !(user.status instanceof TLRPC.TL_userStatusEmpty) && !(user.status instanceof TLRPC.TL_userStatusOnline) && !(user.status instanceof TLRPC.TL_userStatusRecently) && !(user.status instanceof TLRPC.TL_userStatusLastMonth) && !(user.status instanceof TLRPC.TL_userStatusLastWeek)) {
@@ -7270,6 +7275,36 @@ public class ChatActivityEnterView extends FrameLayout implements
             org.telegram.skin.R.drawable.skin_input_smile,
             org.telegram.skin.R.drawable.skin_input_gif,
     };
+
+    /**
+     * The knob's long-press options as a slab of aluminium keys over the page's
+     * fog: the key under the finger is inlaid with porcelain and lit. Called
+     * after the options set up their own selectors, which it replaces.
+     */
+    private void skinSendOptions(ItemOptions options, MessageSendPreview preview) {
+        if (!skinFrame) {
+            return;
+        }
+        final CanvasMaterials m = skinMaterials();
+        preview.setFog(Theme.multAlpha(m.page, 0.9f));
+        if (options.getLayout() instanceof ActionBarPopupWindow.ActionBarPopupWindowLayout) {
+            skinPopupKeys((ActionBarPopupWindow.ActionBarPopupWindowLayout) options.getLayout(), m);
+        }
+    }
+
+    private void skinPopupKeys(ActionBarPopupWindow.ActionBarPopupWindowLayout layout, CanvasMaterials m) {
+        layout.setBackgroundDrawable(SkinKeys.slab(m));
+        for (int i = 0; i < layout.getItemsCount(); i++) {
+            final View item = layout.getItemAt(i);
+            if (item == null || item instanceof ActionBarPopupWindow.GapView) {
+                continue;
+            }
+            if (item instanceof ActionBarMenuSubItem) {
+                ((ActionBarMenuSubItem) item).setColors(m.text, m.text);
+            }
+            item.setBackground(SkinKeys.key(m));
+        }
+    }
 
     private CanvasMaterials skinMaterials() {
         return SkinMetal.materials(getThemedColor(Theme.key_chat_messagePanelBackground));
@@ -9838,6 +9873,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 });
                 options.addView(button);
                 options.setupSelectors();
+                skinSendOptions(options, sendPreview);
                 sendPreview.setItemOptions(options);
                 sendPreview.setSendButton(doneButton, false, v2 -> {
                     if (groupedMessages != null) {

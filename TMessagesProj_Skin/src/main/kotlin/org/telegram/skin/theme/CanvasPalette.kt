@@ -23,6 +23,7 @@ class CanvasMaterials internal constructor(c: SkinColors, shadows: SkinShadows) 
     @JvmField val capMid = c.metal.capMid.toArgb()
     @JvmField val capShade = c.metal.capShade.toArgb()
 
+    @JvmField val page = c.page.toArgb()
     @JvmField val field = c.field.toArgb()
     @JvmField val text = c.text.toArgb()
     @JvmField val textSecondary = c.textSecondary.toArgb()
