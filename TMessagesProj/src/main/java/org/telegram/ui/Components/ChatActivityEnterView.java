@@ -167,10 +167,13 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.BasePermissionsActivity;
 import org.telegram.ui.Business.BusinessLinksController;
 import org.telegram.ui.Business.QuickRepliesController;
+import org.telegram.skin.motion.SkinMotion;
 import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.SkinKeys;
+import org.telegram.ui.SkinLed;
 import org.telegram.ui.SkinMetal;
+import org.telegram.ui.SkinSpring;
 import org.telegram.ui.SkinStyle;
 import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Components.Forum.ForumUtilities;
@@ -512,6 +515,13 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void setText(CharSequence text) {
+            if (skin) {
+                final CharSequence old = textView.getText();
+                if (old != null && old.length() > 0 && text != null && !TextUtils.equals(old, text) && !SkinMotion.reduced()) {
+                    skinRollFrom = old.toString();
+                    skinRollStart = SystemClock.uptimeMillis();
+                }
+            }
             textView.setText(text);
             invalidate();
         }
@@ -524,6 +534,42 @@ public class ChatActivityEnterView extends FrameLayout implements
         private Theme.ResourcesProvider skinResources;
         private boolean skin;
         private TextPaint skinTextPaint;
+        private String skinRollFrom;
+        private long skinRollStart;
+
+        /**
+         * The countdown turning to its next second like a counter's drums: only
+         * the digits that change roll up out of the cap while the new ones come
+         * up from below. A figure that changes length rolls over whole.
+         */
+        private void drawSkinRoll(Canvas canvas, String figure, String from, float cx, float baseline, float cap, float p) {
+            final float shift = skinTextPaint.getTextSize() * 1.1f;
+            canvas.save();
+            canvas.clipRect(cx - cap, baseline - shift, cx + cap, baseline + shift * 0.4f);
+            final int alpha = skinTextPaint.getAlpha();
+            if (figure.length() != from.length()) {
+                skinTextPaint.setAlpha((int) (alpha * (1f - p)));
+                canvas.drawText(from, cx, baseline - shift * p, skinTextPaint);
+                skinTextPaint.setAlpha((int) (alpha * p));
+                canvas.drawText(figure, cx, baseline + shift * (1f - p), skinTextPaint);
+            } else {
+                final float left = cx - skinTextPaint.measureText(figure) / 2f;
+                for (int i = 0; i < figure.length(); i++) {
+                    final float x = left + skinTextPaint.measureText(figure, 0, i) + skinTextPaint.measureText(figure, i, i + 1) / 2f;
+                    if (figure.charAt(i) == from.charAt(i)) {
+                        skinTextPaint.setAlpha(alpha);
+                        canvas.drawText(figure, i, i + 1, x, baseline, skinTextPaint);
+                    } else {
+                        skinTextPaint.setAlpha((int) (alpha * (1f - p)));
+                        canvas.drawText(from, i, i + 1, x, baseline - shift * p, skinTextPaint);
+                        skinTextPaint.setAlpha((int) (alpha * p));
+                        canvas.drawText(figure, i, i + 1, x, baseline + shift * (1f - p), skinTextPaint);
+                    }
+                }
+            }
+            skinTextPaint.setAlpha(alpha);
+            canvas.restore();
+        }
 
         /** Shows the countdown on the console's knob, its LED out, in place of Telegram's bare figure. */
         public void setSkin(Theme.ResourcesProvider resourcesProvider) {
@@ -559,7 +605,15 @@ public class ChatActivityEnterView extends FrameLayout implements
                     }
                     skinTextPaint.setColor(m.text);
                     final Paint.FontMetrics fm = skinTextPaint.getFontMetrics();
-                    canvas.drawText(figure, cx, cy - (fm.ascent + fm.descent) / 2f, skinTextPaint);
+                    final float baseline = cy - (fm.ascent + fm.descent) / 2f;
+                    final float roll = skinRollFrom != null ? Math.min(1f, (SystemClock.uptimeMillis() - skinRollStart) / (float) SkinMotion.ROLL_MS) : 1f;
+                    if (roll < 1f) {
+                        drawSkinRoll(canvas, figure, skinRollFrom, cx, baseline, r * 0.78f, SkinMotion.ROLL.getInterpolator().getInterpolation(roll));
+                        invalidate();
+                    } else {
+                        skinRollFrom = null;
+                        canvas.drawText(figure, cx, baseline, skinTextPaint);
+                    }
                 }
                 return;
             }
@@ -14918,7 +14972,16 @@ public class ChatActivityEnterView extends FrameLayout implements
         @Override
         public void setPressed(boolean pressed) {
             super.setPressed(pressed);
-            bounce.setPressed(pressed);
+            if (!skinKnob) {
+                bounce.setPressed(pressed);
+                return;
+            }
+            // The skin's knob instead drops onto its stop at once and comes back up
+            // on its spring with one small rebound.
+            if (skinPress == null) {
+                skinPress = new SkinSpring(this, SkinMotion.PRESS_DOWN, 0f, SkinSpring.FRACTION);
+            }
+            skinPress.use(pressed ? SkinMotion.PRESS_DOWN : SkinMotion.PRESS_RELEASE).animateTo(pressed ? 1f : 0f);
         }
 
         @Override
@@ -15156,11 +15219,42 @@ public class ChatActivityEnterView extends FrameLayout implements
         private int drawableColor;
         private boolean skinPriceTypeface;
 
-        /** The knob at the key's right end; a paid message's price is engraved on the metal before it. */
+        private SkinLed skinLed;
+        private SkinSpring skinPress;
+
+        /**
+         * The knob at the key's right end; a paid message's price is engraved on
+         * the metal before it. Its LED strikes when the key comes alive (slow mode
+         * over, a caption made valid) and fades when it goes inactive.
+         */
         private void drawSkinKnob(Canvas canvas) {
             final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider));
             final float r = backgroundRect.height() / 2f;
-            SkinMetal.drawKnob(canvas, backgroundRect.right - r, backgroundRect.centerY(), r, !isInactive(), m, 1f);
+            final boolean first = skinLed == null;
+            if (first) {
+                skinLed = new SkinLed();
+            }
+            skinLed.show(!isInactive(), !first);
+            SkinMetal.drawKnob(canvas, backgroundRect.right - r, backgroundRect.centerY(), r, skinLed.glow(), 0, m, 1f);
+            if (skinLed.isMoving()) {
+                invalidate();
+            }
+        }
+
+        @Override
+        public void draw(@NonNull Canvas canvas) {
+            final float depth = skinPress != null ? skinPress.get() : 0f;
+            if (depth == 0f) {
+                super.draw(canvas);
+                return;
+            }
+            // The whole knob gives under the finger, glyph and all.
+            final float scale = 1f - (1f - SkinMotion.PRESS_SCALE) * depth;
+            final float r = backgroundRect.height() / 2f;
+            canvas.save();
+            canvas.scale(scale, scale, backgroundRect.right - r, backgroundRect.centerY());
+            super.draw(canvas);
+            canvas.restore();
         }
 
         public boolean hasPrice() {

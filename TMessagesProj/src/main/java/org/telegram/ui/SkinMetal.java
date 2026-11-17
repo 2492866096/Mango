@@ -99,6 +99,11 @@ public final class SkinMetal {
      * edge under the LED. A rim of 0 draws none.
      */
     public static void drawKnob(Canvas canvas, float cx, float cy, float r, boolean lit, float rim, CanvasMaterials m, float alpha) {
+        drawKnob(canvas, cx, cy, r, lit ? 1f : 0f, rim, m, alpha);
+    }
+
+    /** As above, its LED part way through coming on or going out ({@link SkinLed}'s glow). */
+    public static void drawKnob(Canvas canvas, float cx, float cy, float r, float glow, float rim, CanvasMaterials m, float alpha) {
         final int a = (int) (255 * alpha);
         canvas.save();
         canvas.translate(cx, cy);
@@ -140,7 +145,7 @@ public final class SkinMetal {
         canvas.restore();
 
         final float led = dpf2(2.5f);
-        SkinStyle.drawLed(canvas, cx + r - 0.24f * r - led, cy - r + dpf2(2) + led, led, lit, m.led, m.textTertiary, alpha);
+        SkinStyle.drawLed(canvas, cx + r - 0.24f * r - led, cy - r + dpf2(2) + led, led, glow, 1f, m.led, m.textTertiary, alpha);
     }
 
     /**

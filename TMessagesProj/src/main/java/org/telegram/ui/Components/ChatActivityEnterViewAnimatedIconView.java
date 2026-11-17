@@ -1,6 +1,9 @@
 package org.telegram.ui.Components;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.os.SystemClock;
 import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
@@ -8,6 +11,7 @@ import androidx.annotation.Nullable;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
+import org.telegram.skin.motion.SkinMotion;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,8 +48,9 @@ public class ChatActivityEnterViewAnimatedIconView extends RLottieImageView {
 
     /**
      * Shows a still glyph per state, indexed by {@link State#ordinal()},
-     * instead of the morphing Lottie icons. The skin's console uses its own
-     * line glyphs; the morphs between them come later.
+     * instead of the morphing Lottie icons: the skin's console uses its own
+     * line glyphs. Changing state, the key's cap turns over, the old mark
+     * narrowing to an edge and the new one opening out from it.
      */
     public void useGlyphs(int[] glyphsByState) {
         glyphs = glyphsByState;
@@ -62,7 +67,15 @@ public class ChatActivityEnterViewAnimatedIconView extends RLottieImageView {
         State fromState = currentState;
         currentState = state;
         if (glyphs != null) {
+            final Drawable previous = getDrawable();
             setImageResource(glyphs[state.ordinal()]);
+            if (animate && previous != null && fromState != null && fromState != state && !SkinMotion.reduced()) {
+                flipFrom = previous;
+                flipStart = SystemClock.uptimeMillis();
+            } else {
+                flipFrom = null;
+            }
+            invalidate();
             describe(state);
             return;
         }
@@ -96,6 +109,40 @@ public class ChatActivityEnterViewAnimatedIconView extends RLottieImageView {
             AndroidUtilities.runOnUIThread(drawable::start);
         }
         describe(state);
+    }
+
+    private Drawable flipFrom;
+    private long flipStart;
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        if (flipFrom == null) {
+            super.onDraw(canvas);
+            return;
+        }
+        final float t = Math.min(1f, (SystemClock.uptimeMillis() - flipStart) / (float) SkinMotion.MORPH_MS);
+        final float p = SkinMotion.MORPH.getInterpolator().getInterpolation(t);
+        final float cx = getWidth() / 2f;
+        final float cy = getHeight() / 2f;
+        canvas.save();
+        if (p < 0.5f) {
+            canvas.scale(1f - 2f * p, 1f, cx, cy);
+            final int w = flipFrom.getIntrinsicWidth();
+            final int h = flipFrom.getIntrinsicHeight();
+            final int left = getPaddingLeft() + (getWidth() - getPaddingLeft() - getPaddingRight() - w) / 2;
+            final int top = getPaddingTop() + (getHeight() - getPaddingTop() - getPaddingBottom() - h) / 2;
+            flipFrom.setBounds(left, top, left + w, top + h);
+            flipFrom.draw(canvas);
+        } else {
+            canvas.scale(2f * p - 1f, 1f, cx, cy);
+            super.onDraw(canvas);
+        }
+        canvas.restore();
+        if (t < 1f) {
+            invalidate();
+        } else {
+            flipFrom = null;
+        }
     }
 
     private void describe(State state) {
