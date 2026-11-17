@@ -4752,12 +4752,31 @@ public class ChatActivityEnterView extends FrameLayout implements
 
                 boolean scheduleButtonValue = parentFragment != null && parentFragment.canScheduleMessage();
                 boolean sendWithoutSoundButtonValue = !(self || slowModeTimer > 0 && !isInScheduleMode());
+                final Runnable addSilent = () -> {
+                    if (sendWithoutSoundButtonValue) {
+                        ActionBarMenuSubItem sendWithoutSoundButton = new ActionBarMenuSubItem(getContext(), !scheduleButtonValue, true, resourcesProvider);
+                        sendWithoutSoundButton.setTextAndIcon(LocaleController.getString(R.string.SendWithoutSound), skinFrame ? org.telegram.skin.R.drawable.skin_key_quiet : R.drawable.input_notify_off);
+                        sendWithoutSoundButton.setMinimumWidth(dp(196));
+                        sendWithoutSoundButton.setOnClickListener(v -> {
+                            if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                                sendPopupWindow.dismiss();
+                            }
+                            sendMessageInternal(false, 0, 0, 0, true);
+                        });
+                        sendPopupLayout.addView(sendWithoutSoundButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT));
+                    }
+                };
+                if (skinFrame) {
+                    // The skin's order: send silently, schedule, send when online.
+                    addSilent.run();
+                }
                 if (scheduleButtonValue) {
                     actionScheduleButton = new ActionBarMenuSubItem(getContext(), true, !sendWithoutSoundButtonValue, resourcesProvider);
+                    final int clock = skinFrame ? org.telegram.skin.R.drawable.skin_input_clock : R.drawable.msg_calendar2;
                     if (self) {
-                        actionScheduleButton.setTextAndIcon(LocaleController.getString(R.string.SetReminder), R.drawable.msg_calendar2);
+                        actionScheduleButton.setTextAndIcon(LocaleController.getString(R.string.SetReminder), clock);
                     } else {
-                        actionScheduleButton.setTextAndIcon(LocaleController.getString(R.string.ScheduleMessage), R.drawable.msg_calendar2);
+                        actionScheduleButton.setTextAndIcon(LocaleController.getString(R.string.ScheduleMessage), clock);
                     }
                     actionScheduleButton.setMinimumWidth(dp(196));
                     actionScheduleButton.setOnClickListener(v -> {
@@ -4775,7 +4794,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     SharedConfig.removeScheduledHint();
                     if (!self && dialog_id > 0) {
                         sendWhenOnlineButton = new ActionBarMenuSubItem(getContext(), true, !sendWithoutSoundButtonValue, resourcesProvider);
-                        sendWhenOnlineButton.setTextAndIcon(LocaleController.getString(R.string.SendWhenOnline), R.drawable.msg_online);
+                        sendWhenOnlineButton.setTextAndIcon(LocaleController.getString(R.string.SendWhenOnline), skinFrame ? org.telegram.skin.R.drawable.skin_key_online : R.drawable.msg_online);
                         sendWhenOnlineButton.setMinimumWidth(dp(196));
                         sendWhenOnlineButton.setOnClickListener(v -> {
                             if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
@@ -4786,17 +4805,8 @@ public class ChatActivityEnterView extends FrameLayout implements
                         sendPopupLayout.addView(sendWhenOnlineButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT));
                     }
                 }
-                if (sendWithoutSoundButtonValue) {
-                    ActionBarMenuSubItem sendWithoutSoundButton = new ActionBarMenuSubItem(getContext(), !scheduleButtonValue, true, resourcesProvider);
-                    sendWithoutSoundButton.setTextAndIcon(LocaleController.getString(R.string.SendWithoutSound), R.drawable.input_notify_off);
-                    sendWithoutSoundButton.setMinimumWidth(dp(196));
-                    sendWithoutSoundButton.setOnClickListener(v -> {
-                        if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
-                            sendPopupWindow.dismiss();
-                        }
-                        sendMessageInternal(false, 0, 0, 0, true);
-                    });
-                    sendPopupLayout.addView(sendWithoutSoundButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT));
+                if (!skinFrame) {
+                    addSilent.run();
                 }
                 sendPopupLayout.setupRadialSelectors(getThemedColor(Theme.key_dialogButtonSelector));
                 if (skinFrame) {
@@ -4988,26 +4998,49 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         ItemOptions options = ItemOptions.makeOptions(this, resourcesProvider, sendButton);
 
-        if (containsSendMessage && audioToSend == null && videoToSendMessageObject == null &&
-                editingMessageObject == null && messageEditText != null && !TextUtils.isEmpty(messageEditText.getText())) {
+        final boolean canTranslate = containsSendMessage && audioToSend == null && videoToSendMessageObject == null &&
+                editingMessageObject == null && messageEditText != null && !TextUtils.isEmpty(messageEditText.getText());
+        final Runnable addTranslate = () -> {
             final String language = org.telegram.messenger.MangoOutgoingTranslation.getLanguage(currentAccount, dialog_id);
-            String languageName = TranslateAlert2.languageName(language);
-            options.add(R.drawable.msg_translate, LocaleController.formatString(R.string.MangoSendTranslateTo,
+            final String languageName = TranslateAlert2.languageName(language);
+            options.add(skinFrame ? org.telegram.skin.R.drawable.skin_key_language : R.drawable.msg_translate, LocaleController.formatString(R.string.MangoSendTranslateTo,
                     languageName == null ? language : languageName), () -> {
                 dismissMangoTranslationPreview();
                 translateMangoDraftAndSend(language);
             });
-            options.add(R.drawable.msg_language, getString(R.string.MangoSendTranslateChoose), () -> {
+            options.add(skinFrame ? org.telegram.skin.R.drawable.skin_key_chevron : R.drawable.msg_language, getString(R.string.MangoSendTranslateChoose), () -> {
                 dismissMangoTranslationPreview();
                 showMangoSendTranslationLanguages();
             });
+            if (skinFrame) {
+                skinOptionValue(options.getLast(), languageName == null ? language : languageName);
+            }
+        };
+        if (canTranslate && !skinFrame) {
+            addTranslate.run();
         }
 
         final boolean self = parentFragment != null && UserObject.isUserSelf(parentFragment.getCurrentUser());
         boolean scheduleButtonValue = parentFragment != null && parentFragment.canScheduleMessage();
         boolean sendWithoutSoundButtonValue = !(self || slowModeTimer > 0 && !isInScheduleMode());
+        final Runnable addSilent = () -> options.add(skinFrame ? org.telegram.skin.R.drawable.skin_key_quiet : R.drawable.input_notify_off, getString(R.string.SendWithoutSound), () -> {
+            sentFromPreview = System.currentTimeMillis();
+            final boolean shownDialog = sendMessageInternal(false, 0, 0, 0, true);
+            if (!containsSendMessage && messageSendPreview != null) {
+                messageSendPreview.dismiss(!shownDialog);
+                messageSendPreview = null;
+            } else {
+                dismissSendPreviewSent = !shownDialog;
+                AndroidUtilities.cancelRunOnUIThread(dismissSendPreview);
+                AndroidUtilities.runOnUIThread(dismissSendPreview, 500);
+            }
+        });
+        if (sendWithoutSoundButtonValue && skinFrame) {
+            // The skin's order: send silently, schedule, send when online; translation below a groove.
+            addSilent.run();
+        }
         if (scheduleButtonValue) {
-            options.add(R.drawable.msg_calendar2, getString(self ? R.string.SetReminder : R.string.ScheduleMessage), () -> {
+            options.add(skinFrame ? org.telegram.skin.R.drawable.skin_input_clock : R.drawable.msg_calendar2, getString(self ? R.string.SetReminder : R.string.ScheduleMessage), () -> {
                 AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), new AlertsCreator.ScheduleDatePickerDelegate() {
                     @Override
                     public void didSelectDate(boolean notify, int scheduleDate, int scheduleRepeatPeriod) {
@@ -5021,7 +5054,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             });
 
             if (!self && dialog_id > 0) {
-                options.add(R.drawable.msg_online, getString(R.string.SendWhenOnline), () -> {
+                options.add(skinFrame ? org.telegram.skin.R.drawable.skin_key_online : R.drawable.msg_online, getString(R.string.SendWhenOnline), () -> {
                     sendMessageInternal(true, 0x7FFFFFFE, 0, 0, true);
                     if (messageSendPreview != null) {
                         messageSendPreview.dismiss(false);
@@ -5033,7 +5066,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         if (parentFragment != null && delegate != null && ChatObject.isMonoForum(parentFragment.getCurrentChat())) {
-            options.add(R.drawable.input_suggest_paid_24, getString(R.string.PostSuggestionsSendWithOffer), () -> {
+            options.add(skinFrame ? org.telegram.skin.R.drawable.skin_slip_suggest : R.drawable.input_suggest_paid_24, getString(R.string.PostSuggestionsSendWithOffer), () -> {
                 if (messageSendPreview != null) {
                     messageSendPreview.dismiss(false);
                     messageSendPreview = null;
@@ -5062,19 +5095,14 @@ public class ChatActivityEnterView extends FrameLayout implements
             ;*/
         }
 
-        if (sendWithoutSoundButtonValue) {
-            options.add(R.drawable.input_notify_off, getString(R.string.SendWithoutSound), () -> {
-                sentFromPreview = System.currentTimeMillis();
-                final boolean shownDialog = sendMessageInternal(false, 0, 0, 0, true);
-                if (!containsSendMessage && messageSendPreview != null) {
-                    messageSendPreview.dismiss(!shownDialog);
-                    messageSendPreview = null;
-                } else {
-                    dismissSendPreviewSent = !shownDialog;
-                    AndroidUtilities.cancelRunOnUIThread(dismissSendPreview);
-                    AndroidUtilities.runOnUIThread(dismissSendPreview, 500);
-                }
-            });
+        if (sendWithoutSoundButtonValue && !skinFrame) {
+            addSilent.run();
+        }
+        if (canTranslate && skinFrame) {
+            if (options.getItemsCount() > 0) {
+                options.addView(skinOptionsGroove(), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 10));
+            }
+            addTranslate.run();
         }
         options.setupSelectors();
         skinSendOptions(options, messageSendPreview);
@@ -7335,11 +7363,38 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
     }
 
+    private static final String SKIN_GROOVE = "skin_groove";
+
+    /** An engraved line between groups of keys on the options slab. */
+    private View skinOptionsGroove() {
+        final View groove = new View(getContext()) {
+            @Override
+            protected void onDraw(Canvas canvas) {
+                SkinMetal.drawGrooveAcross(canvas, dp(12), getWidth() - dp(12), getHeight() / 2f - dp(1), skinMaterials(), 1f);
+            }
+        };
+        groove.setTag(SKIN_GROOVE);
+        return groove;
+    }
+
+    /** The current choice shown at the end of an option's key, as "选择翻译语言  英语". */
+    private void skinOptionValue(ActionBarMenuSubItem item, CharSequence value) {
+        if (item == null || TextUtils.isEmpty(value)) {
+            return;
+        }
+        final TextView text = new TextView(getContext());
+        text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        text.setTextColor(skinMaterials().textSecondary);
+        text.setText(value);
+        text.setSingleLine(true);
+        item.addView(text, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 30, 0));
+    }
+
     private void skinPopupKeys(ActionBarPopupWindow.ActionBarPopupWindowLayout layout, CanvasMaterials m) {
         layout.setBackgroundDrawable(SkinKeys.slab(m));
         for (int i = 0; i < layout.getItemsCount(); i++) {
             final View item = layout.getItemAt(i);
-            if (item == null || item instanceof ActionBarPopupWindow.GapView) {
+            if (item == null || item instanceof ActionBarPopupWindow.GapView || SKIN_GROOVE.equals(item.getTag())) {
                 continue;
             }
             if (item instanceof ActionBarMenuSubItem) {
