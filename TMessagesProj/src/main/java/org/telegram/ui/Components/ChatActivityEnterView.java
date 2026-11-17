@@ -2866,7 +2866,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             messageEditTextContainer.addView(attachLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT, 0, 0, DEFAULT_HEIGHT, 0));
 
             notifyButton = new ImageView(context);
-            notifySilentDrawable = new CrossOutDrawable(context, R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
+            notifySilentDrawable = new CrossOutDrawable(context, skinFrame ? org.telegram.skin.R.drawable.skin_input_bell : R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
             notifyButton.setImageDrawable(notifySilentDrawable);
             notifySilentDrawable.setCrossOut(silent, false);
             notifyButton.setContentDescription(silent ? getString("AccDescrChanSilentOn", R.string.AccDescrChanSilentOn) : getString("AccDescrChanSilentOff", R.string.AccDescrChanSilentOff));
@@ -2881,7 +2881,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     if (fragment == null) return;
                     silent = !silent;
                     if (notifySilentDrawable == null) {
-                        notifySilentDrawable = new CrossOutDrawable(context, R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
+                        notifySilentDrawable = new CrossOutDrawable(context, skinFrame ? org.telegram.skin.R.drawable.skin_input_bell : R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
                     }
                     notifySilentDrawable.setCrossOut(silent, true);
                     notifyButton.setImageDrawable(notifySilentDrawable);
@@ -3658,11 +3658,18 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
 
-        final Drawable drawable1 = getContext().getResources().getDrawable(R.drawable.input_calendar1).mutate();
-        final Drawable drawable2 = getContext().getResources().getDrawable(R.drawable.input_calendar2).mutate();
-        drawable1.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-        drawable2.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_recordedVoiceDot), PorterDuff.Mode.MULTIPLY));
-        CombinedDrawable combinedDrawable = new CombinedDrawable(drawable1, drawable2);
+        final Drawable scheduledIcon;
+        if (skinFrame) {
+            // An engraved clock in the well: there are scheduled messages.
+            scheduledIcon = getContext().getResources().getDrawable(org.telegram.skin.R.drawable.skin_input_clock).mutate();
+            scheduledIcon.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
+        } else {
+            final Drawable drawable1 = getContext().getResources().getDrawable(R.drawable.input_calendar1).mutate();
+            final Drawable drawable2 = getContext().getResources().getDrawable(R.drawable.input_calendar2).mutate();
+            drawable1.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
+            drawable2.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_recordedVoiceDot), PorterDuff.Mode.MULTIPLY));
+            scheduledIcon = new CombinedDrawable(drawable1, drawable2);
+        }
 
         scheduledButton = new ImageView(getContext()) {
             private float innerTranslationX;
@@ -3681,7 +3688,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 );
             }
         };
-        scheduledButton.setImageDrawable(combinedDrawable);
+        scheduledButton.setImageDrawable(scheduledIcon);
         scheduledButton.setVisibility(GONE);
         scheduledButton.setContentDescription(getString(R.string.ScheduledMessages));
         scheduledButton.setScaleType(ImageView.ScaleType.CENTER);
@@ -3722,7 +3729,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
         };
-        giftButton.setImageResource(R.drawable.msg_input_gift);
+        giftButton.setImageResource(skinFrame ? org.telegram.skin.R.drawable.skin_input_gift : R.drawable.msg_input_gift);
         giftButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
         giftButton.setVisibility(GONE);
         giftButton.setContentDescription(getString(R.string.GiftPremium));
@@ -3774,7 +3781,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         suggestButton = new ImageView(getContext());
         suggestButton.setScaleType(ImageView.ScaleType.CENTER);
         suggestButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-        suggestButton.setImageResource(R.drawable.input_suggest_paid_24);
+        suggestButton.setImageResource(skinFrame ? org.telegram.skin.R.drawable.skin_slip_suggest : R.drawable.input_suggest_paid_24);
         suggestButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
         if (isLiveComment) {
             suggestButton.setTranslationX(dp(42));
@@ -3866,7 +3873,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         };
         botButton.setImageDrawable(botButtonDrawable = new ReplaceableIconDrawable(getContext()));
         botButtonDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-        botButtonDrawable.setIcon(R.drawable.input_bot2, false);
+        botButtonDrawable.setIcon(skinFrame ? org.telegram.skin.R.drawable.skin_input_keyboard : R.drawable.input_bot2, false);
         botButton.setScaleType(ImageView.ScaleType.CENTER);
         botButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
         botButton.setVisibility(GONE);
@@ -11063,7 +11070,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (notifyButton != null) {
                 notifyVisible = canWriteToChannel;
                 if (notifySilentDrawable == null) {
-                    notifySilentDrawable = new CrossOutDrawable(getContext(), R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
+                    notifySilentDrawable = new CrossOutDrawable(getContext(), skinFrame ? org.telegram.skin.R.drawable.skin_input_bell : R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
                 }
                 notifySilentDrawable.setCrossOut(silent, false);
                 notifyButton.setImageDrawable(notifySilentDrawable);
@@ -11336,13 +11343,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                         botButton.setVisibility(VISIBLE);
                     }
 
-                    botButtonDrawable.setIcon(R.drawable.input_bot2, true);
+                    botButtonDrawable.setIcon(skinFrame ? org.telegram.skin.R.drawable.skin_input_keyboard : R.drawable.input_bot2, true);
                     botButton.setContentDescription(getString("AccDescrBotKeyboard", R.string.AccDescrBotKeyboard));
                 }
             } else {
                 if (!canShowBotsMenu) {
                     createBotButton();
-                    botButtonDrawable.setIcon(R.drawable.input_bot1, true);
+                    botButtonDrawable.setIcon(skinFrame ? org.telegram.skin.R.drawable.skin_input_command : R.drawable.input_bot1, true);
                     botButton.setContentDescription(getString("AccDescrBotCommands", R.string.AccDescrBotCommands));
                     botButton.setVisibility(VISIBLE);
                 } else if (botButton != null) {
