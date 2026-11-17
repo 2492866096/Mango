@@ -8339,7 +8339,7 @@ public class ChatActivity extends BaseFragment implements
 
         replyCloseImageView = new ImageView(context);
         replyCloseImageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-        replyCloseImageView.setImageResource(R.drawable.input_clear);
+        replyCloseImageView.setImageResource(SkinSwitch.CHAT_FRAME ? org.telegram.skin.R.drawable.skin_slip_close : R.drawable.input_clear);
         replyCloseImageView.setScaleType(ImageView.ScaleType.CENTER);
         replyCloseImageView.setBackgroundDrawable(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(19)));
         chatActivityEnterTopView.addView(replyCloseImageView, LayoutHelper.createFrame(52, 46, Gravity.RIGHT | Gravity.TOP, 0, 0.5f, 0, 0));
@@ -10919,6 +10919,32 @@ public class ChatActivity extends BaseFragment implements
         skinSlipRect.set(dp(8), dp(4), w - dp(8), h - dp(4));
         SkinMetal.drawPorcelain(canvas, skinSlipRect, dp(13), m, true, 1f);
         SkinMetal.drawGrooveAcross(canvas, dp(16), w - dp(16), h - dp(2.5f), m, 1f);
+    }
+
+    /** The slip's leading icon: Telegram's, or with the skin on, the matching line glyph. */
+    private void setSlipIcon(int res) {
+        replyIconImageView.setImageResource(SkinSwitch.CHAT_FRAME ? skinSlipGlyph(res) : res);
+    }
+
+    private static int skinSlipGlyph(int res) {
+        if (res == R.drawable.nav_edit_attach) {
+            return org.telegram.skin.R.drawable.skin_slip_edit_media;
+        } else if (res == R.drawable.group_edit) {
+            return org.telegram.skin.R.drawable.skin_slip_edit;
+        } else if (res == R.drawable.filled_paid_suggest_24) {
+            return org.telegram.skin.R.drawable.skin_slip_suggest;
+        } else if (res == R.drawable.filled_reply_quote) {
+            return org.telegram.skin.R.drawable.skin_slip_quote;
+        } else if (res == R.drawable.ic_ab_reply) {
+            return org.telegram.skin.R.drawable.skin_slip_reply;
+        } else if (res == R.drawable.filled_reply_settings) {
+            return org.telegram.skin.R.drawable.skin_slip_reply_options;
+        } else if (res == R.drawable.filled_forward) {
+            return org.telegram.skin.R.drawable.skin_slip_forward;
+        } else if (res == R.drawable.filled_link) {
+            return org.telegram.skin.R.drawable.skin_slip_link;
+        }
+        return res;
     }
 
     private void updateSkinSlipColors() {
@@ -15174,7 +15200,7 @@ public class ChatActivity extends BaseFragment implements
                     }
                     chatActivityEnterTopView.setEditMode(true);
                 } else {
-                    replyIconImageView.setImageResource(canEditMedia ? R.drawable.nav_edit_attach : R.drawable.group_edit);
+                    setSlipIcon(canEditMedia ? R.drawable.nav_edit_attach : R.drawable.group_edit);
                     replyIconImageView.setContentDescription(LocaleController.getString(R.string.AccDescrEditing));
                     if (mediaEmpty || canEditMedia) {
                         replyNameTextView.setText(LocaleController.getString(R.string.EditMessage));
@@ -15199,7 +15225,7 @@ public class ChatActivity extends BaseFragment implements
                 }
 
                 if (editingMessageObject.needResendWhenEdit()) {
-                    replyIconImageView.setImageResource(R.drawable.filled_paid_suggest_24);
+                    setSlipIcon(R.drawable.filled_paid_suggest_24);
                     replyNameTextView.setText(LocaleController.getString(R.string.PostSuggestionsOfferChangeTitle));
 
                     final boolean isTon = messageSuggestionParams.amount != null && messageSuggestionParams.amount.currency == AmountUtils.Currency.TON;
@@ -15345,7 +15371,7 @@ public class ChatActivity extends BaseFragment implements
                 }
                 CharSequence nameText;
                 if (quote != null && quote.todo) {
-                    replyIconImageView.setImageResource(R.drawable.filled_reply_quote);
+                    setSlipIcon(R.drawable.filled_reply_quote);
                     final TLRPC.MessageMedia media = MessageObject.getMedia(quote.message);
                     if (media instanceof TLRPC.TL_messageMediaToDo) {
                         final TLRPC.TL_messageMediaToDo mediaTodo = (TLRPC.TL_messageMediaToDo) media;
@@ -15354,13 +15380,13 @@ public class ChatActivity extends BaseFragment implements
                         nameText = LocaleController.getString(R.string.ReplyToTask);
                     }
                 } else if (quote != null && !quote.todo) {
-                    replyIconImageView.setImageResource(R.drawable.filled_reply_quote);
+                    setSlipIcon(R.drawable.filled_reply_quote);
                     nameText = AndroidUtilities.replaceCharSequence("%s", LocaleController.getString(R.string.ReplyToQuote), name == null ? "" : name);
                 } else {
                     if (messagePreviewParams == null || messagePreviewParams.hasSecretMessages || chatMode == MODE_QUICK_REPLIES) {
-                        replyIconImageView.setImageResource(R.drawable.ic_ab_reply);
+                        setSlipIcon(R.drawable.ic_ab_reply);
                     } else {
-                        replyIconImageView.setImageResource(R.drawable.filled_reply_settings);
+                        setSlipIcon(R.drawable.filled_reply_settings);
                     }
                     nameText = AndroidUtilities.replaceCharSequence("%s", LocaleController.getString(R.string.ReplyTo), name == null ? "" : name);
                 }
@@ -15450,7 +15476,7 @@ public class ChatActivity extends BaseFragment implements
                 forbidForwardingWithDismiss = false;
                 chatActivityEnterView.setForceShowSendButton(true, false);
                 ArrayList<Long> uids = new ArrayList<>();
-                replyIconImageView.setImageResource(R.drawable.filled_forward);
+                setSlipIcon(R.drawable.filled_forward);
                 replyIconImageView.setContentDescription(LocaleController.getString(R.string.AccDescrForwarding));
                 replyCloseImageView.setContentDescription(LocaleController.getString(R.string.AccDescrCancelForward));
                 MessageObject object = messageObjectsToForward.get(0);
@@ -15610,7 +15636,7 @@ public class ChatActivity extends BaseFragment implements
                 }
             } else if (webPage != null) {
                 fieldPanelShown = 4;
-                replyIconImageView.setImageResource(R.drawable.filled_link);
+                setSlipIcon(R.drawable.filled_link);
                 if (messagePreviewParams == null) {
                     messagePreviewParams = new MessagePreviewParams(currentEncryptedChat != null, isPeerNoForwards(), ChatObject.isMonoForum(currentChat));
                     messagePreviewParams.attach(forwardingPreviewView);
@@ -15659,7 +15685,7 @@ public class ChatActivity extends BaseFragment implements
                 replyImageLocation = null;
                 replyImageLocationObject = null;
 
-                replyIconImageView.setImageResource(R.drawable.filled_paid_suggest_24);
+                setSlipIcon(R.drawable.filled_paid_suggest_24);
                 replyNameTextView.setText(LocaleController.getString(R.string.SuggestAPostBelow));
 
 
