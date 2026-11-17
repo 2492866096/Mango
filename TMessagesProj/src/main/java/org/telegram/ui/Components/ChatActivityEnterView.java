@@ -2670,6 +2670,9 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
         };
+        if (skinFrame) {
+            emojiButton.useGlyphs(SKIN_GLYPHS);
+        }
         emojiButton.setContentDescription(getString(R.string.AccDescrEmojiButton));
         emojiButton.setFocusable(true);
         int padding = dp(7.5f);
@@ -2772,7 +2775,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             };
             attachButton.setScaleType(ImageView.ScaleType.CENTER);
             attachButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-            attachButton.setImageResource(R.drawable.msg_input_attach2);
+            attachButton.setImageResource(skinFrame ? org.telegram.skin.R.drawable.skin_input_attach : R.drawable.msg_input_attach2);
             attachButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
             messageEditTextContainer.addView(attachButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT));
             attachButton.setOnClickListener(v -> {
@@ -3270,10 +3273,10 @@ public class ChatActivityEnterView extends FrameLayout implements
 //            return true;
 //        });
 
-        micOutline = getResources().getDrawable(R.drawable.input_mic).mutate();
+        micOutline = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_mic : R.drawable.input_mic).mutate();
         micOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
 
-        cameraOutline = getResources().getDrawable(R.drawable.input_video).mutate();
+        cameraOutline = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_video : R.drawable.input_video).mutate();
         cameraOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
 
         audioVideoSendButton = new ChatActivityEnterViewAnimatedIconView(context, 24) {
@@ -3291,6 +3294,9 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
         };
+        if (skinFrame) {
+            audioVideoSendButton.useGlyphs(SKIN_GLYPHS);
+        }
         audioVideoSendButton.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
 //        audioVideoSendButton.setFocusable(true);
 //        audioVideoSendButton.setAccessibilityDelegate(mediaMessageButtonsDelegate);
@@ -3324,7 +3330,10 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
         });
 
-        sendButton = new SendButton(context, isInScheduleMode() ? R.drawable.input_schedule : R.drawable.send_plane_24, resourcesProvider, true) {
+        final int sendGlyph = isInScheduleMode()
+                ? (skinFrame ? org.telegram.skin.R.drawable.skin_input_clock : R.drawable.input_schedule)
+                : (skinFrame ? org.telegram.skin.R.drawable.skin_input_send : R.drawable.send_plane_24);
+        sendButton = new SendButton(context, sendGlyph, resourcesProvider, true) {
             @Override
             public boolean isInScheduleMode() {
                 return ChatActivityEnterView.this.isInScheduleMode();
@@ -3766,7 +3775,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
 
-        doneButton = new SendButton(getContext(), R.drawable.input_done, resourcesProvider, true) {
+        doneButton = new SendButton(getContext(), skinFrame ? org.telegram.skin.R.drawable.skin_input_done : R.drawable.input_done, resourcesProvider, true) {
             @Override
             public boolean isOpen() {
                 return true;
@@ -7201,6 +7210,16 @@ public class ChatActivityEnterView extends FrameLayout implements
             return false;
         }
     }
+
+    /** The console's line glyphs for the emoji and record keys, in {@link ChatActivityEnterViewAnimatedIconView.State} order. */
+    private static final int[] SKIN_GLYPHS = {
+            org.telegram.skin.R.drawable.skin_input_mic,
+            org.telegram.skin.R.drawable.skin_input_video,
+            org.telegram.skin.R.drawable.skin_input_sticker,
+            org.telegram.skin.R.drawable.skin_input_keyboard,
+            org.telegram.skin.R.drawable.skin_input_smile,
+            org.telegram.skin.R.drawable.skin_input_gif,
+    };
 
     private CanvasMaterials skinMaterials() {
         return SkinMetal.materials(getThemedColor(Theme.key_chat_messagePanelBackground));

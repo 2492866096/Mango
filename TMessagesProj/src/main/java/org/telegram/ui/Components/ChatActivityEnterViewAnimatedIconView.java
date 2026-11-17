@@ -1,6 +1,7 @@
 package org.telegram.ui.Components;
 
 import android.content.Context;
+import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
 
@@ -39,12 +40,32 @@ public class ChatActivityEnterViewAnimatedIconView extends RLottieImageView {
         this.sizeDp = sizeDp;
     }
 
+    private int[] glyphs;
+
+    /**
+     * Shows a still glyph per state, indexed by {@link State#ordinal()},
+     * instead of the morphing Lottie icons. The skin's console uses its own
+     * line glyphs; the morphs between them come later.
+     */
+    public void useGlyphs(int[] glyphsByState) {
+        glyphs = glyphsByState;
+        setScaleType(ImageView.ScaleType.CENTER);
+        if (currentState != null) {
+            setImageResource(glyphs[currentState.ordinal()]);
+        }
+    }
+
     public void setState(State state, boolean animate) {
         if (animate && state == currentState) {
             return;
         }
         State fromState = currentState;
         currentState = state;
+        if (glyphs != null) {
+            setImageResource(glyphs[state.ordinal()]);
+            describe(state);
+            return;
+        }
         if (!animate || fromState == null || getState(fromState, currentState) == null) {
             RLottieDrawable drawable = stateMap.get(getAnyState(currentState));
             drawable.stop();
@@ -74,7 +95,10 @@ public class ChatActivityEnterViewAnimatedIconView extends RLottieImageView {
             setAnimation(drawable);
             AndroidUtilities.runOnUIThread(drawable::start);
         }
+        describe(state);
+    }
 
+    private void describe(State state) {
         switch (state) {
             case VOICE:
                 setContentDescription(LocaleController.getString(R.string.AccDescrVoiceMessage));
