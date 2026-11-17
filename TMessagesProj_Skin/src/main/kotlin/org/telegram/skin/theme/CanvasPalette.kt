@@ -29,6 +29,7 @@ class CanvasMaterials internal constructor(c: SkinColors, shadows: SkinShadows) 
     @JvmField val textTertiary = c.textTertiary.toArgb()
     @JvmField val led = c.led.toArgb()
     @JvmField val ink = c.ink.toArgb()
+    @JvmField val danger = c.danger.toArgb()
 
     @JvmField val glazeTop = c.porcelain.glazeTop.toArgb()
     @JvmField val glazeBottom = c.porcelain.glazeBottom.toArgb()

@@ -8502,6 +8502,14 @@ public class ChatActivity extends BaseFragment implements
                 super.setVisibility(visibility);
                 bottomViewsVisibilityController.setViewVisible(BOTTOM_OVERLAY_TEXT_CONTAINER, visibility == VISIBLE, getMeasuredWidth() > 0);
             }
+
+            @Override
+            protected void onDraw(Canvas canvas) {
+                super.onDraw(canvas);
+                if (SkinSwitch.CHAT_FRAME) {
+                    drawSkinPlate(canvas, this);
+                }
+            }
         };
         bottomOverlay.setWillNotDraw(false);
         bottomOverlay.setVisibility(View.INVISIBLE);
@@ -8518,6 +8526,11 @@ public class ChatActivity extends BaseFragment implements
         bottomOverlayText.setLineSpacing(AndroidUtilities.dp(2), 1);
         bottomOverlayText.setTextColor(getThemedColor(Theme.key_chat_secretChatStatusText));
         bottomOverlayText.setPadding(dp(24), 0, dp(24), 0);
+        if (SkinSwitch.CHAT_FRAME) {
+            bottomOverlayText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            bottomOverlayText.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            bottomOverlayText.setPadding(dp(48), 0, dp(20), 0);
+        }
         bottomOverlay.addView(bottomOverlayText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
         
         
@@ -8531,6 +8544,7 @@ public class ChatActivity extends BaseFragment implements
         bottomChannelButtonsLayout.setVisibility(View.INVISIBLE);
         bottomChannelButtonsLayout.setClipChildren(false);
         bottomChannelButtonsLayout.setAccentColor(getThemedColor(Theme.key_featuredStickers_addButton));
+        bottomChannelButtonsLayout.skinPorcelain = SkinSwitch.CHAT_FRAME;
         bottomChannelButtonsLayout.setButtonOnClickListener(ChatActivityChannelButtonsLayout.BUTTON_SEARCH, v -> {
             openSearchWithText(isSupportedTags() ? "" : null);
         });
@@ -8602,7 +8616,18 @@ public class ChatActivity extends BaseFragment implements
 
             @Override
             protected void onDraw(Canvas canvas) {
+                if (SkinSwitch.CHAT_FRAME) {
+                    AndroidUtilities.rectTmp.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
+                    SkinMetal.drawPorcelain(canvas, AndroidUtilities.rectTmp, dp(15), skinSlipMaterials(), true, 1f);
+                }
                 super.onDraw(canvas);
+                if (SkinSwitch.CHAT_FRAME) {
+                    final CanvasMaterials m = skinSlipMaterials();
+                    final float led = dp(3.5f);
+                    final float textWidth = getPaint().measureText(getText().toString());
+                    final float cx = (getMeasuredWidth() + getPaddingLeft() - textWidth) / 2f - dp(10) - led;
+                    SkinStyle.drawLed(canvas, cx, getMeasuredHeight() / 2f, led, true, m.led, m.textTertiary, 1f);
+                }
                 if (cellFlickerDrawable == null) {
                     cellFlickerDrawable = new CellFlickerDrawable();
                     cellFlickerDrawable.drawFrame = false;
@@ -8610,7 +8635,7 @@ public class ChatActivity extends BaseFragment implements
                 }
                 cellFlickerDrawable.setParentWidth(getMeasuredWidth());
                 AndroidUtilities.rectTmp.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
-                cellFlickerDrawable.draw(canvas, AndroidUtilities.rectTmp, AndroidUtilities.dp(22), null);
+                cellFlickerDrawable.draw(canvas, AndroidUtilities.rectTmp, SkinSwitch.CHAT_FRAME ? dp(15) : AndroidUtilities.dp(22), null);
                 invalidate();
             }
         };
@@ -8620,6 +8645,10 @@ public class ChatActivity extends BaseFragment implements
         bottomOverlayStartButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         bottomOverlayStartButton.setGravity(Gravity.CENTER);
         bottomOverlayStartButton.setTypeface(AndroidUtilities.bold());
+        if (SkinSwitch.CHAT_FRAME) {
+            // The LED leads the label; the pair is centred together.
+            bottomOverlayStartButton.setPadding(dp(17), 0, 0, 0);
+        }
         bottomOverlayStartButton.setVisibility(View.GONE);
         bottomOverlayStartButton.setOnClickListener(v -> bottomOverlayChatText.callOnClick());
         bottomChannelButtonsLayout.getContainer().addView(bottomOverlayStartButton, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 38, Gravity.CENTER, 3, 3, 3, 3));
@@ -8660,8 +8689,26 @@ public class ChatActivity extends BaseFragment implements
             protected Theme.ResourcesProvider getResourceProvider() {
                 return themeDelegate;
             }
+
+            @Override
+            protected void onDraw(Canvas canvas) {
+                if (!SkinSwitch.CHAT_FRAME || !skinOverlayAccent || getLayoutTextWidth() == 0) {
+                    super.onDraw(canvas);
+                    return;
+                }
+                final CanvasMaterials m = skinSlipMaterials();
+                final float led = dp(3.5f);
+                final float shift = led + dp(5);
+                canvas.save();
+                canvas.translate(shift, 0);
+                super.onDraw(canvas);
+                canvas.restore();
+                final float cx = (getMeasuredWidth() - getLayoutTextWidth()) / 2f + shift - dp(10) - led;
+                SkinStyle.drawLed(canvas, cx, getMeasuredHeight() / 2f, led, true, m.led, m.textTertiary, 1f);
+            }
         };
         bottomChannelButtonsLayout.getContainer().addView(bottomOverlayChatText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, 0));
+        updateSkinOverlayColors();
         bottomOverlayChatText.setOnClickListener(view -> {
             if (getParentActivity() == null || pullingDownOffset != 0) {
                 return;
@@ -10945,6 +10992,53 @@ public class ChatActivity extends BaseFragment implements
             return org.telegram.skin.R.drawable.skin_slip_link;
         }
         return res;
+    }
+
+    private boolean skinOverlayAccent;
+    private boolean skinOverlayDanger;
+    private final RectF skinPlateRect = new RectF();
+    private Drawable skinPlateLock;
+
+    /** The cannot-send note as a plate engraved into the console, a padlock at its head. */
+    private void drawSkinPlate(Canvas canvas, View plate) {
+        final CanvasMaterials m = skinSlipMaterials();
+        skinPlateRect.set(dp(6), dp(3), plate.getWidth() - dp(6), plate.getHeight() - dp(3));
+        SkinMetal.drawPlate(canvas, skinPlateRect, Math.min(dp(19), skinPlateRect.height() / 2f), m, 1f);
+        if (skinPlateLock == null) {
+            skinPlateLock = ContextCompat.getDrawable(plate.getContext(), org.telegram.skin.R.drawable.skin_overlay_lock).mutate();
+        }
+        skinPlateLock.setColorFilter(new PorterDuffColorFilter(m.textSecondary, PorterDuff.Mode.SRC_IN));
+        final int size = dp(18);
+        final int left = (int) skinPlateRect.left + dp(14);
+        final int top = (plate.getHeight() - size) / 2;
+        skinPlateLock.setBounds(left, top, left + size, top + size);
+        skinPlateLock.draw(canvas);
+    }
+
+    /** The cannot-send states in the skin's inks: porcelain for the main action, danger for unblocking or deleting, the metal's own otherwise. */
+    private void updateSkinOverlayColors() {
+        if (!SkinSwitch.CHAT_FRAME || bottomOverlayChatText == null) {
+            return;
+        }
+        final CanvasMaterials m = skinSlipMaterials();
+        bottomOverlayChatText.setTextColorOverride(skinOverlayAccent ? m.porcelainText : skinOverlayDanger ? m.danger : m.text);
+        if (bottomOverlayText != null) {
+            bottomOverlayText.setTextColor(m.textSecondary);
+        }
+        if (bottomOverlayLinksText != null) {
+            bottomOverlayLinksText.setTextColor(m.textSecondary);
+        }
+        if (bottomOverlayStartButton != null) {
+            bottomOverlayStartButton.setTextColor(m.porcelainText);
+            bottomOverlayStartButton.setBackground(null);
+            bottomOverlayStartButton.setForeground(Theme.createRadSelectorDrawable(Theme.multAlpha(m.porcelainText, 0.12f), dp(15), dp(15)));
+        }
+        if (bottomOverlay != null) {
+            bottomOverlay.invalidate();
+        }
+        if (bottomChannelButtonsLayout != null) {
+            bottomChannelButtonsLayout.invalidate();
+        }
     }
 
     private void updateSkinSlipColors() {
@@ -27860,6 +27954,7 @@ public class ChatActivity extends BaseFragment implements
         }
         bottomOverlayChatWaitsReply = false;
         bottomOverlayLinks = false;
+        skinOverlayDanger = false;
 
         boolean accentTextButton = false;
         boolean forceVisible = false;
@@ -28008,6 +28103,7 @@ public class ChatActivity extends BaseFragment implements
                 bottomOverlayChatText.setEnabled(false);
             } else if (!isThreadChat()) {
                 bottomOverlayChatText.setText(LocaleController.getString(R.string.DeleteThisGroup));
+                skinOverlayDanger = true;
                 bottomOverlayChatText.setEnabled(true);
             }
             if (bottomOverlayStartButton != null) {
@@ -28027,6 +28123,7 @@ public class ChatActivity extends BaseFragment implements
                 } else {
                     bottomOverlayChatText.setText(LocaleController.getString(R.string.Unblock));
                 }
+                skinOverlayDanger = true;
                 bottomOverlayChatText.setVisibility(View.VISIBLE);
                 if (botButtons != null) {
                     botButtons = null;
@@ -28061,6 +28158,7 @@ public class ChatActivity extends BaseFragment implements
                 }
             } else {
                 bottomOverlayChatText.setText(LocaleController.getString(R.string.DeleteThisChat));
+                skinOverlayDanger = true;
             }
         }
 
@@ -28228,6 +28326,8 @@ public class ChatActivity extends BaseFragment implements
 
 
         bottomOverlayChatText.setTextColorKey(accentTextButton ? Theme.key_featuredStickers_buttonText : Theme.key_glass_defaultText);
+        skinOverlayAccent = accentTextButton;
+        updateSkinOverlayColors();
 
         bottomChannelButtonsLayout.setCenterAccentBackground(accentTextButton, animated);
         bottomChannelButtonsLayout.showButton(ChatActivityChannelButtonsLayout.BUTTON_SEARCH, showSearchButton && bottomChannelButtonsLayout.getVisibility() == View.VISIBLE, animated);
@@ -42684,6 +42784,9 @@ public class ChatActivity extends BaseFragment implements
         themeDescriptions.add(new ThemeDescription(searchUserButton, ThemeDescription.FLAG_BACKGROUNDFILTER | ThemeDescription.FLAG_DRAWABLESELECTEDSTATE, null, null, null, null, Theme.key_actionBarActionModeDefaultSelector));
 
         themeDescriptions.add(new ThemeDescription(bottomOverlayText, ThemeDescription.FLAG_TEXTCOLOR, null, null, null, null, Theme.key_chat_secretChatStatusText));
+        if (SkinSwitch.CHAT_FRAME) {
+            themeDescriptions.add(new ThemeDescription(null, 0, null, null, null, this::updateSkinOverlayColors, Theme.key_chat_secretChatStatusText));
+        }
         themeDescriptions.add(new ThemeDescription(bottomOverlayChatText, 0, null, null, null, null, Theme.key_glass_defaultText));
         themeDescriptions.add(new ThemeDescription(bottomOverlayChatText, 0, null, null, null, null, Theme.key_chat_goDownButtonCounterBackground));
         themeDescriptions.add(new ThemeDescription(bottomOverlayChatText, 0, null, null, null, null, Theme.key_chat_messagePanelBackground));

@@ -19,6 +19,7 @@ import androidx.annotation.NonNull;
 
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.SkinMetal;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.ScaleStateListAnimator;
@@ -343,15 +344,23 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
                 getMeasuredWidth() - dp(10) - totalWidthRight,
                 getMeasuredHeight() - dp(9)
             );
-            backgroundAccentPaint.setColor(accentColor);
-            backgroundAccentPaint.setAlpha(accentAlpha);
-            canvas.drawRoundRect(tmpRect, dp(19), dp(19), backgroundAccentPaint);
+            if (skinPorcelain) {
+                SkinMetal.drawPorcelain(canvas, tmpRect, dp(15),
+                    SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider)), true, accentAlpha / 255f);
+            } else {
+                backgroundAccentPaint.setColor(accentColor);
+                backgroundAccentPaint.setAlpha(accentAlpha);
+                canvas.drawRoundRect(tmpRect, dp(19), dp(19), backgroundAccentPaint);
+            }
         }
 
         super.dispatchDraw(canvas);
     }
 
     private int accentColor = 0;
+
+    /** Draws the accent key as the skin's celadon porcelain instead of a filled accent colour. */
+    public boolean skinPorcelain;
 
     public void setAccentColor(int accentColor) {
         this.accentColor = accentColor;

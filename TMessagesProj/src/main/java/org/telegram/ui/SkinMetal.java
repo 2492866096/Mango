@@ -245,6 +245,16 @@ public final class SkinMetal {
         canvas.restore();
     }
 
+    /** The outline of a plate engraved into the metal: one dark cut line. */
+    public static void drawPlate(Canvas canvas, RectF bounds, float radius, CanvasMaterials m, float alpha) {
+        final float px = dpf2(1);
+        linePaint.setStrokeWidth(px);
+        linePaint.setColor(m.grooveCut);
+        linePaint.setAlpha((int) (Color.alpha(m.grooveCut) * alpha));
+        canvas.drawRoundRect(bounds.left + px / 2, bounds.top + px / 2, bounds.right - px / 2, bounds.bottom - px / 2,
+                radius - px / 2, radius - px / 2, linePaint);
+    }
+
     /** An engraved line laid across: the dark cut on top, the lit lip under it. */
     public static void drawGrooveAcross(Canvas canvas, float left, float right, float y, CanvasMaterials m, float alpha) {
         final float px = dpf2(1);
