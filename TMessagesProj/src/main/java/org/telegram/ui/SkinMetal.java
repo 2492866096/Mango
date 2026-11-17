@@ -309,6 +309,49 @@ public final class SkinMetal {
         canvas.restore();
     }
 
+    private static final Paint toggleCapPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final RectF toggleTrack = new RectF();
+    private static CanvasMaterials toggleCapMaterials;
+    private static float toggleCapRadius;
+
+    /**
+     * A switch: [track] is a groove cut into the metal that fills with
+     * celadon glaze as [progress] goes to 1 (on), and the thumb, a domed
+     * metal cap of radius [r] centred on (cx, cy), slides along it.
+     */
+    public static void drawToggle(Canvas canvas, RectF track, float cx, float cy, float r, float progress, CanvasMaterials m, float alpha) {
+        // Drawn at the origin so every switch in a list shares the cached gradients.
+        final float trackRadius = track.height() / 2f;
+        toggleTrack.set(0, 0, track.width(), track.height());
+        canvas.save();
+        canvas.translate(track.left, track.top);
+        drawWell(canvas, toggleTrack, trackRadius, m, alpha);
+        if (progress > 0) {
+            drawPorcelain(canvas, toggleTrack, trackRadius, m, false, alpha * progress);
+        }
+        canvas.restore();
+        if (alpha >= 1f) {
+            shadowPaint.setColor(m.capMid);
+            shadowPaint.setShadowLayer(dpf2(2), 0, dpf2(1), m.castShadow);
+            canvas.drawCircle(cx, cy, r, shadowPaint);
+        }
+        canvas.save();
+        canvas.translate(cx, cy);
+        if (toggleCapMaterials != m || toggleCapRadius != r) {
+            toggleCapMaterials = m;
+            toggleCapRadius = r;
+            toggleCapPaint.setShader(new RadialGradient(-0.3f * r, -0.4f * r, 2 * r,
+                    new int[]{m.capLit, m.capMid, m.capShade}, null, Shader.TileMode.CLAMP));
+        }
+        toggleCapPaint.setAlpha((int) (255 * alpha));
+        canvas.drawCircle(0, 0, r, toggleCapPaint);
+        linePaint.setStrokeWidth(dpf2(1));
+        linePaint.setColor(m.highlight);
+        linePaint.setAlpha((int) (Color.alpha(m.highlight) * alpha));
+        canvas.drawCircle(0, 0, r - dpf2(0.5f), linePaint);
+        canvas.restore();
+    }
+
     /** The outline of a plate engraved into the metal: one dark cut line. */
     public static void drawPlate(Canvas canvas, RectF bounds, float radius, CanvasMaterials m, float alpha) {
         final float px = dpf2(1);

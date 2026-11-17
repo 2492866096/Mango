@@ -24,6 +24,13 @@ public final class SkinSwitch {
      */
     public static final boolean PROFILE = true;
 
+    /**
+     * Telegram's own small controls, wherever they appear (settings, Mango's
+     * pages, sheets), in the skin's materials: a switch is a groove in the
+     * metal that fills with celadon glaze when on, its thumb a metal cap.
+     */
+    public static final boolean CONTROLS = true;
+
     private SkinSwitch() {
     }
 }
