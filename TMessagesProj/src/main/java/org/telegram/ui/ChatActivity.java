@@ -6291,10 +6291,7 @@ public class ChatActivity extends BaseFragment implements
                         boolean updateVisibility = !cell.getMessageObject().deleted && chatListView.getChildAdapterPosition(cell) != RecyclerView.NO_POSITION;
 
                         boolean replaceAnimation = chatListView.isFastScrollAnimationRunning() || (groupedMessages != null && groupedMessages.transitionParams.backgroundChangeBounds);
-                        // The receiver belongs to this cell. Walking a connected bubble group
-                        // must never replace its owner: scale, alpha and bottom constraints do not
-                        // belong to the older message at the top of the group.
-                        int top = (int) ((replaceAnimation ? child.getTop() : child.getY()) + cell.getPaddingTopAnimated());
+                        int top = (replaceAnimation ? child.getTop() : (int) child.getY()) + child.getPaddingTop();
                         if (cell.drawPinnedBottom()) {
                             int p;
                             if (cell.willRemovedAfterAnimation()) {
@@ -6372,9 +6369,8 @@ public class ChatActivity extends BaseFragment implements
                             canvas.restore();
                         }
                         if (cell.drawPinnedTop()) {
-                            ChatMessageCell pinnedCell = cell;
                             int p;
-                            if (pinnedCell.willRemovedAfterAnimation()) {
+                            if (cell.willRemovedAfterAnimation()) {
                                 p = chatScrollHelper.positionToOldView.indexOfValue(child);
                                 if (p >= 0) {
                                     p = chatScrollHelper.positionToOldView.keyAt(p);
@@ -6391,21 +6387,19 @@ public class ChatActivity extends BaseFragment implements
                                     }
                                     tries++;
 
-                                    MessageObject.GroupedMessages pinnedGroup = pinnedCell.getCurrentMessagesGroup();
-                                    MessageObject.GroupedMessagePosition pinnedPosition = pinnedCell.getCurrentPosition();
                                     int prevPosition;
-                                    if (pinnedGroup != null && pinnedPosition != null) {
-                                        int idx = pinnedGroup.posArray.indexOf(pinnedPosition);
+                                    if (groupedMessages != null && position != null) {
+                                        int idx = groupedMessages.posArray.indexOf(position);
                                         if (idx < 0) {
                                             break;
                                         }
-                                        int size = pinnedGroup.posArray.size();
-                                        if ((pinnedPosition.flags & MessageObject.POSITION_FLAG_TOP) != 0) {
+                                        int size = groupedMessages.posArray.size();
+                                        if ((position.flags & MessageObject.POSITION_FLAG_TOP) != 0) {
                                             prevPosition = p + idx + 1;
                                         } else {
                                             prevPosition = p + 1;
                                             for (int a = idx - 1; a >= 0; a--) {
-                                                if (pinnedGroup.posArray.get(a).maxY < pinnedPosition.minY) {
+                                                if (groupedMessages.posArray.get(a).maxY < position.minY) {
                                                     break;
                                                 } else {
                                                     prevPosition++;
@@ -6415,17 +6409,17 @@ public class ChatActivity extends BaseFragment implements
                                     } else {
                                         prevPosition = p + 1;
                                     }
-                                    if (pinnedCell.willRemovedAfterAnimation()) {
+                                    if (cell.willRemovedAfterAnimation()) {
                                         View view = chatScrollHelper.positionToOldView.get(prevPosition);
                                         if (view != null) {
+                                            top = view.getTop() + view.getPaddingTop();
                                             if (view instanceof ChatMessageCell) {
-                                                pinnedCell = (ChatMessageCell) view;
-                                                top = (int) ((replaceAnimation ? pinnedCell.getTop() : pinnedCell.getY()) + pinnedCell.getPaddingTopAnimated());
-                                                float newTx = pinnedCell.getSlidingOffsetX() + pinnedCell.getCheckBoxTranslation();
+                                                cell = (ChatMessageCell) view;
+                                                float newTx = cell.getSlidingOffsetX() + cell.getCheckBoxTranslation();
                                                 if (canUpdateTx && newTx > 0) {
                                                     tx = newTx;
                                                 }
-                                                if (!pinnedCell.drawPinnedTop()) {
+                                                if (!cell.drawPinnedTop()) {
                                                     break;
                                                 } else {
                                                     p = prevPosition;
@@ -6439,14 +6433,14 @@ public class ChatActivity extends BaseFragment implements
                                     } else {
                                         ViewHolder holder = chatListView.findViewHolderForAdapterPosition(prevPosition);
                                         if (holder != null) {
+                                            top = holder.itemView.getTop() + holder.itemView.getPaddingTop();
                                             if (holder.itemView instanceof ChatMessageCell) {
-                                                pinnedCell = (ChatMessageCell) holder.itemView;
-                                                top = (int) ((replaceAnimation ? pinnedCell.getTop() : pinnedCell.getY()) + pinnedCell.getPaddingTopAnimated());
-                                                float newTx = pinnedCell.getSlidingOffsetX() + pinnedCell.getCheckBoxTranslation();
+                                                cell = (ChatMessageCell) holder.itemView;
+                                                float newTx = cell.getSlidingOffsetX() + cell.getCheckBoxTranslation();
                                                 if (canUpdateTx && newTx > 0) {
                                                     tx = newTx;
                                                 }
-                                                if (!pinnedCell.drawPinnedTop()) {
+                                                if (!cell.drawPinnedTop()) {
                                                     break;
                                                 } else {
                                                     p = prevPosition;
