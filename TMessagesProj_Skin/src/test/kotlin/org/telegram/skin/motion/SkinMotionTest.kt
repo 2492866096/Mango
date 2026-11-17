@@ -2,6 +2,9 @@ package org.telegram.skin.motion
 
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.SnapSpec
+import androidx.compose.animation.core.TargetBasedAnimation
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -62,6 +65,28 @@ class SkinMotionTest {
         assertTrue("up $up", up > 0.85f && up <= 1f)
         assertTrue("down $down", down > 0.6f && down < 1f)
         assertEquals(0.5f, SkinMotion.follow(0.5f, 0.5f, 16f))
+    }
+
+    @Test
+    fun springAtMatchesComposePhysics() {
+        val springs = listOf(
+            SkinMotion.PRESS_DOWN, SkinMotion.PRESS_RELEASE, SkinMotion.TOGGLE, SkinMotion.ENTER,
+            SkinMotion.SEAT, SkinMotion.SETTLE, SkinMotion.LED_ON, MotionSpring(stiffness = 300f, damping = 1.6f),
+        )
+        for (s in springs) {
+            val spec = spring<Float>(dampingRatio = s.damping, stiffness = s.stiffness)
+            val compose = TargetBasedAnimation(spec, Float.VectorConverter, 0f, 1f)
+            for (ms in listOf(8, 16, 40, 80, 120, 200, 320)) {
+                val nanos = ms * 1_000_000L
+                val ours = SkinMotion.springAt(s, ms.toFloat())
+                // Compose calls a spring done once it is within 1% and then reports the target itself.
+                if (nanos < compose.durationNanos) {
+                    assertEquals("${s.stiffness}/${s.damping} at $ms ms", compose.getValueFromNanos(nanos), ours, 0.002f)
+                } else {
+                    assertEquals("${s.stiffness}/${s.damping} at $ms ms, settled", 1f, ours, 0.011f)
+                }
+            }
+        }
     }
 
     @Test

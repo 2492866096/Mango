@@ -63,6 +63,7 @@ import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
+import org.telegram.skin.motion.SkinMotion;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
@@ -1198,6 +1199,7 @@ public class FilterTabsView extends FrameLayout {
         animationTime = 0;
         animatingIndicatorProgress = 0;
         animatingIndicator = true;
+        skinStretch = SkinStyle.chatList() && !SkinMotion.reduced();
         setEnabled(false);
 
         AndroidUtilities.runOnUIThread(animationRunnable, 16);
@@ -1465,6 +1467,7 @@ public class FilterTabsView extends FrameLayout {
         float indicatorX = 0;
         float indicatorWidth = 0;
         float counterVisible = 0;
+        skinMoving = false;
         if (animatingIndicator || manualScrollingToPosition != -1) {
             int position = layoutManager.findFirstVisibleItemPosition();
             if (position != RecyclerListView.NO_POSITION) {
@@ -1493,6 +1496,13 @@ public class FilterTabsView extends FrameLayout {
                     }
                     indicatorWidth = lerp(prevW, newW, animatingIndicatorProgress);
                     counterVisible = lerp(prevH, newH, animatingIndicatorProgress);
+                    if (skinStretch) {
+                        // Both tabs' centres in the indicator's own coordinates.
+                        final float shift = indicatorX - lerp(prevX, newX, animatingIndicatorProgress);
+                        skinFrom = prevX + shift + prevW / 2f;
+                        skinTo = newX + shift + newW / 2f;
+                        skinMoving = true;
+                    }
                 }
             }
         } else {
@@ -1524,7 +1534,18 @@ public class FilterTabsView extends FrameLayout {
                 // A short celadon bar under the current tab.
                 final float centerX = indicatorX + indicatorWidth / 2f;
                 final float bottom = height - getPaddingBottom() - dp(1);
-                skinBarRect.set(centerX - dp(9), bottom - dp(3), centerX + dp(9), bottom);
+                float left = centerX - dp(9);
+                float right = centerX + dp(9);
+                if (skinMoving) {
+                    // On the move it runs like a drop of glaze: the front leads,
+                    // the back catches up, and it is short again on arrival.
+                    final float t = animatingIndicatorProgress;
+                    final float front = lerp(skinFrom, skinTo, 1f - (1f - t) * (1f - t));
+                    final float back = lerp(skinFrom, skinTo, t * t);
+                    left = Math.min(front, back) - dp(9);
+                    right = Math.max(front, back) + dp(9);
+                }
+                skinBarRect.set(left, bottom - dp(3), right, bottom);
                 skinBarPaint.setColor(Theme.getColor(Theme.key_chats_onlineCircle, resourcesProvider));
                 skinBarPaint.setAlpha((int) (255 * listView.getAlpha()));
                 canvas.drawRoundRect(skinBarRect, dp(1.5f), dp(1.5f), skinBarPaint);
@@ -1550,6 +1571,10 @@ public class FilterTabsView extends FrameLayout {
     }
 
     private final RectF skinBarRect = new RectF();
+    private boolean skinStretch;
+    private boolean skinMoving;
+    private float skinFrom;
+    private float skinTo;
     private final Paint skinBarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     @Override
@@ -1664,6 +1689,9 @@ public class FilterTabsView extends FrameLayout {
         }
 
         if (progress > 0) {
+            if (manualScrollingToPosition == -1) {
+                skinStretch = SkinStyle.chatList() && !SkinMotion.reduced();
+            }
             manualScrollingToPosition = position;
             manualScrollingToId = id;
         } else {

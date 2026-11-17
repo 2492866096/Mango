@@ -18,8 +18,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.util.function.BooleanSupplier
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.ln
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
@@ -140,6 +142,34 @@ object SkinMotion {
     fun follow(current: Float, target: Float, elapsedMs: Float): Float {
         val tau = if (target > current) LEVEL_RISE_MS else LEVEL_FALL_MS
         return target + (current - target) * exp(-elapsedMs.coerceAtLeast(0f) / tau)
+    }
+
+    /**
+     * Where [spring] has got to [ms] after setting off from rest, as a share of
+     * the way (past 1 while it overshoots). For views whose own clocks drive a
+     * motion: the same physics Compose and dynamicanimation run, mass 1.
+     */
+    @JvmStatic
+    fun springAt(spring: MotionSpring, ms: Float): Float {
+        if (ms <= 0f) return 0f
+        val t = ms / 1000.0
+        val w = sqrt(spring.stiffness.toDouble())
+        val z = spring.damping.toDouble()
+        val rest = when {
+            z < 1.0 -> {
+                val wd = w * sqrt(1 - z * z)
+                exp(-z * w * t) * (cos(wd * t) + z * w / wd * sin(wd * t))
+            }
+            z == 1.0 -> exp(-w * t) * (1 + w * t)
+            else -> {
+                // Overdamped: two decaying exponentials, starting at rest.
+                val root = w * sqrt(z * z - 1)
+                val r1 = -z * w + root
+                val r2 = -z * w - root
+                (r2 * exp(r1 * t) - r1 * exp(r2 * t)) / (r2 - r1)
+            }
+        }
+        return (1 - rest).toFloat()
     }
 
     // Reduced motion.

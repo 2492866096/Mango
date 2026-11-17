@@ -33,6 +33,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -83,6 +84,9 @@ import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
+import org.telegram.skin.motion.SkinHaptics;
+import org.telegram.skin.motion.SkinMotion;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
@@ -139,6 +143,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Stack;
+import org.telegram.ui.SkinLed;
+import org.telegram.ui.SkinMetal;
 import org.telegram.ui.SkinStyle;
 
 public class DialogCell extends BaseCell implements StoriesListPlaceProvider.AvatarOverlaysView {
@@ -3448,7 +3454,12 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                         invalidate();
                     }
                 });
-                if ((oldUnreadCount == 0 || markUnread) && !(!markUnread && oldMarkUnread)) {
+                if (skinCounter()) {
+                    // Plain figures roll like the dock's counts; a count read away leaves quickly.
+                    final boolean leaving = unreadCount == 0 && !markUnread;
+                    countAnimator.setDuration(leaving ? SkinMotion.EXIT_MS : SkinMotion.ROLL_MS);
+                    countAnimator.setInterpolator(leaving ? SkinMotion.EXIT.getInterpolator() : SkinMotion.ROLL.getInterpolator());
+                } else if ((oldUnreadCount == 0 || markUnread) && !(!markUnread && oldMarkUnread)) {
                     countAnimator.setDuration(220);
                     countAnimator.setInterpolator(new OvershootInterpolator());
                 } else if (unreadCount == 0) {
@@ -3581,14 +3592,31 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             currentRevealBounceProgress = 0f;
             currentRevealProgress = 0f;
             drawRevealBackground = false;
+            skinSwipeArmed = false;
+            skinSwipeFrom = 0f;
+            skinSwipeFlood = 0f;
+            skinSwipeSince = 0;
+            skinSwipeCutouts = null;
         }
         if (isSliding && !swipeCanceled) {
             boolean prevValue = drawRevealBackground;
             drawRevealBackground = Math.abs(translationX) >= getMeasuredWidth() * 0.45f;
+            if (prevValue != drawRevealBackground && SkinStyle.chatList()) {
+                armSkinSwipe(drawRevealBackground);
+            }
             if (prevValue != drawRevealBackground && archiveHidden == SharedConfig.archiveHidden) {
-                try {
-                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
-                } catch (Exception ignore) {}
+                if (SkinStyle.chatList()) {
+                    // A firm click where letting go would act, a light tick on backing off.
+                    if (drawRevealBackground) {
+                        SkinHaptics.confirm(this);
+                    } else {
+                        SkinHaptics.tap(this);
+                    }
+                } else {
+                    try {
+                        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                    } catch (Exception ignore) {}
+                }
             }
         }
         invalidate();
@@ -3732,7 +3760,11 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             }
 
             float tx = getMeasuredWidth() + translationX;
-            if (currentRevealProgress < 1.0f) {
+            final boolean skinSwipe = SkinStyle.chatList();
+            final boolean destructive = translationDrawable == Theme.dialogs_swipeDeleteDrawable;
+            if (skinSwipe) {
+                drawSkinSwipeGround(canvas, tx, destructive);
+            } else if (currentRevealProgress < 1.0f) {
                 Theme.dialogs_pinnedPaint.setColor(backgroundColor);
                 canvas.drawRect(tx - dp(8), 0, getMeasuredWidth(), getMeasuredHeight(), Theme.dialogs_pinnedPaint);
                 if (currentRevealProgress == 0) {
@@ -3755,7 +3787,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
             int drawableCx = drawableX + translationDrawable.getIntrinsicWidth() / 2;
             int drawableCy = drawableY + translationDrawable.getIntrinsicHeight() / 2;
 
-            if (currentRevealProgress > 0.0f) {
+            if (!skinSwipe && currentRevealProgress > 0.0f) {
                 canvas.save();
                 canvas.clipRect(tx - dp(8), 0, getMeasuredWidth(), getMeasuredHeight());
                 Theme.dialogs_pinnedPaint.setColor(revealBackgroundColor);
@@ -3780,7 +3812,13 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
 
             canvas.save();
             canvas.translate(drawableX, drawableY);
-            if (currentRevealBounceProgress != 0.0f && currentRevealBounceProgress != 1.0f) {
+            if (skinSwipe) {
+                final float scale = skinSwipeIconScale();
+                final float kx = translationDrawable.getIntrinsicWidth() / 2f;
+                final float ky = translationDrawable.getIntrinsicHeight() / 2f;
+                canvas.scale(scale, scale, kx, ky);
+                canvas.drawCircle(kx, ky, dp(SKIN_SWIPE_KEY_RADIUS), skinSwipeKeyPaint);
+            } else if (currentRevealBounceProgress != 0.0f && currentRevealBounceProgress != 1.0f) {
                 float scale = 1.0f + interpolator.getInterpolation(currentRevealBounceProgress);
                 canvas.scale(scale, scale, translationDrawable.getIntrinsicWidth() / 2, translationDrawable.getIntrinsicHeight() / 2);
             }
@@ -3806,7 +3844,14 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 canvas.save();
                 float yOffset = swipeMessageTextLayout.getLineCount() > 1 ? -dp(4) : 0;
                 canvas.translate(getMeasuredWidth() - dp(43) - swipeMessageTextLayout.getWidth() / 2f, drawableY + dp(52 - 16) + yOffset);
+                final TextPaint labelPaint = swipeMessageTextLayout.getPaint();
+                final int labelColor = labelPaint.getColor();
+                if (skinSwipe) {
+                    // The glaze reaches the label a moment after it covers the key.
+                    labelPaint.setColor(skinSwipeFlood > 0.15f ? skinSwipeGlazeInk : skinSwipeMetalInk);
+                }
                 swipeMessageTextLayout.draw(canvas);
+                labelPaint.setColor(labelColor);
                 canvas.restore();
             }
             canvas.restore();
@@ -4347,6 +4392,7 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 setDrawableBounds(Theme.dialogs_reorderDrawable, pinLeft, pinTop);
                 Theme.dialogs_reorderDrawable.draw(canvas);
             }
+            skinCounterAlpha = 0f;
             if (drawError) {
                 Theme.dialogs_errorDrawable.setAlpha((int) ((1.0f - reorderIconProgress) * 255));
                 rect.set(errorLeft, errorTop, errorLeft + dp(BADGE_SIZE), errorTop + dp(BADGE_SIZE));
@@ -4415,6 +4461,9 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     openButtonText.draw(canvas, openButtonRect.left + dp(13), openButtonRect.centerY(), Theme.getColor(Theme.key_featuredStickers_buttonText, resourcesProvider), 1.0f);
                 }
                 canvas.restore();
+            }
+            if (skinCounter()) {
+                drawSkinLed(canvas);
             }
 
             if (thumbsCount > 0 && updateHelper.typingProgres != 1f) {
@@ -5201,16 +5250,151 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 canvas.restore();
             }
             if (skin) {
-                // The light sits in the room left for it at the end of the row.
-                final float ledX = LocaleController.isRTL ? countLeftLocal - dp(SKIN_LED_ROOM) + dp(4) : countLeftLocal + countWidth + dp(BADGE_TEXT_PADDING * 2) + dp(SKIN_LED_ROOM) - dp(4);
-                SkinStyle.drawLed(canvas, ledX, countTop + dp(BADGE_SIZE) / 2f, !drawCounterMuted,
-                        Theme.getColor(Theme.key_chats_onlineCircle, resourcesProvider),
-                        Theme.getColor(Theme.key_chats_unreadCounterMuted, resourcesProvider),
-                        progressFinal * (1.0f - reorderIconProgress));
+                // The light sits in the room left for it at the end of the row; drawSkinLed draws it.
+                skinLedX = LocaleController.isRTL ? countLeftLocal - dp(SKIN_LED_ROOM) + dp(4) : countLeftLocal + countWidth + dp(BADGE_TEXT_PADDING * 2) + dp(SKIN_LED_ROOM) - dp(4);
+                skinLedY = countTop + dp(BADGE_SIZE) / 2f;
+                skinLedPlaced = true;
+                skinCounterAlpha = progressFinal;
             }
             if (restoreCountTextPaint) {
                 Theme.dialogs_countTextPaint2.setColor(Theme.getColor(Theme.key_chats_unreadCounterText));
             }
+        }
+    }
+
+    private boolean skinSwipeArmed;
+    private boolean skinSwipeStill;
+    private long skinSwipeSince;
+    private float skinSwipeFrom;
+    private float skinSwipeFlood;
+    private final RectF skinSwipeRect = new RectF();
+    private final Path skinSwipeClip = new Path();
+    private final Paint skinSwipeKeyPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private RLottieDrawable skinSwipeCutouts;
+    private int skinSwipeMetalInk;
+    private int skinSwipeGlazeInk;
+    /** Clear of the label under the mark. */
+    private static final float SKIN_SWIPE_KEY_RADIUS = 17;
+
+    /** Past the point where letting go acts, or back short of it: the glaze floods in or drains away from there. */
+    private void armSkinSwipe(boolean armed) {
+        final long now = SystemClock.uptimeMillis();
+        skinSwipeFrom = skinSwipeFloodAt(now);
+        skinSwipeArmed = armed;
+        skinSwipeSince = now;
+        skinSwipeStill = SkinMotion.reduced();
+    }
+
+    private float skinSwipeFloodAt(long now) {
+        if (skinSwipeSince == 0 || skinSwipeStill) {
+            return skinSwipeArmed ? 1f : 0f;
+        }
+        final float t = now - skinSwipeSince;
+        if (skinSwipeArmed) {
+            final float f = Math.min(1f, t / SkinMotion.GLAZE_MS);
+            return skinSwipeFrom + (1f - skinSwipeFrom) * SkinMotion.GLAZE.getInterpolator().getInterpolation(f);
+        }
+        final float f = Math.min(1f, t / SkinMotion.EXIT_MS);
+        return skinSwipeFrom * (1f - SkinMotion.EXIT.getInterpolator().getInterpolation(f));
+    }
+
+    /**
+     * Under a row being swiped: the aluminium channel it slides in, and, once
+     * the swipe would act, celadon glaze (red for deleting) welling up from the
+     * action's key until it fills the channel. Timed by the clock, not by
+     * frames, so it runs the same on every screen. Also sets the key's colours.
+     */
+    private void drawSkinSwipeGround(Canvas canvas, float tx, boolean destructive) {
+        final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider));
+        skinSwipeRect.set(tx - dp(8), 0, getMeasuredWidth(), getMeasuredHeight());
+        SkinMetal.drawPlate(canvas, skinSwipeRect, 0, m, 1f);
+        final long now = SystemClock.uptimeMillis();
+        skinSwipeFlood = skinSwipeFloodAt(now);
+        if (skinSwipeFlood > 0f) {
+            // From the key's centre (where Telegram puts the mark, a little above the middle)
+            // out to the channel's farthest corner.
+            final float cx = getMeasuredWidth() - dp(43);
+            final float cy = (getMeasuredHeight() - dp(52)) / 2f + translationDrawable.getIntrinsicHeight() / 2f;
+            final float reach = (float) Math.hypot(cx - skinSwipeRect.left, Math.max(cy, getMeasuredHeight() - cy));
+            skinSwipeClip.rewind();
+            skinSwipeClip.addCircle(cx, cy, reach * skinSwipeFlood, Path.Direction.CW);
+            canvas.save();
+            canvas.clipRect(skinSwipeRect);
+            canvas.clipPath(skinSwipeClip);
+            if (destructive) {
+                Theme.dialogs_pinnedPaint.setColor(m.danger);
+                canvas.drawRect(skinSwipeRect, Theme.dialogs_pinnedPaint);
+            } else {
+                SkinMetal.drawPorcelain(canvas, skinSwipeRect, 0, m, true, 1f);
+            }
+            canvas.restore();
+        }
+        if (skinSwipeIconMoving(now) || skinSwipeSince != 0 && !skinSwipeStill
+                && now - skinSwipeSince < (skinSwipeArmed ? SkinMotion.GLAZE_MS : SkinMotion.EXIT_MS)) {
+            invalidate();
+        }
+        // The action is a key of ink (red for deleting) with Telegram's white mark on it.
+        final int key = destructive ? m.danger : m.ink;
+        skinSwipeKeyPaint.setColor(key);
+        skinSwipeMetalInk = m.textSecondary;
+        skinSwipeGlazeInk = destructive ? Color.WHITE : m.porcelainText;
+        // The archive and hide marks cut their arrow and lines out in the colour behind them.
+        if (skinSwipeCutouts != translationDrawable) {
+            skinSwipeCutouts = translationDrawable;
+            if (translationDrawable == Theme.dialogs_archiveDrawable) {
+                translationDrawable.setLayerColor("Arrow.**", key);
+            } else if (translationDrawable == Theme.dialogs_unarchiveDrawable) {
+                translationDrawable.setLayerColor("Arrow2.**", key);
+            } else if (translationDrawable == Theme.dialogs_hidePsaDrawable) {
+                translationDrawable.beginApplyLayerColors();
+                translationDrawable.setLayerColor("Line 1.**", key);
+                translationDrawable.setLayerColor("Line 2.**", key);
+                translationDrawable.setLayerColor("Line 3.**", key);
+                translationDrawable.commitApplyLayerColors();
+            }
+        }
+    }
+
+    private boolean skinSwipeIconMoving(long now) {
+        return skinSwipeArmed && !skinSwipeStill && now - skinSwipeSince < SkinMotion.PRESS_RELEASE.getSettleMs();
+    }
+
+    /** Arming presses the action's key: it drops at once and comes back on its spring. */
+    private float skinSwipeIconScale() {
+        final long now = SystemClock.uptimeMillis();
+        if (!skinSwipeIconMoving(now)) {
+            return 1f;
+        }
+        return 1f - 0.1f * (1f - SkinMotion.springAt(SkinMotion.PRESS_RELEASE, now - skinSwipeSince));
+    }
+
+    private final SkinLed skinLed = new SkinLed();
+    private long skinLedDialog;
+    private boolean skinLedPlaced;
+    private float skinLedX;
+    private float skinLedY;
+    private float skinCounterAlpha;
+
+    /**
+     * The unread light, apart from the counter so its afterglow outlives the
+     * count it belonged to: it strikes when unread messages arrive in a chat
+     * that is not muted, and fades when they are read or the chat is muted.
+     */
+    private void drawSkinLed(Canvas canvas) {
+        final boolean lit = drawCount && drawCount2 && !isCounterMuted();
+        // A row just bound to another chat shows that chat's light as it is; only changes in place animate.
+        final boolean rebound = skinLedDialog != currentDialogId;
+        skinLedDialog = currentDialogId;
+        skinLed.show(lit, !rebound && (!isDialogCell || System.currentTimeMillis() - lastDialogChangedTime > 100));
+        final float glow = skinLed.glow();
+        if (skinLedPlaced && (glow > 0f || skinCounterAlpha > 0f)) {
+            SkinStyle.drawLed(canvas, skinLedX, skinLedY, dpf2(4), glow, skinCounterAlpha,
+                    Theme.getColor(Theme.key_chats_onlineCircle, resourcesProvider),
+                    Theme.getColor(Theme.key_chats_unreadCounterMuted, resourcesProvider),
+                    1.0f - reorderIconProgress);
+        }
+        if (skinLed.isMoving()) {
+            invalidate();
         }
     }
 

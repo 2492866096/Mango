@@ -130,6 +130,7 @@ import org.telegram.messenger.XiaomiUtilities;
 import org.telegram.messenger.browser.Browser;
 import org.telegram.messenger.utils.GradientProtectionDrawable;
 import org.telegram.messenger.utils.SearchTextWatcher;
+import org.telegram.skin.motion.SkinHaptics;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLObject;
@@ -2476,6 +2477,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else {
                 movingWas = true;
             }
+            if (SkinStyle.chatList()) {
+                // A tick as the row passes another.
+                SkinHaptics.tap(recyclerView);
+            }
             return true;
         }
 
@@ -2634,6 +2639,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             currentItemViewHolder = viewHolder;
             if (viewHolder != null && viewHolder.itemView instanceof DialogCell) {
                 ((DialogCell) viewHolder.itemView).swipeCanceled = false;
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && SkinStyle.chatList()) {
+                    SkinLift.lift(viewHolder.itemView);
+                }
             }
             super.onSelectedChanged(viewHolder, actionState);
         }
@@ -2641,6 +2649,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         @Override
         public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
             super.clearView(recyclerView, viewHolder);
+            SkinLift.drop(viewHolder.itemView);
             // Dropping a pin is a completed edit, even if multi-select remains open.
             persistMovedPinnedDialogs();
         }

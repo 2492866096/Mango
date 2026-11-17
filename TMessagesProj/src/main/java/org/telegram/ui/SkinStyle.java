@@ -105,22 +105,34 @@ public final class SkinStyle {
         drawLed(canvas, cx, cy, dpf2(4), lit, litColor, unlitColor, alpha);
     }
 
+    /**
+     * The status light part way through a change, as {@link SkinLed} reports it:
+     * [glow] 0 is off and 1 lit, above 1 the bloom of striking. The unlit ring
+     * shows at [ring] while the light is off and gives way as it comes on.
+     */
+    public static void drawLed(Canvas canvas, float cx, float cy, float r, float glow, float ring, int litColor, int unlitColor, float alpha) {
+        final float lit = Math.max(0f, Math.min(1f, glow));
+        if (lit < 1f && ring > 0f) {
+            drawLed(canvas, cx, cy, r, false, litColor, unlitColor, alpha * ring * (1f - lit));
+        }
+        if (lit > 0f) {
+            final float bloom = Math.max(0f, Math.min(1f, (glow - 1f) / 0.2f));
+            // The halo grows by scaling the canvas, so its gradient is not rebuilt every frame.
+            final float spread = 1f + 0.35f * bloom;
+            canvas.save();
+            canvas.scale(spread, spread, cx, cy);
+            drawHalo(canvas, cx, cy, r, litColor, Math.min(1f, alpha * lit * (1f + 0.5f * bloom)));
+            canvas.restore();
+            ledPaint.setColor(litColor);
+            ledPaint.setAlpha((int) (255 * alpha * lit));
+            canvas.drawCircle(cx, cy, r, ledPaint);
+        }
+    }
+
     /** The status light at radius [r]; the knob's rim light is smaller than the list's. */
     public static void drawLed(Canvas canvas, float cx, float cy, float r, boolean lit, int litColor, int unlitColor, float alpha) {
         if (lit) {
-            final float glow = r * 3f;
-            if (glowColor != litColor || glowRadius != glow) {
-                glowColor = litColor;
-                glowRadius = glow;
-                glowPaint.setShader(new RadialGradient(0, 0, glow,
-                        new int[]{ColorUtils.setAlphaComponent(litColor, 0x66), ColorUtils.setAlphaComponent(litColor, 0x22), Color.TRANSPARENT},
-                        new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
-            }
-            glowPaint.setAlpha((int) (255 * alpha));
-            canvas.save();
-            canvas.translate(cx, cy);
-            canvas.drawCircle(0, 0, glow, glowPaint);
-            canvas.restore();
+            drawHalo(canvas, cx, cy, r, litColor, alpha);
             ledPaint.setColor(litColor);
             ledPaint.setAlpha((int) (255 * alpha));
             canvas.drawCircle(cx, cy, r, ledPaint);
@@ -131,6 +143,22 @@ public final class SkinStyle {
             ringPaint.setAlpha((int) (Color.alpha(unlitColor) * alpha));
             canvas.drawCircle(cx, cy, r - stroke / 2f, ringPaint);
         }
+    }
+
+    private static void drawHalo(Canvas canvas, float cx, float cy, float r, int litColor, float alpha) {
+        final float glow = r * 3f;
+        if (glowColor != litColor || glowRadius != glow) {
+            glowColor = litColor;
+            glowRadius = glow;
+            glowPaint.setShader(new RadialGradient(0, 0, glow,
+                    new int[]{ColorUtils.setAlphaComponent(litColor, 0x66), ColorUtils.setAlphaComponent(litColor, 0x22), Color.TRANSPARENT},
+                    new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
+        }
+        glowPaint.setAlpha((int) (255 * alpha));
+        canvas.save();
+        canvas.translate(cx, cy);
+        canvas.drawCircle(0, 0, glow, glowPaint);
+        canvas.restore();
     }
 
     /**
