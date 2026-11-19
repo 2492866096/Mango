@@ -23,7 +23,9 @@ public final class MangoSettingsSync {
     private static Map<String, Boolean> defaults() {
         Map<String, Boolean> result = new LinkedHashMap<>();
         for (MangoFeatureRegistry.Feature feature : MangoFeatureRegistry.FEATURES) result.put(feature.key, false);
+        result.put("show_online_badge", true);
         result.put("cross_account_inbox", true);
+        result.put("scam_users_enabled", true);
         result.put("mango_quick_forward_account_selection", false);
         result.put("mango_download_speed_hud", false);
         return result;
@@ -70,7 +72,7 @@ public final class MangoSettingsSync {
     }
 
     public static void onLegacyChanged(int source, String key, Object value) {
-        if (applying || !isEnabled() || !(value instanceof Boolean)) return;
+        if (applying || !isEnabled() || !(value instanceof Boolean) || key.equals("auto_reaction") || key.startsWith("daily_") || key.startsWith("echo_")) return;
         propagate(source, "legacy:" + key, (Boolean) value);
     }
 

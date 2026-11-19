@@ -14,7 +14,6 @@ import androidx.annotation.Nullable;
 
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
-import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
@@ -46,16 +45,6 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
         R.drawable.reactionbutton,
         R.drawable.pagedown,
         R.drawable.pagedown
-    };
-
-    /** The skin's line glyphs for the same buttons; search up flips the down chevron, as Telegram's does. */
-    private static final @DrawableRes int[] skinButtonIcons = new int[] {
-        org.telegram.skin.R.drawable.skin_input_attach,
-        org.telegram.skin.R.drawable.skin_search_down,
-        org.telegram.skin.R.drawable.skin_side_mention,
-        org.telegram.skin.R.drawable.skin_side_reaction,
-        org.telegram.skin.R.drawable.skin_search_down,
-        org.telegram.skin.R.drawable.skin_search_down
     };
 
     private final String[] buttonDescriptions = new String[] {
@@ -218,7 +207,7 @@ public class ChatActivitySideControlsButtonsLayout extends FrameLayout implement
                 resourcesProvider,
                 blurredBackgroundDrawableViewFactory,
                 colorProvider,
-                (SkinSwitch.CHAT_FRAME ? skinButtonIcons : buttonIcons)[buttonId]
+                buttonIcons[buttonId]
             );
 
             button.setPivotX(dp(size / 2f));

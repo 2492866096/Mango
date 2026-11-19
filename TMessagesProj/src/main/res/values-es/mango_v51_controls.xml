@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">Reacciones automáticas en canales</string>
+    <string name="MangoReactionGroups">Reacciones automáticas en grupos</string>
+    <string name="MangoReactionPrivate">Reacciones automáticas en chats privados</string>
+    <string name="MangoReactionConfirmTitle">¿Activar las reacciones automáticas?</string>
+    <string name="MangoReactionConfirmInfo">El cliente enviará reacciones con emojis en los canales, grupos y chats privados seleccionados. Los ajustes de alcance solo se aplican cuando las reacciones automáticas están activadas. Este ajuste afecta a todas las cuentas de este dispositivo.</string>
+    <string name="MangoDownloadHudPinned">Fijado</string>
+    <string name="MangoDownloadHudLockHint">Arrastra para mover; mantén pulsado para fijar</string>
+    <string name="MangoDownloadHudUnlockHint">Mantén pulsado para desbloquear el movimiento</string>
+</resources>

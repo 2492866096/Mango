@@ -4,6 +4,7 @@
     <string name="MangoCategoryChat">聊天</string>
     <string name="MangoCategoryPrivacy">隐私</string>
     <string name="MangoCategoryMedia">媒体</string>
+    <string name="MangoCategoryAutomation">自动化</string>
     <string name="MangoCategoryAppearance">外观</string>
     <string name="MangoCategoryTools">工具</string>
     <string name="MangoSearchSettings">搜索所有功能和设置</string>
@@ -26,6 +27,7 @@
     <string name="MangoResetNow">确认重置</string>
     <string name="MangoResetDone">设置已重置</string>
     <string name="MangoNotificationRules">关键词独立通知规则</string>
+    <string name="MangoScamUsers">诈骗用户与频道标记</string>
     <string name="MangoSettingsSubtitle">分类管理 · 全局搜索 · 修改可找回</string>
     <string name="MangoSearchPage">打开设置页：%1$s</string>
     <string name="MangoStandardSettings">更多应用设置</string>
@@ -46,6 +48,8 @@
     <string name="MangoDisableSentSoundInfo">关闭消息发送成功的提示音。</string>
     <string name="MangoDisableReceivedSound">禁用消息收到提示音</string>
     <string name="MangoDisableReceivedSoundInfo">关闭新消息提示音，保留其他通知方式。</string>
+    <string name="MangoAutoRead">自动已读消息</string>
+    <string name="MangoAutoReadInfo">应用前台且联网时仅处理新消息。隐藏已读状态设置仍优先生效。</string>
     <string name="MangoConfirmSend">发送消息前确认</string>
     <string name="MangoConfirmSendInfo">手动发送消息前增加确认步骤。</string>
     <string name="MangoConfirmVoice">发送语音录音前确认</string>

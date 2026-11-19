@@ -165,7 +165,6 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.browser.Browser;
-import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLObject;
@@ -2068,13 +2067,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             scrollableViewNoiseSuppressor = new DownscaleScrollableNoiseSuppressor();
             //iBlur3SourceGlassFrosted = new BlurredBackgroundSourceRenderNode(null);
             iBlur3SourceGlass = new BlurredBackgroundSourceRenderNode(null);
-            iBlur3FactoryLiquidGlass = BlurredBackgroundDrawableViewFactory.skin(new BlurredBackgroundDrawableViewFactory(iBlur3SourceGlass));
+            iBlur3FactoryLiquidGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceGlass);
             iBlur3FactoryLiquidGlass.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
         } else {
             scrollableViewNoiseSuppressor = null;
             //iBlur3SourceGlassFrosted = null;
             iBlur3SourceGlass = null;
-            iBlur3FactoryLiquidGlass = BlurredBackgroundDrawableViewFactory.skin(new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor));
+            iBlur3FactoryLiquidGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
         }
     }
 
@@ -5431,7 +5430,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         overlaysView = new OverlaysView(context);
         avatarsBlurView = new ProfileGalleryBlurView(context);
         avatarsBlurView.setSize(getActionsExtraHeight());
-        avatarsViewPager = new ProfileGalleryView(context, userId != 0 ? userId : -chatId, actionBar, listView, avatarImage, getClassGuid(), overlaysView, avatarsBlurView) {
+        avatarsViewPager = new ProfileGalleryView(context, currentAccount, userId != 0 ? userId : -chatId, actionBar, listView, avatarImage, getClassGuid(), overlaysView, avatarsBlurView) {
             @Override
             protected void setCustomAvatarProgress(float progress) {
                 customAvatarProgress = progress;
@@ -5527,7 +5526,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             nameTextView[a].setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(a == 0 ? 12 : 4));
             nameTextView[a].setTextSize(18);
             nameTextView[a].setGravity(Gravity.LEFT);
-            nameTextView[a].setTypeface(SkinSwitch.PROFILE ? SkinStyle.serif() : AndroidUtilities.bold());
+            nameTextView[a].setTypeface(AndroidUtilities.bold());
             nameTextView[a].setLeftDrawableTopPadding(-AndroidUtilities.dp(1.3f));
             nameTextView[a].setPivotX(0);
             nameTextView[a].setPivotY(0);
@@ -6410,10 +6409,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private int getSmallAvatarRoundRadius() {
-        if (SkinSwitch.PROFILE) {
-            // The skin's squircle at the avatar's 100dp, tightened like Telegram's forum corner when a story ring insets it.
-            return needInsetForStories() ? dp(20) : SkinStyle.avatarRadius(dp(100));
-        }
         if (chatId != 0) {
             TLRPC.Chat chatLocal = getMessagesController().getChat(chatId);
             if (ChatObject.isForum(chatLocal)) {
@@ -15471,32 +15466,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     private void writeButtonSetBackground() {
         if (writeButton == null) return;
-        if (SkinSwitch.PROFILE) {
-            // The floating key is the skin's knob, its glyph in the metal's ink.
-            final CanvasMaterials m = SkinMetal.materials(getThemedColor(Theme.key_windowBackgroundWhite));
-            writeButton.setBackground(new Drawable() {
-                @Override
-                public void draw(@NonNull Canvas canvas) {
-                    final Rect b = getBounds();
-                    SkinMetal.drawKnob(canvas, b.exactCenterX(), b.exactCenterY(), Math.min(b.width(), b.height()) / 2f - dp(4), false, m, 1f);
-                }
-
-                @Override
-                public void setAlpha(int alpha) {
-                }
-
-                @Override
-                public void setColorFilter(@Nullable ColorFilter colorFilter) {
-                }
-
-                @Override
-                public int getOpacity() {
-                    return PixelFormat.TRANSLUCENT;
-                }
-            });
-            writeButton.setColorFilter(new PorterDuffColorFilter(m.text, PorterDuff.Mode.MULTIPLY));
-            return;
-        }
         try {
             Drawable shadowDrawable = fragmentView.getContext().getResources().getDrawable(R.drawable.floating_shadow_profile).mutate();
             shadowDrawable.setColorFilter(new PorterDuffColorFilter(Color.BLACK, PorterDuff.Mode.MULTIPLY));

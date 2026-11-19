@@ -47,6 +47,7 @@ public class KeywordFilterActivity extends BaseFragment {
     private static final int ITEM_ID_CLEAR_LOGS = 6;
     private static final int ITEM_ID_LOG = 7;
     private static final int ITEM_ID_BLOCK_SPONSORED_MESSAGES_FULL = 8;
+    private static final int ITEM_ID_REMOTE_UPDATES = 9;
 
     private static final int ACTION_MODE_DELETE = 100;
 
@@ -119,6 +120,7 @@ public class KeywordFilterActivity extends BaseFragment {
         }
 
         items.add(UItem.asSwitch(ITEM_ID_ENABLE, getString(R.string.KeywordFilterEnable)).setChecked(manager.isEnabled()));
+        items.add(UItem.asSwitch(ITEM_ID_REMOTE_UPDATES, getString(R.string.KeywordFilterRemoteUpdates)).setChecked(manager.isRemoteUpdatesEnabled()));
         items.add(UItem.asSwitch(ITEM_ID_BLOCK_SPONSORED_MESSAGES_FULL, getString(R.string.BlockSponsoredMessagesFull)).setChecked(SharedConfig.isBlockSponsoredMessagesFullEnabled()));
         items.add(UItem.asShadow(getString(R.string.KeywordFilterEnableInfo)));
 
@@ -187,6 +189,15 @@ public class KeywordFilterActivity extends BaseFragment {
             case ITEM_ID_ENABLE: {
                 boolean enabled = !manager.isEnabled();
                 manager.setEnabled(enabled);
+                if (view instanceof TextCheckCell2) {
+                    ((TextCheckCell2) view).setChecked(enabled);
+                }
+                refreshList();
+                break;
+            }
+            case ITEM_ID_REMOTE_UPDATES: {
+                boolean enabled = !manager.isRemoteUpdatesEnabled();
+                manager.setRemoteUpdatesEnabled(enabled);
                 if (view instanceof TextCheckCell2) {
                     ((TextCheckCell2) view).setChecked(enabled);
                 }

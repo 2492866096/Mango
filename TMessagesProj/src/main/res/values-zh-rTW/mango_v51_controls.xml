@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">頻道自動表情回應</string>
+    <string name="MangoReactionGroups">群組自動表情回應</string>
+    <string name="MangoReactionPrivate">私訊自動表情回應</string>
+    <string name="MangoReactionConfirmTitle">確認開啟自動表情回應？</string>
+    <string name="MangoReactionConfirmInfo">開啟後，用戶端會在選定的頻道、群組和私訊範圍自動傳送表情回應。範圍開關僅在總開關開啟時生效。此設定適用於本機所有帳號。</string>
+    <string name="MangoDownloadHudPinned">已固定</string>
+    <string name="MangoDownloadHudLockHint">拖曳可移動，長按可固定</string>
+    <string name="MangoDownloadHudUnlockHint">長按解鎖後即可移動</string>
+</resources>

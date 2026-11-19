@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">訊息頭像上線圓點</string>
+    <string name="MangoShowOnlineBadgeInfo">當 Telegram 顯示傳送者上線時，在訊息頭像右下角顯示綠色圓點。</string>
+    <string name="MangoDisableTapMediaSwitch">停用點按切換圖片、頭像</string>
+    <string name="MangoDisableTapMediaSwitchInfo">開啟後，點按左右區域不再切換圖片或頭像；仍可滑動切換、縮放、播放和關閉。</string>
+</resources>

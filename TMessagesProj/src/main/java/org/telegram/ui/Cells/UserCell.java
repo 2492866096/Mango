@@ -59,7 +59,6 @@ import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.NotificationsSettingsActivity;
 import org.telegram.ui.Stories.StoriesListPlaceProvider;
 import org.telegram.ui.Stories.StoriesUtilities;
-import org.telegram.ui.SkinStyle;
 
 public class UserCell extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {
 
@@ -101,11 +100,6 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
 
     public boolean needDivider;
     public StoriesUtilities.AvatarStoryParams storyParams = new StoriesUtilities.AvatarStoryParams(false) {
-        {
-            // The skin's avatars are squircles, so a story ring follows that shape.
-            squircle = SkinStyle.chatList();
-        }
-
         @Override
         public void openStory(long dialogId, Runnable onDone) {
             UserCell.this.openStory(dialogId, onDone);
@@ -182,7 +176,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
                 return super.onTouchEvent(event);
             }
         };
-        avatarImageView.setRoundRadius(avatarCorner(46, dp(24)));
+        avatarImageView.setRoundRadius(dp(24));
         addView(avatarImageView, LayoutHelper.createFrame(46, 46, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 7 + padding, 6, LocaleController.isRTL ? 7 + padding : 0, 0));
         setClipChildren(false);
 
@@ -473,18 +467,13 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
 
     private boolean callCellStyle;
 
-    /** The skin's squircle for an avatar [sizeDp] across; Telegram's circle (or a forum's corner) otherwise. */
-    private static int avatarCorner(int sizeDp, int telegram) {
-        return SkinStyle.chatList() ? SkinStyle.avatarRadius(dp(sizeDp)) : telegram;
-    }
-
     public void setCallCellStyle(int padding) {
         callCellStyle = true;
         nameTextView.setTextSize(15);
         nameTextView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 20, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 30 : (66 + padding), 10, LocaleController.isRTL ? (66 + padding) : 30, 0));
         statusTextView.setTextSize(13);
         statusTextView.setLayoutParams(LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 20, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 30 : (66 + padding), 32, LocaleController.isRTL ? (66 + padding) : 30, 0));
-        avatarImageView.setRoundRadius(avatarCorner(44, dp(22)));
+        avatarImageView.setRoundRadius(dp(22));
         avatarImageView.setLayoutParams(LayoutHelper.createFrame(44, 44, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 8 + padding, 6, LocaleController.isRTL ? 8 + padding : 0, 0));
         if (checkBox != null) {
             checkBox.setLayoutParams(LayoutHelper.createFrame(24, 24, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, LocaleController.isRTL ? 0 : 37 + padding, 32, LocaleController.isRTL ? 37 + padding : 0, 0));
@@ -722,7 +711,7 @@ public class UserCell extends FrameLayout implements NotificationCenter.Notifica
             avatarImageView.setImageDrawable(avatarDrawable);
         }
 
-        avatarImageView.setRoundRadius(avatarCorner(callCellStyle ? 44 : 46, currentChat != null && currentChat.forum ? dp(14) : dp(24)));
+        avatarImageView.setRoundRadius(currentChat != null && currentChat.forum ? dp(14) : dp(24));
 
         nameTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
     }

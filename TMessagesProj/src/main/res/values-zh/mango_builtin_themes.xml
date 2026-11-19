@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoBuiltinThemes">内置主题</string>
+    <string name="MangoBuiltinThemeOption">主题 %1$d</string>
+    <string name="MangoBuiltinThemesInfo">选择下方三个主题之一，在应用内预览后应用。导入主题需要联网，应用过的主题会保留在主题列表中。</string>
+    <string name="MangoBuiltinThemesOffline">连接 Telegram 后即可预览并导入此主题。已经应用过的主题，离线时仍可在主题列表中选择。</string>
+</resources>

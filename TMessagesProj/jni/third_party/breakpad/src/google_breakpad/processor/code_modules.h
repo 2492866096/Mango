@@ -1,4 +1,5 @@
-// Copyright 2006 Google LLC
+// Copyright (c) 2006, Google Inc.
+// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -10,7 +11,7 @@
 // copyright notice, this list of conditions and the following disclaimer
 // in the documentation and/or other materials provided with the
 // distribution.
-//     * Neither the name of Google LLC nor the names of its
+//     * Neither the name of Google Inc. nor the names of its
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -34,12 +35,7 @@
 #ifndef GOOGLE_BREAKPAD_PROCESSOR_CODE_MODULES_H__
 #define GOOGLE_BREAKPAD_PROCESSOR_CODE_MODULES_H__
 
-#include <stddef.h>
-
-#include <vector>
-
 #include "google_breakpad/common/breakpad_types.h"
-#include "processor/linked_ptr.h"
 
 namespace google_breakpad {
 
@@ -95,11 +91,6 @@ class CodeModules {
   // returns objects in may differ between a copy and the original CodeModules
   // object.
   virtual const CodeModules* Copy() const = 0;
-
-  // Returns a vector of all modules which address ranges needed to be shrunk
-  // down due to address range conflicts with other modules.
-  virtual std::vector<linked_ptr<const CodeModule> >
-  GetShrunkRangeModules() const = 0;
 };
 
 }  // namespace google_breakpad

@@ -3,8 +3,10 @@ package org.telegram.ui.Components;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -26,7 +28,18 @@ public final class MangoDownloadSpeedHud {
     private static LaunchActivity activity;
     private static ViewGroup container;
     private static float downX, downY, startX, startY, savedX, savedY;
-    private static boolean dragging;
+    private static boolean dragging, pinned;
+    private static int activePointerId = -1;
+    private static View gestureView;
+    private static final Runnable longPress = () -> {
+        if (gestureView == null || gestureView != view || activePointerId < 0 || dragging) return;
+        View target = gestureView;
+        pinned = !pinned;
+        target.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+        update();
+        if (gestureView == target) target.announceForAccessibility(LocaleController.getString(pinned
+                ? R.string.MangoDownloadHudUnlockHint : R.string.MangoDownloadHudLockHint));
+    };
     private static final View.OnLayoutChangeListener layoutListener = (v, left, top, right, bottom,
             oldLeft, oldTop, oldRight, oldBottom) -> {
         if (view != null) clampTranslation(view, view.getTranslationX(), view.getTranslationY());
@@ -93,21 +106,49 @@ public final class MangoDownloadSpeedHud {
     private static boolean onTouch(View v, MotionEvent event) {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                finishGesture();
+                gestureView = v;
+                activePointerId = event.getPointerId(0);
                 downX = event.getRawX(); downY = event.getRawY();
                 startX = v.getTranslationX(); startY = v.getTranslationY(); dragging = false;
+                if (v.getParent() != null) v.getParent().requestDisallowInterceptTouchEvent(true);
+                AndroidUtilities.runOnUIThread(longPress, ViewConfiguration.getLongPressTimeout());
                 return true;
             case MotionEvent.ACTION_MOVE:
-                float dx = event.getRawX() - downX, dy = event.getRawY() - downY;
-                if (!dragging && dx * dx + dy * dy > AndroidUtilities.dp(8) * AndroidUtilities.dp(8)) dragging = true;
-                if (dragging) {
+                int pointer = event.findPointerIndex(activePointerId);
+                if (gestureView != v || pointer < 0) {
+                    finishGesture();
+                    return true;
+                }
+                float dx = event.getRawX() + event.getX(pointer) - event.getX(0) - downX;
+                float dy = event.getRawY() + event.getY(pointer) - event.getY(0) - downY;
+                int slop = ViewConfiguration.get(v.getContext()).getScaledTouchSlop();
+                if (dx * dx + dy * dy > slop * slop) {
+                    AndroidUtilities.cancelRunOnUIThread(longPress);
+                    dragging = true;
+                }
+                if (dragging && !pinned) {
                     clampTranslation(v, startX + dx, startY + dy);
                 }
                 return true;
+            case MotionEvent.ACTION_POINTER_DOWN:
+            case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                finishGesture();
                 return true;
         }
         return false;
+    }
+
+    private static void finishGesture() {
+        AndroidUtilities.cancelRunOnUIThread(longPress);
+        if (gestureView != null && gestureView.getParent() != null) {
+            gestureView.getParent().requestDisallowInterceptTouchEvent(false);
+        }
+        gestureView = null;
+        activePointerId = -1;
+        dragging = false;
     }
 
     private static void clampTranslation(View v, float translationX, float translationY) {
@@ -130,15 +171,20 @@ public final class MangoDownloadSpeedHud {
         if (view == null || activity == null) return 0;
         int account = UserConfig.selectedAccount;
         boolean enabled = isEnabled(account);
-        if (!enabled) { view.setVisibility(View.GONE); return 0; }
+        if (!enabled) { finishGesture(); view.setVisibility(View.GONE); return 0; }
         MangoDownloadSpeedMonitor.Snapshot s = MangoDownloadSpeedMonitor.sample(account);
-        if (s.activeTasks <= 0) { view.setVisibility(View.GONE); return 0; }
-        view.setText(LocaleController.formatString(R.string.MangoDownloadHudSpeed, AndroidUtilities.formatFileSize(s.bytesPerSecond), s.activeTasks));
+        if (s.activeTasks <= 0) { finishGesture(); view.setVisibility(View.GONE); return 0; }
+        String text = LocaleController.formatString(R.string.MangoDownloadHudSpeed, AndroidUtilities.formatFileSize(s.bytesPerSecond), s.activeTasks);
+        if (pinned) text += " · " + LocaleController.getString(R.string.MangoDownloadHudPinned);
+        view.setText(text);
+        view.setContentDescription(text + ". " + LocaleController.getString(pinned
+                ? R.string.MangoDownloadHudUnlockHint : R.string.MangoDownloadHudLockHint));
         view.setVisibility(View.VISIBLE);
         return s.activeTasks;
     }
 
     public static void detach() {
+        finishGesture();
         AndroidUtilities.cancelRunOnUIThread(ticker);
         MangoDownloadSpeedMonitor.removeListener(taskListener);
         if (container != null) container.removeOnLayoutChangeListener(layoutListener);

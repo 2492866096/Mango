@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">Индикатор онлайн на аватарах</string>
+    <string name="MangoShowOnlineBadgeInfo">Показывать зелёную точку на аватаре отправителя, когда Telegram сообщает, что он в сети.</string>
+    <string name="MangoDisableTapMediaSwitch">Отключить смену фото касанием</string>
+    <string name="MangoDisableTapMediaSwitchInfo">Касание слева или справа больше не меняет фотографии и аватары. Пролистывание, масштабирование, воспроизведение и закрытие остаются доступными.</string>
+</resources>

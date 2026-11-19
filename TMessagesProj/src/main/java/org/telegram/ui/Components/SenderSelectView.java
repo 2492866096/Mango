@@ -7,7 +7,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 
@@ -23,10 +22,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.SkinMetal;
-import org.telegram.ui.SkinStyle;
 
 public class SenderSelectView extends View {
     private final static float SPRING_MULTIPLIER = 100f;
@@ -64,22 +60,6 @@ public class SenderSelectView extends View {
         selectorDrawable.setCallback(this);
     }
 
-    private boolean skin;
-    private final RectF skinRect = new RectF();
-
-    /** The input console's send-as key: the speaker's avatar as the skin's squircle, a metal cap while its menu is open. */
-    public void setSkin(boolean skin) {
-        this.skin = skin;
-        if (getMeasuredWidth() > 0) {
-            avatarImage.setRoundRadius(cornerRadius());
-        }
-        invalidate();
-    }
-
-    private int cornerRadius() {
-        return skin ? SkinStyle.avatarRadius(getMeasuredWidth()) : AndroidUtilities.dp(28);
-    }
-
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
@@ -98,7 +78,6 @@ public class SenderSelectView extends View {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(MeasureSpec.makeMeasureSpec(getLayoutParams().width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(getLayoutParams().height, MeasureSpec.EXACTLY));
         avatarImage.setImageCoords(0, 0, getMeasuredWidth(), getMeasuredHeight());
-        avatarImage.setRoundRadius(cornerRadius());
     }
 
     @Override
@@ -119,17 +98,8 @@ public class SenderSelectView extends View {
         avatarImage.draw(canvas);
 
         int alpha = (int) (menuProgress * 0xFF);
-        if (skin) {
-            final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground));
-            backgroundPaint.setColor(m.capMid);
-            menuPaint.setColor(m.text);
-            backgroundPaint.setAlpha(alpha);
-            skinRect.set(0, 0, getWidth(), getHeight());
-            canvas.drawRoundRect(skinRect, cornerRadius(), cornerRadius(), backgroundPaint);
-        } else {
-            backgroundPaint.setAlpha(alpha);
-            canvas.drawCircle(getWidth() / 2f, getHeight() / 2f, Math.min(getWidth(), getHeight()) / 2f, backgroundPaint);
-        }
+        backgroundPaint.setAlpha(alpha);
+        canvas.drawCircle(getWidth() / 2f, getHeight() / 2f, Math.min(getWidth(), getHeight()) / 2f, backgroundPaint);
 
         canvas.save();
         menuPaint.setAlpha(alpha);

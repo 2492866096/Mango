@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">频道自动表情回应</string>
+    <string name="MangoReactionGroups">群组自动表情回应</string>
+    <string name="MangoReactionPrivate">私信自动表情回应</string>
+    <string name="MangoReactionConfirmTitle">确认开启自动表情回应？</string>
+    <string name="MangoReactionConfirmInfo">开启后，客户端会按选定的频道、群组和私信范围自动发送表情回应。范围开关仅在总开关开启时生效。此设置影响本机所有账号。</string>
+    <string name="MangoDownloadHudPinned">已固定</string>
+    <string name="MangoDownloadHudLockHint">拖动可移动，长按可固定</string>
+    <string name="MangoDownloadHudUnlockHint">长按解锁后即可移动</string>
+</resources>

@@ -8,7 +8,8 @@ import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.security.keystore.KeyProperties;
 
 import androidx.annotation.RequiresApi;
-import androidx.biometric.BiometricManager;
+
+import org.telegram.messenger.support.fingerprint.FingerprintManagerCompat;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPairGenerator;
@@ -101,14 +102,10 @@ public class FingerprintController {
     }
 
     public static void checkKeyReady(boolean notifyCheckFingerprint) {
-        if (!isKeyReady() && AndroidUtilities.isKeyguardSecure() && canAuthenticate()) {
+        if (!isKeyReady() && AndroidUtilities.isKeyguardSecure() && FingerprintManagerCompat.from(ApplicationLoader.applicationContext).isHardwareDetected()
+                && FingerprintManagerCompat.from(ApplicationLoader.applicationContext).hasEnrolledFingerprints()) {
             Utilities.globalQueue.postRunnable(() -> generateNewKey(notifyCheckFingerprint));
         }
-    }
-
-    public static boolean canAuthenticate() {
-        return BiometricManager.from(ApplicationLoader.applicationContext)
-                .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS;
     }
 
     public static boolean isKeyReady() {

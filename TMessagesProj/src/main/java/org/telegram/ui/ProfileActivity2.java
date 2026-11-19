@@ -330,7 +330,7 @@ public class ProfileActivity2 extends BaseFragment implements
         };
         snapHelper.attachToRecyclerView(listView);
 
-        avatarsViewPager = new ProfileGalleryView(context, dialogId, actionBar, listView, null, classGuid, null, null) {
+        avatarsViewPager = new ProfileGalleryView(context, currentAccount, dialogId, actionBar, listView, null, classGuid, null, null) {
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                 final int w = MeasureSpec.getSize(widthMeasureSpec);

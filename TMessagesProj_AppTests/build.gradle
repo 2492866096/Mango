@@ -1,14 +1,16 @@
 apply plugin: 'com.android.application'
-
-def abiVersionCodes = [afat: 9]
+apply plugin: 'kotlin-android'
 
 repositories {
     mavenCentral()
     google()
 }
 
-configurations.configureEach {
-    exclude module: 'support-v4'
+configurations {
+    compile.exclude module: 'support-v4'
+}
+
+configurations.all {
     exclude group: 'com.google.firebase', module: 'firebase-core'
     exclude group: 'androidx.recyclerview', module: 'recyclerview'
 }
@@ -18,32 +20,37 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 
     androidTestImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
-    androidTestImplementation 'androidx.test:runner:1.7.0'
-    androidTestImplementation "org.jetbrains.kotlin:kotlin-test:2.4.21"
-    androidTestImplementation "org.jetbrains.kotlin:kotlin-test-junit:2.4.21"
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation "org.jetbrains.kotlin:kotlin-test:1.9.20"
+    androidTestImplementation "org.jetbrains.kotlin:kotlin-test-junit:1.9.20"
     androidTestImplementation "com.appmattus.fixture:fixture:1.2.0"
 }
 
 android {
-    compileSdk = 37
-    buildToolsVersion '37.0.0'
-    ndkVersion = "30.0.16248370"
+    compileSdkVersion 35
+    buildToolsVersion '35.0.0'
 
     defaultConfig.applicationId = APP_PACKAGE
 
     sourceSets.main.jniLibs.srcDirs = ['../TMessagesProj/jni/']
-    testBuildType = "debug"
+    testBuildType "debug"
 
-    lint {
-        disable += ['MissingTranslation', 'ExtraTranslation', 'BlockedPrivateApi']
+    lintOptions {
+        disable 'MissingTranslation'
+        disable 'ExtraTranslation'
+        disable 'BlockedPrivateApi'
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
 
-        coreLibraryDesugaringEnabled = true
+        coreLibraryDesugaringEnabled true
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 
     signingConfigs {
@@ -66,21 +73,21 @@ android {
         debug {
             debuggable true
             jniDebuggable true
-            signingConfig = signingConfigs.debug
+            signingConfig signingConfigs.debug
             applicationIdSuffix ".web"
             minifyEnabled false
-            multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
             ndk.debugSymbolLevel = 'FULL'
         }
         standalone {
             debuggable false
             jniDebuggable false
-            signingConfig = signingConfigs.release
+            signingConfig signingConfigs.release
             applicationIdSuffix ".web"
             minifyEnabled true
-            multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro'
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
             ndk.debugSymbolLevel = 'FULL'
         }
     }
@@ -92,12 +99,15 @@ android {
         manifest.srcFile '../TMessagesProj/config/release/AndroidManifest.xml'
     }
 
-    flavorDimensions = ['minApi']
+    flavorDimensions "minApi"
 
     productFlavors {
         afat {
             ndk {
                 abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            }
+            ext {
+                abiVersionCode = 9
             }
             sourceSets.standalone {
                 manifest.srcFile '../TMessagesProj/config/release/AndroidManifest.xml'
@@ -107,18 +117,34 @@ android {
 
     defaultConfig.versionCode = Integer.parseInt(APP_VERSION_CODE)
 
-    defaultConfig {
-        minSdk 26
-        targetSdk = 37
-        versionName APP_VERSION_NAME
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            outputFileName = "app.apk"
+            output.versionCodeOverride = defaultConfig.versionCode * 10 + variant.productFlavors.get(0).abiVersionCode
+        }
+    }
 
-        multiDexEnabled = true
+    variantFilter { variant ->
+        def names = variant.flavors*.name
+        if (variant.buildType.name != "release" && !names.contains("afat")) {
+            setIgnore(true)
+        }
+    }
+
+    defaultConfig {
+        minSdkVersion 26
+        targetSdkVersion 35
+        versionName APP_VERSION_NAME
+        ndkVersion "21.4.7075529"
+
+        multiDexEnabled true
 
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
 
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-24' //, '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
+                version '3.10.2'
+                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-21' //, '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
             }
         }
 
@@ -129,24 +155,9 @@ android {
     buildFeatures {
         buildConfig = true
     }
-    namespace = 'org.telegram.messenger.test'
+    namespace 'org.telegram.messenger.test'
 
-    lint {
-        checkReleaseBuilds = false
-    }
-}
-
-androidComponents {
-    beforeVariants(selector().all()) { variantBuilder ->
-        def flavors = variantBuilder.productFlavors.collect { it.second }
-        if (variantBuilder.buildType != "release" && !flavors.contains("afat")) {
-            variantBuilder.enable = false
-        }
-    }
-    onVariants(selector().all()) { variant ->
-        def abiVersionCode = abiVersionCodes[variant.productFlavors[0].second]
-        variant.outputs.each { output ->
-            output.versionCode.set(Integer.parseInt(APP_VERSION_CODE) * 10 + abiVersionCode)
-        }
+    lintOptions {
+        checkReleaseBuilds false
     }
 }

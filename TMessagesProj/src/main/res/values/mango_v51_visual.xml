@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">Online dot on message avatars</string>
+    <string name="MangoShowOnlineBadgeInfo">Show a green dot on message sender avatars while Telegram reports them online.</string>
+    <string name="MangoDisableTapMediaSwitch">Disable tap to switch photos and avatars</string>
+    <string name="MangoDisableTapMediaSwitchInfo">Stop tapping the left or right side from switching photos and avatars. Swiping, zooming, playback, and closing still work.</string>
+</resources>

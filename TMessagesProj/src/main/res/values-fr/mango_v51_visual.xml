@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">Point de présence sur les avatars</string>
+    <string name="MangoShowOnlineBadgeInfo">Affiche un point vert sur les avatars des messages lorsque Telegram indique que la personne est en ligne.</string>
+    <string name="MangoDisableTapMediaSwitch">Désactiver le changement de photo par appui</string>
+    <string name="MangoDisableTapMediaSwitchInfo">Un appui à gauche ou à droite ne change plus les photos et avatars. Le balayage, le zoom, la lecture et la fermeture restent disponibles.</string>
+</resources>

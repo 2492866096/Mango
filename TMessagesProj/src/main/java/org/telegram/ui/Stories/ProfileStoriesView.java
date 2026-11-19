@@ -45,7 +45,6 @@ import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_stories;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Components.AnimatedFloat;
 import org.telegram.ui.Components.AnimatedTextView;
 import org.telegram.ui.Components.AvatarDrawable;
@@ -607,7 +606,7 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
                 final Paint paint = StoriesUtilities.getErrorPaint(rect2);
                 paint.setStrokeWidth(AndroidUtilities.dp(2));
                 paint.setAlpha((int) (255 * segmentsAlpha));
-                boolean isForum = squircle();
+                boolean isForum = ChatObject.isForum(UserConfig.selectedAccount, dialogId);
                 if (isForum) {
                     float r = rect2.height() * 0.32f;
                     canvas.drawRoundRect(rect2, r, r, paint);
@@ -916,13 +915,8 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
     private final PathMeasure forumRoundRectPathMeasure = new PathMeasure();
     private final Path forumSegmentPath = new Path();
 
-    /** Whether the ring is a rounded square: around a forum, or around any avatar on the skin, whose avatars are squircles. */
-    private boolean squircle() {
-        return SkinSwitch.PROFILE || ChatObject.isForum(UserConfig.selectedAccount, dialogId);
-    }
-
     private void drawArc(Canvas canvas, RectF oval, float startAngle, float sweepAngle, boolean useCenter, Paint paint) {
-        boolean isForum = squircle();
+        boolean isForum = ChatObject.isForum(UserConfig.selectedAccount, dialogId);
         if (isForum) {
             float r = oval.height() * 0.32f;
             if (Math.abs(sweepAngle) == 360) {

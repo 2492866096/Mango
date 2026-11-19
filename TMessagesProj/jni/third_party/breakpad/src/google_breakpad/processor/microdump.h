@@ -1,4 +1,5 @@
-// Copyright 2014 Google LLC
+// Copyright (c) 2014 Google Inc.
+// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -10,7 +11,7 @@
 // copyright notice, this list of conditions and the following disclaimer
 // in the documentation and/or other materials provided with the
 // distribution.
-//     * Neither the name of Google LLC nor the names of its
+//     * Neither the name of Google Inc. nor the names of its
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -57,9 +58,6 @@ class MicrodumpModules : public BasicCodeModules {
  public:
   // Takes over ownership of |module|.
   void Add(const CodeModule* module);
-
-  // Enables/disables module address range shrink.
-  void SetEnableModuleShrink(bool is_enabled);
 };
 
 // MicrodumpContext carries a CPU-specific context.
@@ -68,9 +66,6 @@ class MicrodumpContext : public DumpContext {
  public:
   virtual void SetContextARM(MDRawContextARM* arm);
   virtual void SetContextARM64(MDRawContextARM64* arm64);
-  virtual void SetContextX86(MDRawContextX86* x86);
-  virtual void SetContextMIPS(MDRawContextMIPS* mips32);
-  virtual void SetContextMIPS64(MDRawContextMIPS* mips64);
 };
 
 // This class provides access to microdump memory regions.
@@ -118,17 +113,14 @@ class Microdump {
   MicrodumpModules* GetModules() { return modules_.get(); }
   SystemInfo* GetSystemInfo() { return system_info_.get(); }
 
-  string GetCrashReason() { return crash_reason_; }
-  uint64_t GetCrashAddress() { return crash_address_; }
  private:
   scoped_ptr<MicrodumpContext> context_;
   scoped_ptr<MicrodumpMemoryRegion> stack_region_;
   scoped_ptr<MicrodumpModules> modules_;
   scoped_ptr<SystemInfo> system_info_;
-  string crash_reason_;
-  uint64_t crash_address_;
 };
 
 }  // namespace google_breakpad
 
 #endif  // GOOGLE_BREAKPAD_PROCESSOR_MICRODUMP_H__
+

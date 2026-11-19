@@ -55,12 +55,14 @@ import org.telegram.messenger.Emoji;
 import org.telegram.messenger.LanguageDetector;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.MangoTranslationLinks;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.TranslateController;
 import org.telegram.messenger.Utilities;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.XiaomiUtilities;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
@@ -80,10 +82,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TranslateAlert2 extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
 
     private Integer reqId;
+    private Runnable cancelLinkTranslation;
+    private int translationGeneration;
     private CharSequence reqText;
     private ArrayList<TLRPC.MessageEntity> reqMessageEntities;
     private TLRPC.InputPeer reqPeer;
@@ -117,11 +126,11 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         CharSequence text, ArrayList<TLRPC.MessageEntity> entities,
         Theme.ResourcesProvider resourcesProvider
     ) {
-        this(context, fromLanguage, toLanguage, text, entities, null, 0, false, resourcesProvider);
+        this(context, UserConfig.selectedAccount, fromLanguage, toLanguage, text, entities, null, 0, false, resourcesProvider);
     }
 
     private TranslateAlert2(
-        Context context,
+        Context context, int account,
         String fromLanguage, String toLanguage,
         CharSequence text, ArrayList<TLRPC.MessageEntity> entities, TLRPC.InputPeer peer, int messageId, boolean sum,
         Theme.ResourcesProvider resourcesProvider
@@ -133,6 +142,8 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         fixNavigationBar();
 
         this.reqText = text;
+        this.reqMessageEntities = entities == null ? new ArrayList<>() : new ArrayList<>(entities);
+        this.currentAccount = account;
         this.reqPeer = peer;
         this.reqMessageId = messageId;
         this.reqSum = sum;
@@ -276,12 +287,27 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     }
 
     public void translate() {
+        translationGeneration++;
+        if (cancelLinkTranslation != null) {
+            cancelLinkTranslation.run();
+            cancelLinkTranslation = null;
+        }
         if (reqId != null) {
             ConnectionsManager.getInstance(currentAccount).cancelRequest(reqId, true);
             reqId = null;
         }
 
         final String method = MessagesController.getInstance(currentAccount).translationsManualEnabled;
+        if (!reqSum) {
+            TLRPC.TL_textWithEntities source = new TLRPC.TL_textWithEntities();
+            source.text = reqText == null ? "" : reqText.toString();
+            source.entities = reqMessageEntities;
+            MangoTranslationLinks.Plan links = MangoTranslationLinks.prepare(source);
+            if (links.hasLinks) {
+                translateLinks(links, "alternative".equalsIgnoreCase(method));
+                return;
+            }
+        }
         if ("alternative".equalsIgnoreCase(method)) {
             translateAlt();
             return;
@@ -291,6 +317,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         }*/
 
         String lang = TranslateController.normalizeTranslateLanguage(toLanguage);
+        final int generation = translationGeneration;
 
         TLRPC.TL_textWithEntities textWithEntities = new TLRPC.TL_textWithEntities();
         textWithEntities.text = reqText == null ? "" : reqText.toString();
@@ -305,6 +332,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
             req.id = reqMessageId;
             req.to_lang = lang;
             reqId = ConnectionsManager.getInstance(currentAccount).sendRequestTyped(req, AndroidUtilities::runOnUIThread, (res, err) -> {
+                if (generation != translationGeneration || isDismissed()) return;
                 reqId = null;
                 if (err != null && "TRANSLATIONS_DISABLED_ALT".equalsIgnoreCase(err.text)) {
                     translateAlt();
@@ -344,6 +372,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         req.to_lang = lang;
         reqId = ConnectionsManager.getInstance(currentAccount).sendRequest(req, (res, err) -> {
             AndroidUtilities.runOnUIThread(() -> {
+                if (generation != translationGeneration || isDismissed()) return;
                 reqId = null;
                 if (err != null && "TRANSLATIONS_DISABLED_ALT".equalsIgnoreCase(err.text)) {
                     translateAlt();
@@ -371,6 +400,32 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         });
     }
 
+    private void translateLinks(MangoTranslationLinks.Plan links, boolean alternative) {
+        final int generation = translationGeneration;
+        cancelLinkTranslation = MangoTranslationLinks.translate(currentAccount, links, toLanguage, alternative, (result, rateLimit) -> {
+            if (generation != translationGeneration || isDismissed()) return;
+            cancelLinkTranslation = null;
+            if (result != null) {
+                firstTranslation = false;
+                CharSequence translated = SpannableStringBuilder.valueOf(result.text);
+                MessageObject.addEntitiesToText(translated, result.entities, false, true, false, false);
+                textView.setText(preprocessText(translated));
+                adapter.updateMainView(textViewContainer);
+            } else if (firstTranslation) {
+                dismiss();
+                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.showBulletin, Bulletin.TYPE_ERROR,
+                        LocaleController.getString(rateLimit ? R.string.TranslationFailedAlert1 : R.string.TranslationFailedAlert2));
+            } else {
+                BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createErrorBulletin(
+                        LocaleController.getString(rateLimit ? R.string.TranslationFailedAlert1 : R.string.TranslationFailedAlert2)).show();
+                headerView.toLanguageTextView.setText(languageName(toLanguage = prevToLanguage));
+                adapter.updateMainView(textViewContainer);
+            }
+        });
+    }
+
+    private static final ExecutorService translationExecutor = Executors.newFixedThreadPool(3);
+
     public static final String[] userAgents = new String[] {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
@@ -381,6 +436,15 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     };
     private void translateAlt() {
         final String text = reqText == null ? "" : reqText.toString();
+        TLRPC.TL_textWithEntities source = new TLRPC.TL_textWithEntities();
+        source.text = text;
+        source.entities = reqMessageEntities;
+        MangoTranslationLinks.Plan links = MangoTranslationLinks.prepare(source);
+        if (links.hasLinks) {
+            translateLinks(links, true);
+            return;
+        }
+        final int generation = translationGeneration;
         String _fromLng = fromLanguage;
         if (_fromLng != null) {
             _fromLng = _fromLng.split("_")[0];
@@ -394,6 +458,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         final String toLng = _toLng;
 
         alternativeTranslate(text, fromLng, toLng, (res, rateLimit) -> {
+            if (generation != translationGeneration || isDismissed()) return;
             if (res != null) {
                 firstTranslation = false;
                 textView.setText(preprocessText(res));
@@ -416,44 +481,41 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         });
     }
 
-    private static int lastIndexOfSafe(String text, String target, int start, int end) {
-        int idx = text.lastIndexOf(target, end - 1);
-        return (idx >= start) ? idx : -1;
-    }
-
     public static ArrayList<String> cut(String encodedText, int maxLength) {
+        if (maxLength < 12) throw new IllegalArgumentException("maxLength must fit a UTF-8 code point");
+        String text = Uri.decode(encodedText);
         ArrayList<String> result = new ArrayList<>();
-        int start = 0;
-        while (start < encodedText.length()) {
-            int end = Math.min(start + maxLength, encodedText.length());
-            int splitPos = -1;
-
-            splitPos = lastIndexOfSafe(encodedText, "%0A", start, end);
-            if (splitPos == -1) {
-                splitPos = lastIndexOfSafe(encodedText, "%20", start, end);
+        for (int start = 0; start < text.length();) {
+            int end = start, encodedLength = 0, lastWhitespace = -1;
+            while (end < text.length()) {
+                int codePoint = text.codePointAt(end);
+                int next = end + Character.charCount(codePoint);
+                int size = Uri.encode(text.substring(end, next)).length();
+                if (encodedLength + size > maxLength) break;
+                encodedLength += size;
+                end = next;
+                if (Character.isWhitespace(codePoint)) lastWhitespace = end;
             }
-            if (splitPos == -1) {
-                splitPos = end;
-            } else {
-                splitPos += 3;
-            }
-
-            result.add(encodedText.substring(start, splitPos));
-            start = splitPos;
+            if (end < text.length() && lastWhitespace > start) end = lastWhitespace;
+            result.add(Uri.encode(text.substring(start, end)));
+            start = end;
         }
         return result;
     }
-
     public static void alternativeTranslate(String text, String fromLng, String toLng, Utilities.Callback2<String, Boolean> done) {
-        if (done == null) return;
-        if (fromLng == null) {
-            LanguageDetector.detectLanguage(text, lng -> {
-                alternativeTranslate(text, lng, toLng, done);
-            }, e -> {
-                alternativeTranslate(text, "en", toLng, done);
-            });
-            return;
-        }
+        alternativeTranslateCancelable(text, fromLng, toLng, done);
+    }
+
+    public static Runnable alternativeTranslateCancelable(String text, String fromLng, String toLng, Utilities.Callback2<String, Boolean> done) {
+        if (done == null) return () -> { };
+        final ArrayList<Runnable> cancels = new ArrayList<>();
+        final boolean[] fullyDone = new boolean[1];
+        final Runnable cancel = () -> {
+            fullyDone[0] = true;
+            for (Runnable action : cancels) action.run();
+        };
+        // The endpoint already supports detection; avoid serial local-model detection/download latency.
+        final String sourceLanguage = fromLng == null || "und".equals(fromLng) ? "auto" : fromLng;
         final String etext = Uri.encode(text);
         if (etext.length() > 5000) {
             ArrayList<String> parts = cut(etext, 5000);
@@ -462,10 +524,9 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                 results.add(null);
             }
 
-            final boolean[] fullyDone = new boolean[1];
             for (int i = 0; i < parts.size(); ++i) {
                 final int index = i;
-                alternativeTranslateInternal(parts.get(i), fromLng, toLng, (res, rateLimit) -> {
+                cancels.add(alternativeTranslateInternal(parts.get(i), sourceLanguage, toLng, (res, rateLimit) -> {
                     if (fullyDone[0]) return;
                     if (res != null) {
                         results.set(index, res);
@@ -481,20 +542,25 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                             done.run(TextUtils.join("", results), false);
                         }
                     } else {
-                        fullyDone[0] = true;
+                        cancel.run();
                         done.run(null, rateLimit);
                     }
-                });
+                }));
             }
         } else {
-            alternativeTranslateInternal(etext, fromLng, toLng, done);
+            cancels.add(alternativeTranslateInternal(etext, sourceLanguage, toLng, (res, rateLimit) -> {
+                if (fullyDone[0]) return;
+                fullyDone[0] = true;
+                done.run(res, rateLimit);
+            }));
         }
+        return cancel;
     }
-    private static void alternativeTranslateInternal(String text, String fromLng, String toLng, Utilities.Callback2<String, Boolean> done) {
-        if (done == null) return;
-        new Thread() {
-            @Override
-            public void run() {
+    private static Runnable alternativeTranslateInternal(String text, String fromLng, String toLng, Utilities.Callback2<String, Boolean> done) {
+        final AtomicBoolean canceled = new AtomicBoolean();
+        final AtomicReference<HttpURLConnection> activeConnection = new AtomicReference<>();
+        final Future<?> future = translationExecutor.submit(() -> {
+                if (canceled.get()) return;
                 String uri;
                 HttpURLConnection connection = null;
                 try {
@@ -502,9 +568,11 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                     uri += "gleapis.com/transl";
                     uri += "ate_a";
                     uri += "/singl";
-                    uri += "e?client=gtx&sl=" + Uri.encode(fromLng) + "&tl=" + Uri.encode(toLng) + "&dt=t" + "&ie=UTF-8&oe=UTF-8&otf=1&ssel=0&tsel=0&kc=7&dt=at&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&q=";
+                    uri += "e?client=gtx&sl=" + Uri.encode(fromLng) + "&tl=" + Uri.encode(toLng) + "&dt=t&ie=UTF-8&oe=UTF-8&q=";
                     uri += text;
                     connection = (HttpURLConnection) new URI(uri).toURL().openConnection();
+                    activeConnection.set(connection);
+                    if (canceled.get()) return;
                     connection.setConnectTimeout(12000);
                     connection.setReadTimeout(12000);
                     connection.setRequestMethod("GET");
@@ -540,10 +608,11 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                         result = "\n" + result;
                     final String finalResult = result;
                     AndroidUtilities.runOnUIThread(() -> {
-                        if (done != null)
+                        if (!canceled.get())
                             done.run(finalResult, false);
                     });
                 } catch (Exception e) {
+                    if (canceled.get()) return;
                     try {
                         Log.e("translate", "failed to translate a text " + (connection != null ? connection.getResponseCode() : null) + " " + (connection != null ? connection.getResponseMessage() : null));
                     } catch (IOException ioException) {
@@ -554,18 +623,24 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
                     try {
                         final boolean rateLimit = connection != null && connection.getResponseCode() == 429;
                         AndroidUtilities.runOnUIThread(() -> {
-                            done.run(null, rateLimit);
+                            if (!canceled.get()) done.run(null, rateLimit);
                         });
                     } catch (Exception e2) {
                         AndroidUtilities.runOnUIThread(() -> {
-                            done.run(null, false);
+                            if (!canceled.get()) done.run(null, false);
                         });
                     }
                 } finally {
                     if (connection != null) connection.disconnect();
+                    activeConnection.set(null);
                 }
-            }
-        }.start();
+        });
+        return () -> {
+            canceled.set(true);
+            future.cancel(true);
+            HttpURLConnection connection = activeConnection.getAndSet(null);
+            if (connection != null) connection.disconnect();
+        };
     }
 
 //    private ArrayList<Runnable> cancelTrackingDownloads = new ArrayList<>();
@@ -945,6 +1020,11 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
 
     @Override
     public void dismissInternal() {
+        translationGeneration++;
+        if (cancelLinkTranslation != null) {
+            cancelLinkTranslation.run();
+            cancelLinkTranslation = null;
+        }
         if (reqId != null) {
             ConnectionsManager.getInstance(currentAccount).cancelRequest(reqId, true);
             reqId = null;
@@ -1657,7 +1737,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
     }
 
     public static TranslateAlert2 showAlert(Context context, BaseFragment fragment, int currentAccount, TLRPC.InputPeer peer, int msgId, boolean sum, String fromLanguage, String toLanguage, CharSequence text, ArrayList<TLRPC.MessageEntity> entities, boolean noforwards, Utilities.CallbackReturn<URLSpan, Boolean> onLinkPress, Runnable onDismiss) {
-        TranslateAlert2 alert = new TranslateAlert2(context, fromLanguage, toLanguage, text, entities, peer, msgId, sum, null) {
+        TranslateAlert2 alert = new TranslateAlert2(context, currentAccount, fromLanguage, toLanguage, text, entities, peer, msgId, sum, null) {
             @Override
             public void dismiss() {
                 super.dismiss();
@@ -1683,7 +1763,7 @@ public class TranslateAlert2 extends BottomSheet implements NotificationCenter.N
         if (context == null) {
             return null;
         }
-        TranslateAlert2 alert = new TranslateAlert2(context, fromLanguage, toLanguage, text, entities, null) {
+        TranslateAlert2 alert = new TranslateAlert2(context, currentAccount, fromLanguage, toLanguage, text, entities, null, 0, false, null) {
             @Override
             public void dismiss() {
                 super.dismiss();

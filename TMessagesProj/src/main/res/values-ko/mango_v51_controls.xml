@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">채널에서 자동 반응</string>
+    <string name="MangoReactionGroups">그룹에서 자동 반응</string>
+    <string name="MangoReactionPrivate">개인 채팅에서 자동 반응</string>
+    <string name="MangoReactionConfirmTitle">자동 반응을 켤까요?</string>
+    <string name="MangoReactionConfirmInfo">선택한 채널, 그룹 및 개인 채팅에 이모지 반응을 자동으로 보냅니다. 범위 스위치는 자동 반응이 켜져 있을 때 적용됩니다. 이 설정은 이 기기의 모든 계정에 적용됩니다.</string>
+    <string name="MangoDownloadHudPinned">고정됨</string>
+    <string name="MangoDownloadHudLockHint">드래그하여 이동하고 길게 눌러 고정</string>
+    <string name="MangoDownloadHudUnlockHint">길게 눌러 고정을 해제하고 이동</string>
+</resources>

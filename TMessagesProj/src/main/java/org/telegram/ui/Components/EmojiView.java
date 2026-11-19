@@ -2768,13 +2768,13 @@ public class EmojiView extends FrameLayout implements NotificationCenter.Notific
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             blurredBackgroundSourceRenderNode = new BlurredBackgroundSourceRenderNode(null);
-            blurredBackgroundDrawableFactory = BlurredBackgroundDrawableViewFactory.skin(new BlurredBackgroundDrawableViewFactory(blurredBackgroundSourceRenderNode));
+            blurredBackgroundDrawableFactory = new BlurredBackgroundDrawableViewFactory(blurredBackgroundSourceRenderNode);
             blurredBackgroundDrawableFactory.setLiquidGlassEffectAllowed(LiteMode.isEnabled(LiteMode.FLAG_LIQUID_GLASS));
 
             scrollableViewNoiseSuppressor = new DownscaleScrollableNoiseSuppressor();
         } else {
             blurredBackgroundSourceRenderNode = null;
-            blurredBackgroundDrawableFactory = BlurredBackgroundDrawableViewFactory.skin(new BlurredBackgroundDrawableViewFactory(blurredBackgroundSourceColor));
+            blurredBackgroundDrawableFactory = new BlurredBackgroundDrawableViewFactory(blurredBackgroundSourceColor);
 
             scrollableViewNoiseSuppressor = null;
         }

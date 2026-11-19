@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">メッセージのアバターにオンライン表示</string>
+    <string name="MangoShowOnlineBadgeInfo">Telegram が送信者をオンラインと表示している間、メッセージのアバターに緑の点を表示します。</string>
+    <string name="MangoDisableTapMediaSwitch">タップによる写真・アバター切り替えを無効化</string>
+    <string name="MangoDisableTapMediaSwitchInfo">左右のタップでは写真やアバターを切り替えません。スワイプ、ズーム、再生、閉じる操作は引き続き利用できます。</string>
+</resources>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DailyMessageTasksTitle">每日定时消息</string>
+    <string name="DailyMessageTasksOnlineWarning">自动任务需要此账号联网、应用在前台且屏幕点亮。在线随机模式会在设定时段内在线等待随机 15–90 秒后发送，每个任务每天最多自动尝试一次；中途离开，下次在时段内上线会重新随机等待。固定时间模式错过不补发。手动发送计入当天记录，仍允许再次手动触发。请在聊天内确认送达及签到结果。</string>
+    <string name="DailyMessageTasksAdd">添加每日任务</string>
+    <string name="DailyMessageTasksEmpty">选择群组或机器人、填写消息（如 /checkin），设置在线随机时段或每日固定时间。任务仅保存于本机当前账号。</string>
+    <string name="DailyMessageTasksAutomatic">每日自动触发</string>
+    <string name="DailyMessageTasksManual">仅手动触发</string>
+    <string name="DailyMessageTasksSendNow">立即发送</string>
+    <string name="DailyMessageTasksEnable">开启自动发送</string>
+    <string name="DailyMessageTasksDisable">关闭自动发送</string>
+    <string name="DailyMessageTasksLastAttempt">上次尝试：%1$s — %2$s</string>
+    <string name="DailyMessageTasksSendConfirm">立即向“%1$s”发送以下消息？本次计入当天执行记录。再次手动触发会重复发送。\n\n%2$s</string>
+    <string name="DailyMessageTasksDeleteConfirm">删除“%1$s”的每日任务？</string>
+    <string name="DailyMessageTasksQueued">已加入发送队列，请在聊天中确认送达</string>
+    <string name="DailyMessageTasksOffline">请先让此账号连接网络，再进行发送。</string>
+    <string name="DailyMessageTasksInvalidTarget">请选择可发送文字的群组或机器人，不支持已删除的会话及频道。</string>
+    <string name="DailyMessageTasksInvalidText">请输入 1 至 4096 个字符的消息。</string>
+    <string name="DailyMessageTasksPaidTarget">此会话需要付费消息，请进入聊天手动发送。</string>
+    <string name="DailyMessageTasksStorageError">无法保存任务，本次未新增待发送消息。</string>
+    <string name="DailyMessageTasksEdit">每日任务设置</string>
+    <string name="DailyMessageTasksTarget">群组或机器人</string>
+    <string name="DailyMessageTasksChoose">请选择</string>
+    <string name="DailyMessageTasksText">消息内容</string>
+    <string name="DailyMessageTasksTime">每日时间（本机时区）</string>
+    <string name="ExtensionAutomationSelectOne">请只选择一个支持的会话。</string>
+    <string name="PresenceSimulationTitle">限时在线状态与模拟输入</string>
+    <string name="PresenceSimulationLimits">Telegram 不允许客户端任意设置“最后上线”的日期和时间。这里仅能在应用运行时限时请求在线或离线状态，显示结果受 Telegram 隐私规则及其他登录设备影响；发送消息等活动仍可能暴露在线状态。</string>
+    <string name="PresenceSimulationMode">限时在线状态</string>
+    <string name="PresenceSimulationNormal">恢复常规设置</string>
+    <string name="PresenceSimulationOnline">使用应用时在线</string>
+    <string name="PresenceSimulationOffline">请求显示离线</string>
+    <string name="PresenceSimulationModeInfo">可自定义 1 至 60 分钟。“在线”会临时覆盖“隐藏在线状态”，且需要保持应用活跃。结束后恢复原有隐私设置；重启应用后不再保留临时状态。</string>
+    <string name="PresenceSimulationMinutes">%1$d 分钟</string>
+    <string name="PresenceSimulationTarget">模拟输入的会话</string>
+    <string name="PresenceSimulationAction">输入状态</string>
+    <string name="PresenceSimulationDuration">持续时间</string>
+    <string name="PresenceSimulationDurationInfo">请输入 1 至 60 分钟。</string>
+    <string name="PresenceSimulationTyping">正在输入文字</string>
+    <string name="PresenceSimulationRecording">正在录制语音</string>
+    <string name="PresenceSimulationSticker">正在选择贴纸</string>
+    <string name="PresenceSimulationStart">开始显示状态</string>
+    <string name="PresenceSimulationStop">停止显示状态</string>
+    <string name="PresenceSimulationTypingInfo">每隔数秒向所选会话发送真实的临时活动状态，不会创建消息、录音或贴纸。时间结束、离开应用、熄屏或开启“隐藏输入状态”后停止。对方是否可见仍由 Telegram 决定。</string>
+    <string name="PresenceSimulationUnable">请先选择可发言的会话、连接当前账号，并关闭“隐藏输入状态”。</string>
+</resources>

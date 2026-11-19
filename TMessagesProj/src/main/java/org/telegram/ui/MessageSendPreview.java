@@ -156,9 +156,6 @@ public class MessageSendPreview extends Dialog implements NotificationCenter.Not
                     blurBitmapPaint.setAlpha((int) (0xFF * openProgress));
                     canvas.drawRect(0, 0, getWidth(), getHeight(), blurBitmapPaint);
                 }
-                if (fog != 0 && openProgress > 0) {
-                    canvas.drawColor(Theme.multAlpha(fog, openProgress));
-                }
                 super.dispatchDraw(canvas);
             }
 
@@ -1234,14 +1231,6 @@ public class MessageSendPreview extends Dialog implements NotificationCenter.Not
         containerView.addView(this.sendButton, new ViewGroup.LayoutParams(sendButton.getWidth(), sendButton.getHeight()));
         sendButtonWidth = anchorSendButton.width(sendButton.getHeight());
         sendButtonInitialPosition[0] += anchorSendButton.getWidth() - anchorSendButton.width(sendButton.getHeight()) - dp(6);
-    }
-
-    private int fog;
-
-    /** A colour laid over the blurred chat behind the preview, as the skin fogs the page under its controls. */
-    public void setFog(int color) {
-        fog = color;
-        windowView.invalidate();
     }
 
     public void setItemOptions(ItemOptions options) {

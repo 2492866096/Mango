@@ -11,16 +11,20 @@ import android.widget.TextView;
 
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.CustomWallpaperStore;
+import org.telegram.messenger.DailyMessageTasksManager;
 import org.telegram.messenger.ExtensionMediaSettings;
 import org.telegram.messenger.MessageActionSettings;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageTagsController;
+import org.telegram.messenger.PresenceSimulationManager;
 import org.telegram.messenger.UserConfig;
+import org.telegram.ui.DailyMessageTasksActivity;
 import org.telegram.ui.ExtensionFeaturesActivity;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.MessageActionSettingsActivity;
 import org.telegram.ui.MessageManagementActivity;
 import org.telegram.ui.MessageTagEditor;
+import org.telegram.ui.PresenceSimulationActivity;
 import org.telegram.ui.WallpapersListActivity;
 import org.telegram.ui.ActionBar.BaseFragment;
 
@@ -60,6 +64,18 @@ public class ExtensionSmokeInstrumentation extends Instrumentation {
             LaunchActivity activity = resumedActivity;
             Thread.sleep(1000);
             show(activity, new ExtensionFeaturesActivity(), "extension-tools");
+            show(activity, new DailyMessageTasksActivity(), "daily-messages");
+            DailyMessageTasksManager.Task draft = new DailyMessageTasksManager.Task();
+            draft.title = "签到机器人";
+            draft.dialogId = 987654321;
+            draft.text = "/checkin";
+            java.lang.reflect.Constructor<?> editorConstructor = Class.forName("org.telegram.ui.DailyMessageTasksActivity$Editor")
+                    .getDeclaredConstructor(DailyMessageTasksManager.Task.class);
+            editorConstructor.setAccessible(true);
+            show(activity, (BaseFragment) editorConstructor.newInstance(draft), "daily-task-editor");
+            show(activity, new PresenceSimulationActivity(), "presence");
+            show(activity, new org.telegram.ui.ScamProtectionActivity(), "scam-protection");
+            show(activity, new org.telegram.ui.MessageEchoActivity(), "message-echo");
             show(activity, new org.telegram.ui.RecalledMessagesActivity(), "recalled-messages");
             show(activity, new org.telegram.ui.InteractionStatisticsActivity(), "interaction-statistics");
             show(activity, new org.telegram.ui.MessageMemorialActivity(), "message-memorial");
@@ -149,6 +165,11 @@ public class ExtensionSmokeInstrumentation extends Instrumentation {
         }
         MessageTagsController.setTags(0, entry, 0);
         check(MessageTagsController.getEntries(0, 0).isEmpty(), "Clear tags");
+        DailyMessageTasksManager.Task task = new DailyMessageTasksManager.Task();
+        task.dialogId = -987654321;
+        task.text = "/checkin";
+        check(!DailyMessageTasksManager.getInstance(0).save(task), "Signed-out account cannot save sends");
+        check(!PresenceSimulationManager.getInstance(0).startTyping(0, "", 0, 1), "Invalid typing target rejected");
         report.append("Preference, menu, tag and account-isolation checks passed.\n");
     }
 
@@ -199,7 +220,27 @@ public class ExtensionSmokeInstrumentation extends Instrumentation {
             check(org.telegram.messenger.RecalledMessagesStore.list(0, 0).size() == 1, "Recall toggle stops new saves and retains archive");
             org.telegram.messenger.RecalledMessagesStore.clear(0);
             check(org.telegram.messenger.RecalledMessagesStore.list(0, 0).isEmpty(), "Recall clear is durable");
-            report.append("V4 recall storage and account/owner isolation checks passed.\n");
+            org.telegram.messenger.MessageEchoManager.setTarget(0, message.dialog_id, true);
+            check(org.telegram.messenger.MessageEchoManager.targets(0).contains("" + message.dialog_id), "Echo target round trip");
+            check(org.telegram.messenger.MessageEchoManager.targets(1).isEmpty(), "Echo account isolation");
+            owner.id++;
+            check(org.telegram.messenger.MessageEchoManager.targets(0).isEmpty(), "Echo owner isolation");
+            owner.id--;
+            org.telegram.messenger.MessageEchoManager.setTarget(0, message.dialog_id, false);
+            check(org.telegram.messenger.MessageEchoManager.targets(0).isEmpty(), "Echo target removal");
+            org.telegram.messenger.ScamProtectionManager.setEnabled(0, true);
+            org.telegram.messenger.ScamProtectionManager.setKeywords(0, "TEST SCAM");
+            message.message = "This is a test scam fixture";
+            org.telegram.messenger.MessageObject object = new org.telegram.messenger.MessageObject(0, message, false, false);
+            String keyword = org.telegram.messenger.ScamProtectionManager.match(0, object);
+            check(keyword != null, "Scam matches normalized keyword");
+            check(org.telegram.messenger.ScamProtectionManager.markShown(0, object, keyword), "Scam first hint");
+            check(!org.telegram.messenger.ScamProtectionManager.markShown(0, object, keyword), "Scam suppresses repeat hint");
+            message.out = true;
+            check(org.telegram.messenger.ScamProtectionManager.match(0, object) == null, "Scam excludes outgoing");
+            check(!org.telegram.messenger.MessageEchoManager.canEcho(0, object), "Echo excludes outgoing");
+            org.telegram.messenger.ScamProtectionManager.setKeywords(0, org.telegram.messenger.ScamProtectionManager.DEFAULT_KEYWORDS);
+            report.append("V4 recall storage, account/owner isolation, echo preferences and scam hint checks passed.\n");
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {

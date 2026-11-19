@@ -64,7 +64,7 @@ public class Prefs implements SharedPreferences {
 }''',
 'org/telegram/messenger/FileLog.java': r'''package org.telegram.messenger;public class FileLog {public static void e(Exception error){throw new AssertionError(error);}}''',
 'org/telegram/messenger/Utilities.java': r'''package org.telegram.messenger;public class Utilities {
- public static final Queue globalQueue=new Queue(); public static class Queue {public int queued;public void postRunnable(Runnable task){queued++; /* Counted, never run. */}}
+ public static final Queue globalQueue=new Queue(); public static class Queue {public int queued;public void postRunnable(Runnable task){queued++; /* Deliberately never execute network tasks. */}}
 }''',
 'org/telegram/messenger/AndroidUtilities.java': r'''package org.telegram.messenger;import java.util.*;public class AndroidUtilities {
  static final ArrayList<Runnable> queue=new ArrayList<>();public static void runOnUIThread(Runnable action){queue.add(action);}
@@ -168,7 +168,6 @@ public class AdWhitelistTest {
  static ArrayList<WhitelistDialog> entries(long...ids){ArrayList<WhitelistDialog> result=new ArrayList<>();for(long did:ids)result.add(new WhitelistDialog(did,"Chat "+did,did==-30,did>0));return result;}
  static MessageObject message(int account,long did,String text,long sender){MessageObject m=new MessageObject(account,did,id++,text);if(sender>0){m.messageOwner.from_id=new TLRPC.TL_peerUser();m.messageOwner.from_id.user_id=sender;}else if(sender<0){m.messageOwner.from_id=new TLRPC.TL_peerChannel();m.messageOwner.from_id.channel_id=-sender;}return m;}
  static void seed(int account){
-  // Cloud lists cached by older builds stay in preferences and must be ignored.
   MessagesController.getMainSettings(account).edit().putString("keyword_filter_remote_keywords","[\"remote-offer\"]").putString("keyword_filter_remote_blocked_usernames","[\"remote_spammer\",\"channel_spammer\"]").apply();
   MessagesController c=MessagesController.getInstance(account);
   for(long uid:new long[]{10,11,12}){TLRPC.User u=new TLRPC.User();u.id=uid;u.username=uid==11?"remote_spammer":uid==12?"custom_spammer":"clean_user";c.users.put(uid,u);}
@@ -184,13 +183,11 @@ public class AdWhitelistTest {
   check(!m.addWhitelistDialogs(entries(0)),"zero ID is not added");
   for(long did:new long[]{10,-20,-30}){
    check("local-offer".equals(m.getMatchingKeyword(message(0,did,"LOCAL-OFFER",0),false)),"local keyword matches before whitelist "+did);
-   check(m.getMatchingKeyword(message(0,did,"REMOTE-OFFER",0),false)==null,"cached cloud keywords are ignored "+did);
-   MessageObject blocked=message(0,did,"hello",12);
-   check(m.getMatchingKeyword(blocked,false)!=null,"blocked sender matches before whitelist "+did);
-   check(m.shouldHideMessageByBlockedUsername(blocked),"blocked sender fast path before whitelist "+did);
-   for(long sender:new long[]{11,-40}){
+   check("remote-offer".equals(m.getMatchingKeyword(message(0,did,"REMOTE-OFFER",0),false)),"remote keyword matches before whitelist "+did);
+   for(long sender:new long[]{11,12,-40}){
     MessageObject msg=message(0,did,"hello",sender);
-    check(m.getMatchingKeyword(msg,false)==null&&!m.shouldHideMessageByBlockedUsername(msg),"cached cloud usernames are ignored "+did+"/"+sender);
+    check(m.getMatchingKeyword(msg,false)!=null,"blocked sender matches before whitelist "+did+"/"+sender);
+    check(m.shouldHideMessageByBlockedUsername(msg),"blocked sender fast path before whitelist "+did+"/"+sender);
    }
   }
   MessagesController c=MessagesController.getInstance(0);MessagesController other=MessagesController.getInstance(1);
@@ -202,27 +199,28 @@ public class AdWhitelistTest {
   check(!m.addWhitelistDialogs(entries(10,-20,-30)),"duplicate whitelist add is unchanged");AndroidUtilities.flush();check(NotificationCenter.getInstance(0).counts[1]==1,"duplicate add does not notify");
   for(long did:new long[]{10,-20,-30}){
    check(m.isDialogWhitelisted(did),"public whitelist lookup "+did);
-   check(m.getMatchingKeyword(message(0,did,"local-offer",0),true)==null,"whitelist overrides local terms "+did);
-   MessageObject msg=message(0,did,"local-offer",12);
-   check(m.getMatchingKeyword(msg,true)==null,"whitelist wins over blocked sender in match path "+did);
-   check(!m.shouldHideMessageByBlockedUsername(msg),"whitelist wins over blocked sender fast path "+did);
+   check(m.getMatchingKeyword(message(0,did,"local-offer remote-offer",0),true)==null,"whitelist overrides local and remote terms "+did);
+   for(long sender:new long[]{11,12,-40}){
+    MessageObject msg=message(0,did,"local-offer remote-offer",sender);
+    check(m.getMatchingKeyword(msg,true)==null,"whitelist wins over blocked sender in match path "+did+"/"+sender);
+    check(!m.shouldHideMessageByBlockedUsername(msg),"whitelist wins over blocked sender fast path "+did+"/"+sender);
+   }
   }
   check(m.getLogs().isEmpty(),"whitelisted messages never add filtered logs");
   KeywordMessageFilterManager account1=KeywordMessageFilterManager.getInstance(1);check(!account1.isDialogWhitelisted(-30),"whitelist does not cross accounts");
-  account1.setCustomBlockedUsersFromText("custom_spammer");AndroidUtilities.flush();
-  check(account1.shouldHideMessageByBlockedUsername(message(1,-30,"hello",12)),"other account still filters its sender");
+  check(account1.shouldHideMessageByBlockedUsername(message(1,-30,"hello",11)),"other account still filters its sender");
   m=fresh(0);check(m.getWhitelistCount()==3&&m.isDialogWhitelisted(10)&&m.isDialogWhitelisted(-20)&&m.isDialogWhitelisted(-30),"fresh production manager reloads persisted whitelist");
-  check(m.getMatchingKeyword(message(0,-30,"local-offer",12),false)==null,"reloaded whitelist still overrides filters");
+  check(m.getMatchingKeyword(message(0,-30,"local-offer remote-offer",11),false)==null,"reloaded whitelist still overrides filters");
   m.getWhitelistDialogs().clear();check(m.getWhitelistCount()==3,"whitelist getter returns a defensive copy");
   ArrayList<WhitelistDialog> renamed=new ArrayList<>();renamed.add(new WhitelistDialog(-30," Renamed ",true,false));check(m.addWhitelistDialogs(renamed),"existing whitelist entry updates title");m=fresh(0);check(m.getWhitelistDialogs().get(2).title.equals("Renamed"),"updated metadata reloads");AndroidUtilities.flush();
   check(m.removeWhitelistDialogs(Arrays.asList(-20L)),"remove group from whitelist");AndroidUtilities.flush();
   check(!m.isDialogWhitelisted(-20)&&m.isDialogWhitelisted(-30)&&m.isDialogWhitelisted(10),"remove only requested entry");
   check("local-offer".equals(m.getMatchingKeyword(message(0,-20,"local-offer",0),false)),"removed group resumes local filtering");
-  check(m.shouldHideMessageByBlockedUsername(message(0,-20,"hello",12)),"removed group resumes sender filtering");
+  check(m.shouldHideMessageByBlockedUsername(message(0,-20,"hello",11)),"removed group resumes sender filtering");
   check(!m.removeWhitelistDialogs(Arrays.asList(-20L)),"removing absent entry is unchanged");m=fresh(0);check(!m.isDialogWhitelisted(-20)&&m.isDialogWhitelisted(-30),"removal survives reload");
   m.setCustomBlockedUsersFromText("12");AndroidUtilities.flush();check(!m.shouldHideMessageByBlockedUsername(message(0,-30,"hello",12)),"whitelist also overrides numeric blocked user IDs");
-  m.setEnabled(false);AndroidUtilities.flush();check(!m.shouldHideMessageByBlockedUsername(message(0,-30,"hello",12)),"whitelist stays effective with keyword toggle disabled");
-  check(m.shouldHideMessageByBlockedUsername(message(0,-20,"hello",12)),"keyword toggle does not disable separate sender block list");
+  m.setEnabled(false);AndroidUtilities.flush();check(!m.shouldHideMessageByBlockedUsername(message(0,-30,"hello",11)),"whitelist stays effective with keyword toggle disabled");
+  check(m.shouldHideMessageByBlockedUsername(message(0,-20,"hello",11)),"keyword toggle does not disable separate sender block list");
   // Execute the complete production sponsored request method with controllable asynchronous callbacks.
   clearNotice(0);c.sponsoredMessages.clear();rawGlobal(true);
   check(c.getSponsoredMessages(-30)==null&&c.connection.requests.size()==1,"whitelisted channel may request sponsored messages");
@@ -276,7 +274,7 @@ public class AdWhitelistTest {
   setterResponse.run(sponsored(),null);AndroidUtilities.flush();
   check(!c.sponsoredMessages.containsKey(-40L)&&NotificationCenter.getInstance(0).counts[2]==0,"shared setter invalidates old request before delayed completion");
   check(NotificationCenter.getInstance(2).counts[1]==0,"subsequent global changes still skip inactive account");
-  check(Utilities.globalQueue.queued==0,"the filter never schedules a download");
+  check(Utilities.globalQueue.queued>0,"remote refresh queued but never executed");
   System.out.println("PASS: "+checks+" production ad whitelist, persistence, account and sponsored callback behavior checks");
  }
 }'''

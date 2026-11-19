@@ -1,4 +1,5 @@
-// Copyright 2006 Google LLC
+// Copyright (c) 2006, Google Inc.
+// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -10,7 +11,7 @@
 // copyright notice, this list of conditions and the following disclaimer
 // in the documentation and/or other materials provided with the
 // distribution.
-//     * Neither the name of Google LLC nor the names of its
+//     * Neither the name of Google Inc. nor the names of its
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -38,11 +39,8 @@
 
 #include "common/using_std_string.h"
 #include "google_breakpad/common/breakpad_types.h"
-#include "google_breakpad/processor/code_modules.h"
-#include "google_breakpad/processor/exception_record.h"
-#include "google_breakpad/processor/minidump.h"
 #include "google_breakpad/processor/system_info.h"
-#include "processor/linked_ptr.h"
+#include "google_breakpad/processor/minidump.h"
 
 namespace google_breakpad {
 
@@ -91,7 +89,7 @@ enum ExploitabilityRating {
 
 class ProcessState {
  public:
-  ProcessState() : modules_(NULL), unloaded_modules_(NULL) { Clear(); }
+  ProcessState() : modules_(NULL) { Clear(); }
   ~ProcessState();
 
   // Resets the ProcessState to its default values
@@ -105,18 +103,12 @@ class ProcessState {
   uint64_t crash_address() const { return crash_address_; }
   string assertion() const { return assertion_; }
   int requesting_thread() const { return requesting_thread_; }
-  const ExceptionRecord* exception_record() const { return &exception_record_; }
   const vector<CallStack*>* threads() const { return &threads_; }
   const vector<MemoryRegion*>* thread_memory_regions() const {
     return &thread_memory_regions_;
   }
-  const vector<string>* thread_names() const { return &thread_names_; }
   const SystemInfo* system_info() const { return &system_info_; }
   const CodeModules* modules() const { return modules_; }
-  const CodeModules* unloaded_modules() const { return unloaded_modules_; }
-  const vector<linked_ptr<const CodeModule> >* shrunk_range_modules() const {
-    return &shrunk_range_modules_;
-  }
   const vector<const CodeModule*>* modules_without_symbols() const {
     return &modules_without_symbols_;
   }
@@ -168,19 +160,10 @@ class ProcessState {
   // indicating that the dump thread is not available.
   int requesting_thread_;
 
-  // Exception record details: code, flags, address, parameters.
-  ExceptionRecord exception_record_;
-
   // Stacks for each thread (except possibly the exception handler
   // thread) at the time of the crash.
   vector<CallStack*> threads_;
   vector<MemoryRegion*> thread_memory_regions_;
-
-  // Names of each thread at the time of the crash, one for each entry in
-  // threads_. Note that a thread's name might be empty if there was no
-  // corresponding ThreadNamesStream in the minidump, or if a particular thread
-  // ID was not present in the THREAD_NAME_LIST.
-  vector<string> thread_names_;
 
   // OS and CPU information.
   SystemInfo system_info_;
@@ -188,14 +171,6 @@ class ProcessState {
   // The modules that were loaded into the process represented by the
   // ProcessState.
   const CodeModules *modules_;
-
-  // The modules that have been unloaded from the process represented by the
-  // ProcessState.
-  const CodeModules *unloaded_modules_;
-
-  // The modules which virtual address ranges were shrunk down due to
-  // virtual address conflicts.
-  vector<linked_ptr<const CodeModule> > shrunk_range_modules_;
 
   // The modules that didn't have symbols when the report was processed.
   vector<const CodeModule*> modules_without_symbols_;
@@ -205,7 +180,7 @@ class ProcessState {
 
   // The exploitability rating as determined by the exploitability
   // engine. When the exploitability engine is not enabled this
-  // defaults to EXPLOITABILITY_NOT_ANALYZED.
+  // defaults to EXPLOITABILITY_NONE.
   ExploitabilityRating exploitability_;
 };
 

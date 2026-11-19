@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">Автореакции в каналах</string>
+    <string name="MangoReactionGroups">Автореакции в группах</string>
+    <string name="MangoReactionPrivate">Автореакции в личных чатах</string>
+    <string name="MangoReactionConfirmTitle">Включить автоматические реакции?</string>
+    <string name="MangoReactionConfirmInfo">Клиент будет отправлять реакции эмодзи в выбранных каналах, группах и личных чатах. Настройки области действия применяются только при включённых автореакциях. Эта настройка действует для всех аккаунтов на устройстве.</string>
+    <string name="MangoDownloadHudPinned">Закреплено</string>
+    <string name="MangoDownloadHudLockHint">Перетаскивайте для перемещения; удерживайте для закрепления</string>
+    <string name="MangoDownloadHudUnlockHint">Удерживайте, чтобы разрешить перемещение</string>
+</resources>

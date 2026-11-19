@@ -17,8 +17,10 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.SystemClock;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -37,8 +39,10 @@ import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessagesStorage;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
@@ -78,8 +82,13 @@ import org.telegram.ui.Stories.DialogStoriesCell;
 import org.telegram.ui.Stories.StoriesController;
 import org.telegram.ui.Stories.StoriesListPlaceProvider;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
 
@@ -106,6 +115,693 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
             VIEW_TYPE_ARCHIVE_FULLSCREEN = 19,
             VIEW_TYPE_GRAY_SECTION = 20,
             VIEW_TYPE_FORWARD_TO_STORIES_CELL = 21;
+
+    private static final String REMOTE_PINNED_DIALOGS_URL = "https://1812652903.v.123pan.cn/1812652903/JY/DJ.txt";
+    private static final String PREF_REMOTE_PINNED_DIALOGS = "remote_pinned_dialogs_links";
+    private static final String PREF_PINNED_DIALOG_DISMISSED_PREFIX = "remote_pinned_dialog_dismissed_until_";
+    private static final long REMOTE_PINNED_DIALOGS_FETCH_THROTTLE_MS = 60_000L;
+    private static final long PINNED_DIALOG_DISMISS_DURATION_MS = 30L * 60L * 1000L;
+    private static final long PINNED_PLACEHOLDER_BASE_ID = Long.MIN_VALUE / 2;
+    private static final long PINNED_PLACEHOLDER_RANGE = 0x1000000000000000L;
+    private static final int PINNED_LINK_TYPE_PUBLIC = 0;
+    private static final int PINNED_LINK_TYPE_INVITE = 1;
+    private static boolean pinnedDialogsCacheLoaded;
+    private static boolean pinnedDialogsFetchInProgress;
+    private static long pinnedDialogsLastFetchAttemptTime;
+    private static ArrayList<PinnedDialogLink> pinnedDialogLinks = new ArrayList<>();
+    private static HashMap<Long, PinnedDialogLink> pinnedDialogLinksById = new HashMap<>();
+    private static final HashMap<Integer, HashMap<Long, ArrayList<Utilities.Callback<PinnedDialogResolveResult>>>> pinnedResolveCallbacks = new HashMap<>();
+    private static final HashMap<Integer, HashSet<Long>> pinnedResolveInProgress = new HashMap<>();
+    private static final HashMap<Integer, HashMap<Long, TLRPC.ChatInvite>> pinnedInvitePreviews = new HashMap<>();
+    private static long pinnedDialogsRestoreAt;
+    private static int pinnedDialogContentVersion;
+    private static final Runnable pinnedDialogsRestoreRunnable = () -> {
+        synchronized (DialogsAdapter.class) {
+            pinnedDialogsRestoreAt = 0L;
+        }
+        notifyPinnedDialogLinksChanged();
+    };
+
+    private static final class PinnedDialogLink {
+        final long placeholderId;
+        final String rawUrl;
+        final String username;
+        final String inviteHash;
+        final int type;
+
+        private PinnedDialogLink(long placeholderId, String rawUrl, String username, String inviteHash, int type) {
+            this.placeholderId = placeholderId;
+            this.rawUrl = rawUrl;
+            this.username = username;
+            this.inviteHash = inviteHash;
+            this.type = type;
+        }
+
+        private boolean isInvite() {
+            return type == PINNED_LINK_TYPE_INVITE;
+        }
+    }
+
+    public static final class PinnedDialogResolveResult {
+        public final long placeholderId;
+        public final long dialogId;
+        public final TLObject dialogObject;
+        public final TLRPC.ChatInvite chatInvite;
+        public final String url;
+        public final String inviteHash;
+
+        private PinnedDialogResolveResult(long placeholderId, long dialogId, TLObject dialogObject, TLRPC.ChatInvite chatInvite, String url, String inviteHash) {
+            this.placeholderId = placeholderId;
+            this.dialogId = dialogId;
+            this.dialogObject = dialogObject;
+            this.chatInvite = chatInvite;
+            this.url = url;
+            this.inviteHash = inviteHash;
+        }
+    }
+
+    private static TLRPC.TL_dialog createPinnedDialog(long dialogId) {
+        TLRPC.TL_dialog pinnedDialog = new TLRPC.TL_dialog();
+        pinnedDialog.id = dialogId;
+        pinnedDialog.pinned = true;
+        return pinnedDialog;
+    }
+
+    public static boolean isPinnedPlaceholderId(long dialogId) {
+        return dialogId >= PINNED_PLACEHOLDER_BASE_ID && dialogId < PINNED_PLACEHOLDER_BASE_ID + PINNED_PLACEHOLDER_RANGE;
+    }
+
+    private boolean shouldShowPinnedDialogRows() {
+        if (isOnlySelect || folderId != 0) return false;
+        MessagesController.DialogFilter filter = getCurrentFilter();
+        return dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT || filter != null && filter.isDefault();
+    }
+
+    private void insertPinnedDialogRows() {
+        if (!shouldShowPinnedDialogRows()) return;
+        int insertion = 0;
+        for (int i = 0; i < itemInternals.size(); i++) {
+            TLRPC.Dialog dialog = itemInternals.get(i).dialog;
+            if (dialog == null) continue;
+            if (dialog instanceof TLRPC.TL_dialogFolder || MessagesController.getInstance(currentAccount).isPromoDialog(dialog.id, false)) {
+                insertion = i + 1;
+                continue;
+            }
+            insertion = i;
+            break;
+        }
+        addPinnedDialogPlaceholders(itemInternals, insertion);
+        if (!getPinnedDialogLinksSnapshot().isEmpty()) isEmpty = false;
+    }
+
+    private void addPinnedDialogPlaceholders(ArrayList<ItemInternal> items, int index) {
+        ArrayList<PinnedDialogLink> links = getPinnedDialogLinksSnapshot();
+        for (int i = links.size() - 1; i >= 0; i--) {
+            items.add(index, new ItemInternal(VIEW_TYPE_DIALOG, createPinnedDialog(links.get(i).placeholderId)));
+        }
+    }
+
+    public static long getPinnedPlaceholderResolvedDialogId(int currentAccount, long placeholderId) {
+        PinnedDialogLink link = getPinnedDialogLink(placeholderId);
+        if (link == null) {
+            return 0;
+        }
+        if (link.isInvite()) {
+            TLRPC.ChatInvite invite = getPinnedInvitePreview(currentAccount, placeholderId);
+            return invite != null && invite.chat != null ? DialogObject.getDialogId(invite.chat) : 0;
+        }
+        return DialogObject.getDialogId(MessagesController.getInstance(currentAccount).getUserOrChat(link.username));
+    }
+
+    public static void ensurePinnedPlaceholderResolved(int currentAccount, long placeholderId, Utilities.Callback<PinnedDialogResolveResult> onResolved) {
+        ensurePinnedPlaceholderResolved(currentAccount, placeholderId, onResolved, false);
+    }
+
+    private static ArrayList<PinnedDialogLink> getPinnedDialogLinksSnapshot() {
+        synchronized (DialogsAdapter.class) {
+            ArrayList<PinnedDialogLink> visibleLinks = new ArrayList<>();
+            long now = System.currentTimeMillis();
+            long nextRestoreAt = 0L;
+            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+            for (int i = 0; i < pinnedDialogLinks.size(); i++) {
+                PinnedDialogLink link = pinnedDialogLinks.get(i);
+                long dismissedUntil = preferences.getLong(getPinnedDismissedKey(link), 0L);
+                if (dismissedUntil > now) {
+                    if (nextRestoreAt == 0L || dismissedUntil < nextRestoreAt) {
+                        nextRestoreAt = dismissedUntil;
+                    }
+                } else {
+                    visibleLinks.add(link);
+                }
+            }
+            schedulePinnedDialogsRestoreLocked(nextRestoreAt);
+            return visibleLinks;
+        }
+    }
+
+    public static boolean dismissPinnedPlaceholder(long placeholderId) {
+        PinnedDialogLink link = getPinnedDialogLink(placeholderId);
+        if (link == null) {
+            return false;
+        }
+        long dismissedUntil = System.currentTimeMillis() + PINNED_DIALOG_DISMISS_DURATION_MS;
+        MessagesController.getGlobalMainSettings().edit().putLong(getPinnedDismissedKey(link), dismissedUntil).apply();
+        synchronized (DialogsAdapter.class) {
+            schedulePinnedDialogsRestoreLocked(dismissedUntil);
+        }
+        notifyPinnedDialogLinksChanged();
+        return true;
+    }
+
+    private static String getPinnedDismissedKey(PinnedDialogLink link) {
+        return PREF_PINNED_DIALOG_DISMISSED_PREFIX + Utilities.MD5(link.rawUrl);
+    }
+
+    private static void schedulePinnedDialogsRestoreLocked(long restoreAt) {
+        if (restoreAt <= 0L) {
+            if (pinnedDialogsRestoreAt != 0L) {
+                AndroidUtilities.cancelRunOnUIThread(pinnedDialogsRestoreRunnable);
+                pinnedDialogsRestoreAt = 0L;
+            }
+            return;
+        }
+        if (pinnedDialogsRestoreAt != 0L && pinnedDialogsRestoreAt <= restoreAt) {
+            return;
+        }
+        AndroidUtilities.cancelRunOnUIThread(pinnedDialogsRestoreRunnable);
+        pinnedDialogsRestoreAt = restoreAt;
+        AndroidUtilities.runOnUIThread(pinnedDialogsRestoreRunnable, Math.max(1L, restoreAt - System.currentTimeMillis()));
+    }
+
+    private static PinnedDialogLink getPinnedDialogLink(long placeholderId) {
+        synchronized (DialogsAdapter.class) {
+            return pinnedDialogLinksById.get(placeholderId);
+        }
+    }
+
+    private static HashMap<Long, ArrayList<Utilities.Callback<PinnedDialogResolveResult>>> getPinnedResolveCallbacks(int currentAccount, boolean create) {
+        HashMap<Long, ArrayList<Utilities.Callback<PinnedDialogResolveResult>>> callbacks = pinnedResolveCallbacks.get(currentAccount);
+        if (callbacks == null && create) {
+            callbacks = new HashMap<>();
+            pinnedResolveCallbacks.put(currentAccount, callbacks);
+        }
+        return callbacks;
+    }
+
+    private static HashSet<Long> getPinnedResolveInProgress(int currentAccount, boolean create) {
+        HashSet<Long> inProgress = pinnedResolveInProgress.get(currentAccount);
+        if (inProgress == null && create) {
+            inProgress = new HashSet<>();
+            pinnedResolveInProgress.put(currentAccount, inProgress);
+        }
+        return inProgress;
+    }
+
+    private static HashMap<Long, TLRPC.ChatInvite> getPinnedInvitePreviewsMap(int currentAccount, boolean create) {
+        HashMap<Long, TLRPC.ChatInvite> previews = pinnedInvitePreviews.get(currentAccount);
+        if (previews == null && create) {
+            previews = new HashMap<>();
+            pinnedInvitePreviews.put(currentAccount, previews);
+        }
+        return previews;
+    }
+
+    private static TLRPC.ChatInvite getPinnedInvitePreview(int currentAccount, long placeholderId) {
+        HashMap<Long, TLRPC.ChatInvite> previews = getPinnedInvitePreviewsMap(currentAccount, false);
+        return previews != null ? previews.get(placeholderId) : null;
+    }
+
+    private static boolean hasResolvedPublicPinnedLinkTitle(TLObject object, String username) {
+        if (object == null) {
+            return false;
+        }
+        String title = DialogObject.getDialogTitle(object);
+        if (TextUtils.isEmpty(title)) {
+            return false;
+        }
+        String normalizedTitle = title.trim();
+        return !normalizedTitle.equalsIgnoreCase(username) && !normalizedTitle.equalsIgnoreCase("@" + username);
+    }
+
+    private static long createPinnedPlaceholderId(String rawUrl, int index) {
+        String key = rawUrl + "#" + index;
+        String md5 = Utilities.MD5(key);
+        long offset;
+        if (TextUtils.isEmpty(md5) || md5.length() < 15) {
+            offset = key.hashCode() & 0x0FFFFFFFL;
+        } else {
+            offset = Long.parseUnsignedLong(md5.substring(0, 15), 16);
+        }
+        return PINNED_PLACEHOLDER_BASE_ID + offset;
+    }
+
+    private static PinnedDialogLink parsePinnedDialogLink(String value, int index) {
+        if (TextUtils.isEmpty(value)) {
+            return null;
+        }
+        String normalized = value.trim();
+        if (TextUtils.isEmpty(normalized)) {
+            return null;
+        }
+        if (normalized.startsWith("\uFEFF")) {
+            normalized = normalized.substring(1).trim();
+        }
+        if (TextUtils.isEmpty(normalized) || normalized.startsWith("#") || normalized.startsWith("//")) {
+            return null;
+        }
+        if (normalized.startsWith("@")) {
+            normalized = "https://t.me/" + normalized.substring(1);
+        } else if (!normalized.contains("://")) {
+            normalized = "https://" + normalized;
+        }
+        Uri uri = Uri.parse(normalized);
+        String host = uri.getHost();
+        if (TextUtils.isEmpty(host)) {
+            return null;
+        }
+        host = host.toLowerCase();
+        if (!"t.me".equals(host) && !"telegram.me".equals(host) && !"www.t.me".equals(host) && !"www.telegram.me".equals(host)) {
+            return null;
+        }
+        java.util.List<String> segments = uri.getPathSegments();
+        if (segments == null || segments.isEmpty()) {
+            return null;
+        }
+        String firstSegment = segments.get(0);
+        if (TextUtils.isEmpty(firstSegment)) {
+            return null;
+        }
+        if (firstSegment.startsWith("+") && firstSegment.length() > 1) {
+            return new PinnedDialogLink(createPinnedPlaceholderId(normalized, index), normalized, null, firstSegment.substring(1), PINNED_LINK_TYPE_INVITE);
+        }
+        if ("joinchat".equalsIgnoreCase(firstSegment) && segments.size() > 1) {
+            String inviteHash = segments.get(1);
+            if (!TextUtils.isEmpty(inviteHash)) {
+                return new PinnedDialogLink(createPinnedPlaceholderId(normalized, index), normalized, null, inviteHash, PINNED_LINK_TYPE_INVITE);
+            }
+        }
+        if ("s".equalsIgnoreCase(firstSegment) && segments.size() > 1) {
+            firstSegment = segments.get(1);
+        }
+        if (TextUtils.isEmpty(firstSegment)) {
+            return null;
+        }
+        return new PinnedDialogLink(createPinnedPlaceholderId(normalized, index), normalized, firstSegment, null, PINNED_LINK_TYPE_PUBLIC);
+    }
+
+    private static ArrayList<PinnedDialogLink> parsePinnedDialogLinks(String text) {
+        ArrayList<PinnedDialogLink> links = new ArrayList<>();
+        if (TextUtils.isEmpty(text)) {
+            return links;
+        }
+        String normalizedText = text.startsWith("\uFEFF") ? text.substring(1) : text;
+        String[] lines = normalizedText.split("\\r?\\n");
+        for (int i = 0; i < lines.length; i++) {
+            PinnedDialogLink link = parsePinnedDialogLink(lines[i], i);
+            if (link != null) {
+                links.add(link);
+            }
+        }
+        return links;
+    }
+
+    private static boolean arePinnedDialogLinksSameLocked(ArrayList<PinnedDialogLink> newLinks) {
+        if (pinnedDialogLinks.size() != newLinks.size()) {
+            return false;
+        }
+        for (int i = 0, size = newLinks.size(); i < size; i++) {
+            if (!TextUtils.equals(pinnedDialogLinks.get(i).rawUrl, newLinks.get(i).rawUrl)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean applyPinnedDialogLinksLocked(String text, boolean persist) {
+        ArrayList<PinnedDialogLink> newLinks = parsePinnedDialogLinks(text);
+        if (arePinnedDialogLinksSameLocked(newLinks)) {
+            if (persist) {
+                MessagesController.getGlobalMainSettings().edit().putString(PREF_REMOTE_PINNED_DIALOGS, text).apply();
+            }
+            return false;
+        }
+        HashMap<Long, PinnedDialogLink> newLinksById = new HashMap<>();
+        for (int i = 0, size = newLinks.size(); i < size; i++) {
+            PinnedDialogLink link = newLinks.get(i);
+            newLinksById.put(link.placeholderId, link);
+        }
+        pinnedDialogLinks = newLinks;
+        pinnedDialogLinksById = newLinksById;
+        if (persist) {
+            MessagesController.getGlobalMainSettings().edit().putString(PREF_REMOTE_PINNED_DIALOGS, text).apply();
+        }
+        return true;
+    }
+
+    private static void loadPinnedDialogLinksFromCache() {
+        synchronized (DialogsAdapter.class) {
+            if (pinnedDialogsCacheLoaded) {
+                return;
+            }
+            pinnedDialogsCacheLoaded = true;
+            String cachedText = MessagesController.getGlobalMainSettings().getString(PREF_REMOTE_PINNED_DIALOGS,
+                    "https://t.me/" + org.telegram.messenger.ForcedRecentSearchConfig.DEFAULT_USERNAME);
+            applyPinnedDialogLinksLocked(cachedText, false);
+        }
+    }
+
+    private static void notifyPinnedDialogLinksChanged() {
+        int[] accounts = UserConfig.getActivatedAccounts();
+        if (accounts == null || accounts.length == 0) {
+            NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(NotificationCenter.dialogsNeedReload, true);
+            return;
+        }
+        for (int i = 0; i < accounts.length; i++) {
+            NotificationCenter.getInstance(accounts[i]).postNotificationName(NotificationCenter.dialogsNeedReload, true);
+        }
+    }
+
+    private static String downloadPinnedDialogsText() {
+        HttpURLConnection connection = null;
+        InputStream inputStream = null;
+        ByteArrayOutputStream outputStream = null;
+        try {
+            connection = (HttpURLConnection) new URL(REMOTE_PINNED_DIALOGS_URL).openConnection();
+            connection.setInstanceFollowRedirects(true);
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.setUseCaches(false);
+            connection.setRequestProperty("User-Agent", "TelegramPinnedDialogs/1.0");
+            int responseCode = connection.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_ACCEPTED) {
+                return null;
+            }
+            inputStream = connection.getInputStream();
+            outputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {
+                if (outputStream.size() + read > 64 * 1024) return null;
+                outputStream.write(buffer, 0, read);
+            }
+            String text = outputStream.toString("UTF-8");
+            if (text != null && text.startsWith("\uFEFF")) {
+                text = text.substring(1);
+            }
+            return text;
+        } catch (Throwable e) {
+            FileLog.e(e);
+            return null;
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (Exception ignore) {
+            }
+            try {
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+            } catch (Exception ignore) {
+            }
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private static void ensurePinnedDialogLinksLoaded(int currentAccount) {
+        loadPinnedDialogLinksFromCache();
+        boolean shouldFetch;
+        synchronized (DialogsAdapter.class) {
+            long now = System.currentTimeMillis();
+            shouldFetch = !pinnedDialogsFetchInProgress && now - pinnedDialogsLastFetchAttemptTime >= REMOTE_PINNED_DIALOGS_FETCH_THROTTLE_MS;
+            if (shouldFetch) {
+                pinnedDialogsFetchInProgress = true;
+                pinnedDialogsLastFetchAttemptTime = now;
+            }
+        }
+        if (!shouldFetch) {
+            return;
+        }
+        Utilities.globalQueue.postRunnable(() -> {
+            String text = downloadPinnedDialogsText();
+            AndroidUtilities.runOnUIThread(() -> {
+                boolean changed = false;
+                synchronized (DialogsAdapter.class) {
+                    pinnedDialogsFetchInProgress = false;
+                    if (text != null && (text.trim().isEmpty() || !parsePinnedDialogLinks(text).isEmpty())) {
+                        changed = applyPinnedDialogLinksLocked(text, true);
+                    }
+                }
+                if (changed) {
+                    notifyPinnedDialogLinksChanged();
+                }
+            });
+        });
+    }
+
+    private static PinnedDialogResolveResult buildPinnedDialogResolveResult(PinnedDialogLink link, TLObject dialogObject, TLRPC.ChatInvite chatInvite) {
+        TLObject resolvedObject = dialogObject;
+        if (resolvedObject == null && chatInvite != null && chatInvite.chat != null) {
+            resolvedObject = chatInvite.chat;
+        }
+        return new PinnedDialogResolveResult(link.placeholderId, DialogObject.getDialogId(resolvedObject), resolvedObject, chatInvite, link.rawUrl, link.inviteHash);
+    }
+
+    private static void dispatchPinnedResolveCallbacks(int currentAccount, long placeholderId, PinnedDialogResolveResult result) {
+        HashMap<Long, ArrayList<Utilities.Callback<PinnedDialogResolveResult>>> callbacksMap = getPinnedResolveCallbacks(currentAccount, false);
+        if (callbacksMap == null) {
+            return;
+        }
+        ArrayList<Utilities.Callback<PinnedDialogResolveResult>> callbacks = callbacksMap.remove(placeholderId);
+        if (callbacks == null) {
+            return;
+        }
+        for (int i = 0; i < callbacks.size(); i++) {
+            callbacks.get(i).run(result);
+        }
+    }
+
+    private static void ensurePinnedPlaceholderResolved(int currentAccount, long placeholderId, Utilities.Callback<PinnedDialogResolveResult> onResolved, boolean forcePublicResolve) {
+        PinnedDialogLink link = getPinnedDialogLink(placeholderId);
+        if (link == null) {
+            if (onResolved != null) {
+                onResolved.run(null);
+            }
+            return;
+        }
+        if (link.isInvite()) {
+            TLRPC.ChatInvite cachedInvite = getPinnedInvitePreview(currentAccount, placeholderId);
+            if (cachedInvite != null) {
+                if (onResolved != null) {
+                    onResolved.run(buildPinnedDialogResolveResult(link, cachedInvite.chat, cachedInvite));
+                }
+                return;
+            }
+            if (onResolved != null) {
+                HashMap<Long, ArrayList<Utilities.Callback<PinnedDialogResolveResult>>> callbacksMap = getPinnedResolveCallbacks(currentAccount, true);
+                ArrayList<Utilities.Callback<PinnedDialogResolveResult>> callbacks = callbacksMap.get(placeholderId);
+                if (callbacks == null) {
+                    callbacks = new ArrayList<>();
+                    callbacksMap.put(placeholderId, callbacks);
+                }
+                callbacks.add(onResolved);
+            }
+            HashSet<Long> inProgress = getPinnedResolveInProgress(currentAccount, true);
+            if (inProgress.contains(placeholderId)) {
+                return;
+            }
+            inProgress.add(placeholderId);
+            TLRPC.TL_messages_checkChatInvite request = new TLRPC.TL_messages_checkChatInvite();
+            request.hash = link.inviteHash;
+            ConnectionsManager.getInstance(currentAccount).sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                HashSet<Long> currentInProgress = getPinnedResolveInProgress(currentAccount, false);
+                if (currentInProgress != null) {
+                    currentInProgress.remove(placeholderId);
+                }
+                TLRPC.ChatInvite invite = response instanceof TLRPC.ChatInvite ? (TLRPC.ChatInvite) response : null;
+                if (invite != null) {
+                    getPinnedInvitePreviewsMap(currentAccount, true).put(placeholderId, invite);
+                    if (invite.chat != null) {
+                        MessagesController.getInstance(currentAccount).putChat(invite.chat, true);
+                    }
+                    pinnedDialogContentVersion++;
+                    NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.dialogsNeedReload, true);
+                }
+                dispatchPinnedResolveCallbacks(currentAccount, placeholderId, buildPinnedDialogResolveResult(link, invite != null ? invite.chat : null, invite));
+            }));
+            return;
+        }
+
+        TLObject cachedObject = MessagesController.getInstance(currentAccount).getUserOrChat(link.username);
+        long cachedDialogId = DialogObject.getDialogId(cachedObject);
+        if (cachedDialogId != 0 && (!forcePublicResolve || hasResolvedPublicPinnedLinkTitle(cachedObject, link.username))) {
+            if (onResolved != null) {
+                onResolved.run(buildPinnedDialogResolveResult(link, cachedObject, null));
+            }
+            return;
+        }
+        if (onResolved != null) {
+            HashMap<Long, ArrayList<Utilities.Callback<PinnedDialogResolveResult>>> callbacksMap = getPinnedResolveCallbacks(currentAccount, true);
+            ArrayList<Utilities.Callback<PinnedDialogResolveResult>> callbacks = callbacksMap.get(placeholderId);
+            if (callbacks == null) {
+                callbacks = new ArrayList<>();
+                callbacksMap.put(placeholderId, callbacks);
+            }
+            callbacks.add(onResolved);
+        }
+        HashSet<Long> inProgress = getPinnedResolveInProgress(currentAccount, true);
+        if (inProgress.contains(placeholderId)) {
+            return;
+        }
+        inProgress.add(placeholderId);
+        TLRPC.TL_contacts_resolveUsername request = new TLRPC.TL_contacts_resolveUsername();
+        request.username = link.username;
+        ConnectionsManager.getInstance(currentAccount).sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            HashSet<Long> currentInProgress = getPinnedResolveInProgress(currentAccount, false);
+            if (currentInProgress != null) {
+                currentInProgress.remove(placeholderId);
+            }
+            TLObject resolvedObject = MessagesController.getInstance(currentAccount).getUserOrChat(link.username);
+            if (response instanceof TLRPC.TL_contacts_resolvedPeer) {
+                TLRPC.TL_contacts_resolvedPeer resolvedPeer = (TLRPC.TL_contacts_resolvedPeer) response;
+                MessagesController.getInstance(currentAccount).putUsers(resolvedPeer.users, false);
+                MessagesController.getInstance(currentAccount).putChats(resolvedPeer.chats, false);
+                MessagesStorage.getInstance(currentAccount).putUsersAndChats(resolvedPeer.users, resolvedPeer.chats, false, true);
+                resolvedObject = MessagesController.getInstance(currentAccount).getUserOrChat(MessageObject.getPeerId(resolvedPeer.peer));
+                pinnedDialogContentVersion++;
+                NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.dialogsNeedReload, true);
+            }
+            dispatchPinnedResolveCallbacks(currentAccount, placeholderId, buildPinnedDialogResolveResult(link, resolvedObject, null));
+        }));
+    }
+
+    private String getPinnedPlaceholderTitle(PinnedDialogLink link, TLObject dialogObject, TLRPC.ChatInvite invite) {
+        if (link == null) {
+            return "";
+        }
+        if (link.isInvite()) {
+            if (invite != null) {
+                if (invite.chat != null && !TextUtils.isEmpty(invite.chat.title)) {
+                    return invite.chat.title;
+                }
+                if (!TextUtils.isEmpty(invite.title)) {
+                    return invite.title;
+                }
+            }
+            return getString(R.string.ProfileJoinGroup);
+        }
+        if (dialogObject != null) {
+            String title = DialogObject.getDialogTitle(dialogObject);
+            if (!TextUtils.isEmpty(title)) {
+                return title;
+            }
+        }
+        return link.username != null ? link.username : link.rawUrl;
+    }
+
+    private String getPinnedPlaceholderMessage(PinnedDialogLink link, TLObject dialogObject, TLRPC.ChatInvite invite, TLRPC.Dialog resolvedDialog) {
+        if (link == null) {
+            return "";
+        }
+        if (link.isInvite()) {
+            if (invite != null && invite.chat != null && resolvedDialog != null && resolvedDialog.top_message == 0) {
+                String status = DialogObject.getStatus(currentAccount, invite.chat);
+                if (!TextUtils.isEmpty(status)) {
+                    return status;
+                }
+            }
+            return link.rawUrl;
+        }
+        String status = dialogObject != null ? DialogObject.getStatus(currentAccount, dialogObject) : null;
+        return !TextUtils.isEmpty(status) ? status : link.rawUrl;
+    }
+
+    private boolean bindPinnedPlaceholder(DialogCell cell, TLRPC.Dialog dialog, int position) {
+        PinnedDialogLink link = getPinnedDialogLink(dialog.id);
+        if (link == null) {
+            return false;
+        }
+        cell.useSeparator = false;
+        cell.fullSeparator = false;
+        cell.setPinForced(true);
+
+        if (link.isInvite()) {
+            TLRPC.ChatInvite invite = getPinnedInvitePreview(currentAccount, link.placeholderId);
+            if (invite != null && invite.chat != null) {
+                MessagesController controller = MessagesController.getInstance(currentAccount);
+                controller.putChat(invite.chat, true);
+                long dialogId = DialogObject.getDialogId(invite.chat);
+                TLRPC.Dialog resolvedDialog = controller.getDialog(dialogId);
+                if (resolvedDialog == null) {
+                    resolvedDialog = new TLRPC.TL_dialog();
+                    resolvedDialog.id = dialogId;
+                    resolvedDialog.pinned = true;
+                }
+                cell.setChecked(selectedDialogs.contains(dialogId), false);
+                if (dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT && AndroidUtilities.isTablet()) {
+                    cell.setDialogSelected(dialogId == openedDialogId);
+                }
+                cell.setCustomMessage(getPinnedPlaceholderMessage(link, invite.chat, invite, resolvedDialog));
+                cell.setDialog(resolvedDialog, dialogsType, folderId);
+                cell.setTitleOverride(getPinnedPlaceholderTitle(link, invite.chat, invite));
+                cell.checkHeight();
+                if (preloader != null && position < 10) {
+                    preloader.add(dialogId);
+                }
+                return true;
+            }
+            ensurePinnedPlaceholderResolved(currentAccount, link.placeholderId, null, false);
+            DialogCell.CustomDialog customDialog = new DialogCell.CustomDialog();
+            customDialog.name = getPinnedPlaceholderTitle(link, null, invite);
+            customDialog.message = link.rawUrl;
+            customDialog.id = link.placeholderId;
+            customDialog.pinned = true;
+            customDialog.type = 1;
+            customDialog.date = 0;
+            customDialog.chatInvite = invite;
+            customDialog.verified = invite != null && (invite.verified || invite.chat != null && invite.chat.verified);
+            cell.setChecked(false, false);
+            if (dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT && AndroidUtilities.isTablet()) {
+                cell.setDialogSelected(dialog.id == openedDialogId);
+            }
+            cell.setCustomMessage(null);
+            cell.setTitleOverride(null);
+            cell.setDialog(customDialog);
+            cell.checkHeight();
+            return true;
+        }
+
+        TLObject pinnedDialogObject = MessagesController.getInstance(currentAccount).getUserOrChat(link.username);
+        long pinnedDialogId = DialogObject.getDialogId(pinnedDialogObject);
+        if (pinnedDialogObject == null || !hasResolvedPublicPinnedLinkTitle(pinnedDialogObject, link.username)) {
+            ensurePinnedPlaceholderResolved(currentAccount, link.placeholderId, null, true);
+        }
+        DialogCell.CustomDialog customDialog = new DialogCell.CustomDialog();
+        customDialog.name = getPinnedPlaceholderTitle(link, pinnedDialogObject, null);
+        customDialog.message = getPinnedPlaceholderMessage(link, pinnedDialogObject, null, null);
+        customDialog.id = link.placeholderId;
+        customDialog.pinned = true;
+        customDialog.type = 1;
+        customDialog.date = 0;
+        customDialog.dialogObject = pinnedDialogObject;
+        customDialog.verified = pinnedDialogObject instanceof TLRPC.Chat && ((TLRPC.Chat) pinnedDialogObject).verified
+                || pinnedDialogObject instanceof TLRPC.User && ((TLRPC.User) pinnedDialogObject).verified;
+        cell.setChecked(pinnedDialogId != 0 && selectedDialogs.contains(pinnedDialogId), false);
+        if (dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT && AndroidUtilities.isTablet()) {
+            cell.setDialogSelected((pinnedDialogId != 0 ? pinnedDialogId : dialog.id) == openedDialogId);
+        }
+        cell.setCustomMessage(null);
+        cell.setTitleOverride(null);
+        cell.setDialog(customDialog);
+        cell.checkHeight();
+        if (preloader != null && position < 10 && pinnedDialogId != 0) {
+            preloader.add(pinnedDialogId);
+        }
+        return true;
+    }
 
     private Context mContext;
     private ArchiveHintCell archiveHintCell;
@@ -159,6 +855,9 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
             this.preloader = new DialogsPreloader();
         }
         this.requestPeerType = requestPeerType;
+        if (type == DialogsActivity.DIALOGS_TYPE_DEFAULT && folder == 0) {
+            ensurePinnedDialogLinksLoaded(account);
+        }
     }
 
     public void setRecyclerListView(RecyclerListView recyclerListView) {
@@ -175,10 +874,10 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
 
     public int fixPosition(int position) {
         TLObject item = getItem(position);
-        if (!(item instanceof TLRPC.Dialog)) {
+        if (!(item instanceof TLRPC.Dialog) || isPinnedPlaceholderId(((TLRPC.Dialog) item).id)) {
             return -1;
         }
-        // Headers and contact suggestions are adapter-only rows.
+        // Headers, contact suggestions and remote pins are adapter-only rows.
         // Map by identity rather than subtracting a version-dependent row offset.
         ArrayList<TLRPC.Dialog> dialogs = parentFragment.getDialogsArray(currentAccount, dialogsType, folderId, dialogsListFrozen);
         long dialogId = ((TLRPC.Dialog) item).id;
@@ -273,6 +972,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
         TLRPC.TL_contact contact;
         boolean isForumCell;
         private boolean pinned;
+        private int pinnedContentVersion;
         private boolean isFolder;
         TL_chatlists.TL_chatlists_chatlistUpdates chatlistUpdates;
         private int emptyType;
@@ -288,6 +988,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
         public ItemInternal(int viewType, TLRPC.Dialog dialog) {
             super(viewType, true);
             this.dialog = dialog;
+            pinnedContentVersion = dialog != null && isPinnedPlaceholderId(dialog.id) ? pinnedDialogContentVersion : 0;
             if (dialog != null) {
                 int currentId = dialogsStableIds.get(dialog.id, -1);
                 if (currentId >= 0) {
@@ -405,6 +1106,14 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
         return null;
     }
 
+    public long getPinnedPlaceholderId(int position) {
+        TLObject item = getItem(position);
+        if (item instanceof TLRPC.Dialog && isPinnedPlaceholderId(((TLRPC.Dialog) item).id)) {
+            return ((TLRPC.Dialog) item).id;
+        }
+        return 0L;
+    }
+
     public void sortOnlineContacts(boolean notify) {
         if (onlineContacts == null || notify && (SystemClock.elapsedRealtime() - lastSortTime) < 2000) {
             return;
@@ -511,7 +1220,9 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
 
             @Override
             public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
-                return oldItems.get(oldItemPosition).viewType == newItems.get(newItemPosition).viewType;
+                ItemInternal oldItem = oldItems.get(oldItemPosition);
+                ItemInternal newItem = newItems.get(newItemPosition);
+                return oldItem.viewType == newItem.viewType && oldItem.pinnedContentVersion == newItem.pinnedContentVersion;
             }
         };
         if (itemInternals.size() < 50 || !ALLOW_UPDATE_IN_BACKGROUND) {
@@ -796,7 +1507,9 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
     public int lastDialogsEmptyType = -1;
 
     public int dialogsEmptyType() {
-        if (dialogsType == 7 || dialogsType == 8) {
+        if (dialogsType == DialogsActivity.DIALOGS_TYPE_UNREAD_UNMUTED) {
+            return DialogsEmptyCell.TYPE_FILTER_NO_CHATS_TO_DISPLAY;
+        } else if (dialogsType == 7 || dialogsType == 8) {
             if (MessagesController.getInstance(currentAccount).isDialogsEndReached(folderId)) {
                 return DialogsEmptyCell.TYPE_FILTER_NO_CHATS_TO_DISPLAY;
             } else {
@@ -896,6 +1609,12 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
                     cell.setChecked(selectedDialogs.contains(cell.getDialogId()), oldDialogId == cell.getDialogId());
                 } else {
                     DialogCell cell = (DialogCell) holder.itemView;
+                    cell.setPinForced(false);
+                    cell.setTitleOverride(null);
+                    if (dialog != null && isPinnedPlaceholderId(dialog.id)) {
+                        bindPinnedPlaceholder(cell, dialog, i);
+                        break;
+                    }
                     cell.useSeparator = false; // nextDialog != null;
                     cell.fullSeparator = false; // dialog.pinned && nextDialog != null && !nextDialog.pinned;
                     if (dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT) {
@@ -1184,6 +1903,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
     }
 
     public void resume() {
+        if (shouldShowPinnedDialogRows()) ensurePinnedDialogLinksLoaded(currentAccount);
         if (preloader != null) {
             preloader.resume();
         }
@@ -1503,6 +2223,9 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
     private void updateItemList() {
         itemInternals.clear();
         updateHasHints();
+        if (shouldShowPinnedDialogRows()) {
+            ensurePinnedDialogLinksLoaded(currentAccount);
+        }
 
         MessagesController messagesController = MessagesController.getInstance(currentAccount);
         ArrayList<TLRPC.Dialog> array = parentFragment.getDialogsArray(currentAccount, dialogsType, folderId, dialogsListFrozen);
@@ -1595,6 +2318,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
                     itemInternals.add(new ItemInternal(VIEW_TYPE_DIALOG, array.get(k)));
                 }
             }
+            insertPinnedDialogRows();
             itemInternals.add(new ItemInternal(VIEW_TYPE_LAST_EMPTY));
             return;
         }
@@ -1663,7 +2387,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
                 }
             }
 
-            if (!forceShowEmptyCell && dialogsType != 7 && dialogsType != 8 && !MessagesController.getInstance(currentAccount).isDialogsEndReached(folderId)) {
+            if (!forceShowEmptyCell && dialogsType != DialogsActivity.DIALOGS_TYPE_UNREAD_UNMUTED && dialogsType != 7 && dialogsType != 8 && !MessagesController.getInstance(currentAccount).isDialogsEndReached(folderId)) {
                 if (dialogsCount != 0) {
                     itemInternals.add(new ItemInternal(VIEW_TYPE_FLICKER));
                 }
@@ -1683,6 +2407,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
             }
         }
 
+        insertPinnedDialogRows();
         if (!messagesController.hiddenUndoChats.isEmpty()) {
             for (int i = 0; i < itemInternals.size(); ++i) {
                 ItemInternal item = itemInternals.get(i);

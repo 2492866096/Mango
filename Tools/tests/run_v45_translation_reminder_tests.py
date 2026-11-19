@@ -7,6 +7,7 @@ root = Path(__file__).resolve().parents[2]
 java = Path(os.environ.get('JAVA_HOME', '/Applications/Android Studio.app/Contents/jbr/Contents/Home')) / 'bin'
 sdk = Path(os.environ.get('ANDROID_HOME', str(Path.home() / 'Library/Android/sdk')))
 fixtures = {
+'org/telegram/messenger/MangoTranslationLinks.java': '''package org.telegram.messenger;import org.telegram.tgnet.TLRPC;public class MangoTranslationLinks {public static class Plan{public boolean hasLinks;}public static Plan prepare(TLRPC.TL_textWithEntities text){return new Plan();}public static Runnable translate(int a,Plan p,String l,boolean alt,Utilities.Callback2<TLRPC.TL_textWithEntities,Boolean> cb){throw new AssertionError("Links are covered by run_v50_translation_links_tests.py");}}''',
 'android/content/SharedPreferences.java': '''package android.content; import java.util.*; public interface SharedPreferences {
  String getString(String k,String d); boolean contains(String k); Map<String,?> getAll(); Editor edit();
  interface Editor { Editor putString(String k,String v); Editor remove(String k); boolean commit(); void apply(); }

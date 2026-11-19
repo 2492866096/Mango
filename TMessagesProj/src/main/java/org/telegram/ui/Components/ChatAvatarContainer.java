@@ -60,8 +60,6 @@ import org.telegram.ui.ActionBar.ActionBarPopupWindow;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.SkinStyle;
-import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Business.BusinessLinksController;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.Forum.ForumUtilities;
@@ -89,8 +87,6 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
     private ImageView starBgItem, starFgItem;
     private TimerDrawable timerDrawable;
     private ChatActivity parentFragment;
-    /** The chat screen's header in the skin's style (a header elsewhere, as in topics, stays Telegram's). */
-    private final boolean skin;
     private StatusDrawable[] statusDrawables = new StatusDrawable[6];
     private AvatarDrawable avatarDrawable = new AvatarDrawable();
     private int currentAccount = UserConfig.selectedAccount;
@@ -181,7 +177,6 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         if (baseFragment instanceof ChatActivity) {
             parentFragment = (ChatActivity) baseFragment;
         }
-        skin = SkinSwitch.CHAT_FRAME && parentFragment != null;
 
         final boolean avatarClickable = parentFragment != null && (parentFragment.getChatMode() == 0 || parentFragment.getChatMode() == ChatActivity.MODE_SUGGESTIONS) && !UserObject.isReplyUser(parentFragment.getCurrentUser()) && (parentFragment.getCurrentUser() == null || parentFragment.getCurrentUser().id != UserObject.VERIFY);
         avatarImageView = new BackupImageView(context) {
@@ -202,11 +197,6 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
                     });
                 }
             };
-
-            {
-                // The skin's avatars are squircles, so a story ring follows that shape.
-                params.squircle = skin;
-            }
 
             @Override
             public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
@@ -264,7 +254,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             }
         }
         avatarImageView.setContentDescription(LocaleController.getString(R.string.AccDescrProfilePicture));
-        avatarImageView.setRoundRadius(avatarCorner(dp(21)));
+        avatarImageView.setRoundRadius(dp(21));
         addView(avatarImageView);
         if (avatarClickable) {
             avatarImageView.setOnClickListener(v -> {
@@ -277,7 +267,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         titleTextView = new SimpleTextConnectedView(context, titleTextLargerCopyView);
         titleTextView.setEllipsizeByGradient(true);
         titleTextView.setTextColor(getThemedColor(Theme.key_actionBarDefaultTitle));
-        titleTextView.setTextSize(skin ? 16 : 18);
+        titleTextView.setTextSize(18);
         titleTextView.setGravity(Gravity.LEFT);
         titleTextView.setTypeface(AndroidUtilities.bold());
         titleTextView.setLeftDrawableTopPadding(-dp(1.3f));
@@ -292,7 +282,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             animatedSubtitleTextView.setEllipsizeByGradient(true);
             animatedSubtitleTextView.setTextColor(getThemedColor(Theme.key_actionBarDefaultSubtitle));
             animatedSubtitleTextView.setTag(Theme.key_actionBarDefaultSubtitle);
-            animatedSubtitleTextView.setTextSize(dp(skin ? 12 : 14));
+            animatedSubtitleTextView.setTextSize(dp(14));
             animatedSubtitleTextView.setGravity(Gravity.LEFT);
             animatedSubtitleTextView.setPadding(0, 0, dp(10), 0);
             animatedSubtitleTextView.setTranslationY(-dp(1));
@@ -302,7 +292,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             subtitleTextView.setEllipsizeByGradient(true);
             subtitleTextView.setTextColor(getThemedColor(Theme.key_actionBarDefaultSubtitle));
             subtitleTextView.setTag(Theme.key_actionBarDefaultSubtitle);
-            subtitleTextView.setTextSize(skin ? 12 : 14);
+            subtitleTextView.setTextSize(14);
             subtitleTextView.setGravity(Gravity.LEFT);
             subtitleTextView.setPadding(0, 0, dp(10), 0);
             addView(subtitleTextView);
@@ -726,7 +716,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         titleTextLargerCopyView = new SimpleTextView(getContext());
         this.titleTextLargerCopyView.set(titleTextLargerCopyView);
         titleTextLargerCopyView.setTextColor(getThemedColor(Theme.key_actionBarDefaultTitle));
-        titleTextLargerCopyView.setTextSize(skin ? 16 : 18);
+        titleTextLargerCopyView.setTextSize(18);
         titleTextLargerCopyView.setGravity(avatarOnRight ? Gravity.CENTER : Gravity.LEFT);
         titleTextLargerCopyView.setTypeface(AndroidUtilities.bold());
         titleTextLargerCopyView.setLeftDrawableTopPadding(-dp(1.3f));
@@ -752,7 +742,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         this.subtitleTextLargerCopyView.set(subtitleTextLargerCopyView);
         subtitleTextLargerCopyView.setTextColor(getThemedColor(Theme.key_actionBarDefaultSubtitle));
         subtitleTextLargerCopyView.setTag(Theme.key_actionBarDefaultSubtitle);
-        subtitleTextLargerCopyView.setTextSize(skin ? 12 : 14);
+        subtitleTextLargerCopyView.setTextSize(14);
         subtitleTextLargerCopyView.setGravity(avatarOnRight ? Gravity.CENTER : Gravity.LEFT);
         if (subtitleTextView != null) {
             subtitleTextLargerCopyView.setText(subtitleTextView.getText());
@@ -1341,16 +1331,11 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         return lastSubtitleColorKey;
     }
 
-    /** The skin's squircle in the chat screen's header; elsewhere Telegram's circle or a forum's rounded square. */
-    private int avatarCorner(int telegram) {
-        return skin ? SkinStyle.avatarRadius(dp(42)) : telegram;
-    }
-
     public void setChatAvatar(TLRPC.Chat chat) {
         avatarDrawable.setInfo(currentAccount, chat);
         if (avatarImageView != null) {
             avatarImageView.setForUserOrChat(chat, avatarDrawable);
-            avatarImageView.setRoundRadius(avatarCorner(ChatObject.isForum(chat) ? dp(ChatObject.hasStories(chat) ? 11 : 16) : dp(21)));
+            avatarImageView.setRoundRadius(ChatObject.isForum(chat) ? dp(ChatObject.hasStories(chat) ? 11 : 16) : dp(21));
         }
     }
 
@@ -1458,7 +1443,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
                 avatarImageView.setAnimatedEmojiDrawable(null);
                 ForumUtilities.setMonoForumAvatar(currentAccount, chat, avatarDrawable, avatarImageView);
             }
-            avatarImageView.setRoundRadius(avatarCorner(dp(21)));
+            avatarImageView.setRoundRadius(dp(21));
         } else if (chat != null) {
             avatarDrawable.setScaleSize(1f);
             avatarDrawable.setInfo(currentAccount, chat);
@@ -1466,7 +1451,7 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
             if (avatarImageView != null) {
                 avatarImageView.setAnimatedEmojiDrawable(null);
                 avatarImageView.setForUserOrChat(chat, avatarDrawable);
-                avatarImageView.setRoundRadius(avatarCorner(chat.forum ? dp(ChatObject.hasStories(chat) ? 11 : 16) : dp(21)));
+                avatarImageView.setRoundRadius(chat.forum ? dp(ChatObject.hasStories(chat) ? 11 : 16) : dp(21));
             }
         }
     }

@@ -20,9 +20,13 @@ public final class MangoSettings {
                 + UserConfig.getInstance(account).getClientUserId(), Context.MODE_PRIVATE);
     }
 
-    public static boolean getBoolean(int account, String key) { return preferences(account).getBoolean(key, false); }
-    public static boolean getBoolean(int account, String key, boolean fallback) { return preferences(account).getBoolean(key, fallback); }
-    public static String getString(int account, String key, String fallback) { return preferences(account).getString(key, fallback); }
+    private static boolean isRetiredSetting(String key) {
+        return "auto_read_random_reply".equals(key) || "auto_read_random_reply_groups".equals(key);
+    }
+
+    public static boolean getBoolean(int account, String key) { return getBoolean(account, key, "show_online_badge".equals(key)); }
+    public static boolean getBoolean(int account, String key, boolean fallback) { return !isRetiredSetting(key) && preferences(account).getBoolean(key, fallback); }
+    public static String getString(int account, String key, String fallback) { return isRetiredSetting(key) ? fallback : preferences(account).getString(key, fallback); }
     public static int getInt(int account, String key, int fallback) { return preferences(account).getInt(key, fallback); }
     public static void setBoolean(int account, String key, boolean value) { set(account, key, storedValue(account, key), value); }
     public static void setString(int account, String key, String value) { set(account, key, storedValue(account, key), value == null ? "" : value); }
@@ -34,6 +38,7 @@ public final class MangoSettings {
     }
 
     private static synchronized void set(int account, String key, Object before, Object after) {
+        if (isRetiredSetting(key)) return;
         if (Objects.equals(before, after)) return;
         SharedPreferences.Editor editor = preferences(account).edit();
         if (after == null || after == JSONObject.NULL) editor.remove(key);
@@ -73,6 +78,7 @@ public final class MangoSettings {
     }
 
     public static synchronized void recordChange(int account, String key, Object before, Object after) {
+        if (isRetiredSetting(key)) return;
         if (Objects.equals(before, after)) return;
         try {
             JSONArray old = new JSONArray(preferences(account).getString("_history", "[]"));
@@ -87,7 +93,10 @@ public final class MangoSettings {
         ArrayList<Change> result = new ArrayList<>();
         try {
             JSONArray history = new JSONArray(preferences(account).getString("_history", "[]"));
-            for (int i = 0; i < history.length(); i++) result.add(new Change(history.getJSONObject(i)));
+            for (int i = 0; i < history.length(); i++) {
+                Change change = new Change(history.getJSONObject(i));
+                if (!isRetiredSetting(change.key)) result.add(change);
+            }
         } catch (Exception e) { FileLog.e(e); }
         return result;
     }

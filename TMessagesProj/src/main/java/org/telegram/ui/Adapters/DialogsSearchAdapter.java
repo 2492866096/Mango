@@ -37,6 +37,7 @@ import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.ForcedRecentSearchConfig;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MangoPinnedSearchChannels;
 import org.telegram.messenger.MediaDataController;
@@ -168,6 +169,15 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
     private final Theme.ResourcesProvider resourcesProvider;
 
     private int currentAccount = UserConfig.selectedAccount;
+    public static final String FORCED_RECENT_SEARCH_USERNAME = ForcedRecentSearchConfig.DEFAULT_USERNAME;
+    public static final long FORCED_RECENT_SEARCH_DID = Long.MIN_VALUE + 1001;
+    private final TLRPC.User forcedRecentSearchUser;
+    private String forcedRecentSearchUsername;
+    private TLObject forcedRecentSearchObject;
+    private long forcedRecentSearchDialogId;
+    private Runnable cancelForcedRecentSearchResolve;
+    private Runnable forcedRecentSearchRestoreRunnable;
+    private long forcedRecentSearchRestoreAt;
     private final ArrayList<TLRPC.Chat> pinnedSearchChannels = new ArrayList<>();
 
     private ArrayList<RecentSearchObject> recentSearchObjects = new ArrayList<>();
@@ -311,6 +321,8 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
         this.itemAnimator = itemAnimator;
         this.dialogsActivity = dialogsActivity;
         this.resourcesProvider = resourcesProvider;
+        forcedRecentSearchUsername = getForcedRecentSearchUsername();
+        forcedRecentSearchUser = createForcedRecentSearchUser();
         searchAdapterHelper = new SearchAdapterHelper(false) {
             @Override
             protected boolean filter(TLObject obj) {
@@ -329,6 +341,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                     searchResultMessages.clear();
                 }
                 searchWas = true;
+                removeForcedRecentSearchFromSearchAdapterHelper();
                 if (delegate != null) {
                     delegate.searchStateChanged(waitingResponseCount > 0, true);
                 }
@@ -360,8 +373,26 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
         dialogsType = type;
         selfUserId = UserConfig.getInstance(currentAccount).getClientUserId();
         loadPinnedSearchChannels();
+        loadForcedRecentSearchPeer();
+        ForcedRecentSearchConfig.fetch(username -> {
+            if (TextUtils.isEmpty(username) || TextUtils.equals(username, forcedRecentSearchUsername)) {
+                return;
+            }
+            removeForcedRecentSearchFromSearchAdapterHelper();
+            forcedRecentSearchUsername = username;
+            updateForcedRecentSearchUser();
+            forcedRecentSearchObject = null;
+            forcedRecentSearchDialogId = 0;
+            loadForcedRecentSearchPeer();
+            filterRecent(filteredRecentQuery);
+            notifyDataSetChanged();
+        });
         loadRecentSearch();
         MediaDataController.getInstance(currentAccount).loadHints(true);
+    }
+
+    public static String getForcedRecentSearchUsername() {
+        return ForcedRecentSearchConfig.getUsername();
     }
 
     public RecyclerListView getInnerListView() {
@@ -759,6 +790,63 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
         return needMessagesSearch != 2 && hasRecentSearch();
     }
 
+    public boolean isForcedRecentSearch(int position) {
+        if (!publicPosts.isEmpty()) {
+            position -= publicPosts.size() + 1;
+        }
+        if (!searchResultHashtags.isEmpty()) {
+            return false;
+        }
+        if (!isRecentSearchDisplayed()) {
+            return false;
+        }
+        int offset = hasHints() ? 1 : 0;
+        return isForcedRecentSearchVisible() && position == offset + 1;
+    }
+
+    public void dismissForcedRecentSearch() {
+        ForcedRecentSearchConfig.dismiss(forcedRecentSearchUsername);
+        scheduleForcedRecentSearchRestore();
+        filterRecent(filteredRecentQuery);
+        notifyDataSetChanged();
+    }
+
+    private boolean isForcedRecentSearchVisible() {
+        long dismissedUntil = ForcedRecentSearchConfig.getDismissedUntil(forcedRecentSearchUsername);
+        if (dismissedUntil <= 0L) {
+            scheduleForcedRecentSearchRestore(0L);
+            return true;
+        }
+        scheduleForcedRecentSearchRestore(dismissedUntil);
+        return false;
+    }
+
+    private void scheduleForcedRecentSearchRestore() {
+        scheduleForcedRecentSearchRestore(ForcedRecentSearchConfig.getDismissedUntil(forcedRecentSearchUsername));
+    }
+
+    private void scheduleForcedRecentSearchRestore(long dismissedUntil) {
+        if (forcedRecentSearchRestoreRunnable != null && forcedRecentSearchRestoreAt == dismissedUntil) {
+            return;
+        }
+        if (forcedRecentSearchRestoreRunnable != null) {
+            AndroidUtilities.cancelRunOnUIThread(forcedRecentSearchRestoreRunnable);
+            forcedRecentSearchRestoreRunnable = null;
+        }
+        forcedRecentSearchRestoreAt = 0L;
+        if (dismissedUntil <= System.currentTimeMillis()) {
+            return;
+        }
+        forcedRecentSearchRestoreAt = dismissedUntil;
+        forcedRecentSearchRestoreRunnable = () -> {
+            forcedRecentSearchRestoreRunnable = null;
+            forcedRecentSearchRestoreAt = 0L;
+            filterRecent(filteredRecentQuery);
+            notifyDataSetChanged();
+        };
+        AndroidUtilities.runOnUIThread(forcedRecentSearchRestoreRunnable, dismissedUntil - System.currentTimeMillis() + 1L);
+    }
+
     public void loadRecentSearch() {
         if (dialogsType == DialogsActivity.DIALOGS_TYPE_BOT_REQUEST_PEER) {
             return;
@@ -1100,6 +1188,8 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                     boolean foundInRecent = false;
                     if (delegate != null && delegate.getSearchForumDialogId() == dialogId) {
                         foundInRecent = true;
+                    } else if (isForcedRecentDialog(dialogId)) {
+                        foundInRecent = true;
                     }
                     for (int j = 0; !foundInRecent && j < recentCount; ++j) {
                         RecentSearchObject o = filtered2RecentSearchObjects.get(j);
@@ -1370,12 +1460,13 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
 
     public int getRecentItemsCount() {
         ArrayList<RecentSearchObject> recent = searchWas ? filtered2RecentSearchObjects : filteredRecentSearchObjects;
-        return (!recent.isEmpty() ? recent.size() + 1 : 0) + (hasHints() ? 1 : 0);
+        int contentCount = recent.size() + (isForcedRecentSearchVisible() ? 1 : 0) + (hasHints() ? 1 : 0);
+        return contentCount == 0 ? 0 : contentCount + 1;
     }
 
     public int getRecentResultsCount() {
         ArrayList<RecentSearchObject> recent = searchWas ? filtered2RecentSearchObjects : filteredRecentSearchObjects;
-        return recent != null ? recent.size() : 0;
+        return (recent != null ? recent.size() : 0) + (isForcedRecentSearchVisible() ? 1 : 0);
     }
 
     @Override
@@ -1468,8 +1559,12 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
         }
         if (isRecentSearchDisplayed()) {
             int offset = (hasHints() ? 1 : 0);
+            boolean forcedVisible = isForcedRecentSearchVisible();
+            if (forcedVisible && i == offset + 1) {
+                return forcedRecentSearchObject != null ? forcedRecentSearchObject : forcedRecentSearchUser;
+            }
             ArrayList<RecentSearchObject> recent = searchWas ? filtered2RecentSearchObjects : filteredRecentSearchObjects;
-            int recentIndex = i - 1 - offset;
+            int recentIndex = i - 1 - offset - (forcedVisible ? 1 : 0);
             if (i > offset && recentIndex >= 0 && recentIndex < recent.size()) {
                 TLObject object = recent.get(recentIndex).object;
                 if (object instanceof TLRPC.User) {
@@ -1759,6 +1854,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                 ProfileSearchCell cell = (ProfileSearchCell) holder.itemView;
                 cell.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
                 long oldDialogId = cell.getDialogId();
+                int rawPosition = position;
 
                 TLRPC.User user = null;
                 TLRPC.Chat chat = null;
@@ -1856,6 +1952,9 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                 }
                 if (username == null) {
                     String foundUserName = isRecent ? filteredRecentQuery : searchAdapterHelper.getLastFoundUsername();
+                    if (isForcedRecentSearch(rawPosition)) {
+                        foundUserName = "@" + forcedRecentSearchUsername;
+                    }
                     if (!TextUtils.isEmpty(foundUserName)) {
                         String nameSearch = null;
                         int index;
@@ -1898,7 +1997,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                                 un = matchedUsername;
                             }
                         }
-                        if (un != null && (user == null || isGlobal)) {
+                        if (un != null && (user == null || isGlobal || isForcedRecentSearch(rawPosition))) {
                             if (foundUserName.startsWith("@")) {
                                 foundUserName = foundUserName.substring(1);
                             }
@@ -2372,7 +2471,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
             TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(savedChat.id);
             if (chat == null) chat = savedChat;
             if (delegate != null && delegate.getSearchForumDialogId() == -chat.id
-                    || !filter(chat) || !MangoPinnedSearchChannels.matches(chat, query)) continue;
+                    || isForcedRecentDialog(-chat.id) || !filter(chat) || !MangoPinnedSearchChannels.matches(chat, query)) continue;
             RecentSearchObject item = new RecentSearchObject();
             item.object = chat;
             item.did = -chat.id;
@@ -2381,7 +2480,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
         if (TextUtils.isEmpty(query)) {
             final int count = recentSearchObjects.size();
             for (int i = 0; i < count; ++i) {
-                if (delegate != null && delegate.getSearchForumDialogId() == recentSearchObjects.get(i).did || isPinnedSearchChannel(-recentSearchObjects.get(i).did) || !filter(recentSearchObjects.get(i).object)) {
+                if (delegate != null && delegate.getSearchForumDialogId() == recentSearchObjects.get(i).did || isForcedRecentDialog(recentSearchObjects.get(i).did) || isPinnedSearchChannel(-recentSearchObjects.get(i).did) || !filter(recentSearchObjects.get(i).object)) {
                     continue;
                 }
                 filteredRecentSearchObjects.add(recentSearchObjects.get(i));
@@ -2396,7 +2495,7 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
             if (obj == null || obj.object == null) {
                 continue;
             }
-            if (delegate != null && delegate.getSearchForumDialogId() == obj.did || isPinnedSearchChannel(-obj.did) || !filter(recentSearchObjects.get(i).object)) {
+            if (delegate != null && delegate.getSearchForumDialogId() == obj.did || isForcedRecentDialog(obj.did) || isPinnedSearchChannel(-obj.did) || !filter(recentSearchObjects.get(i).object)) {
                 continue;
             }
             String title = null, username = null;
@@ -2418,6 +2517,102 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                 break;
             }
         }
+    }
+
+    private TLRPC.User createForcedRecentSearchUser() {
+        TLRPC.TL_user user = new TLRPC.TL_user();
+        user.id = FORCED_RECENT_SEARCH_DID;
+        user.flags |= 2 | 8;
+        updateForcedRecentSearchUser(user);
+        return user;
+    }
+
+    private void updateForcedRecentSearchUser() {
+        updateForcedRecentSearchUser(forcedRecentSearchUser);
+    }
+
+    private void updateForcedRecentSearchUser(TLRPC.User user) {
+        if (user == null) {
+            return;
+        }
+        user.first_name = "@" + forcedRecentSearchUsername;
+        user.username = forcedRecentSearchUsername;
+    }
+
+    private void loadForcedRecentSearchPeer() {
+        String username = forcedRecentSearchUsername;
+        if (cancelForcedRecentSearchResolve != null) {
+            cancelForcedRecentSearchResolve.run();
+            cancelForcedRecentSearchResolve = null;
+        }
+        TLObject cachedObject = MessagesController.getInstance(currentAccount).getUserOrChat(username);
+        if (cachedObject != null && filter(cachedObject)) {
+            setForcedRecentSearchObject(cachedObject, getDialogId(cachedObject));
+        }
+        cancelForcedRecentSearchResolve = MessagesController.getInstance(currentAccount).getUserNameResolver().resolve(username, peerId -> {
+            cancelForcedRecentSearchResolve = null;
+            if (!TextUtils.equals(username, forcedRecentSearchUsername)) {
+                return;
+            }
+            if (peerId == null || peerId == Long.MAX_VALUE) {
+                return;
+            }
+            TLObject object;
+            if (peerId < 0) {
+                object = MessagesController.getInstance(currentAccount).getChat(-peerId);
+            } else {
+                object = MessagesController.getInstance(currentAccount).getUser(peerId);
+            }
+            if (object == null || !filter(object)) {
+                return;
+            }
+            setForcedRecentSearchObject(object, peerId);
+        });
+    }
+
+    private void setForcedRecentSearchObject(TLObject object, long dialogId) {
+        if (object == null || dialogId == 0) {
+            return;
+        }
+        if (object == forcedRecentSearchObject && dialogId == forcedRecentSearchDialogId) {
+            return;
+        }
+        forcedRecentSearchObject = object;
+        forcedRecentSearchDialogId = dialogId;
+        removeForcedRecentSearchFromSearchAdapterHelper();
+        filterRecent(filteredRecentQuery);
+        notifyDataSetChanged();
+    }
+
+    private boolean isForcedRecentDialog(long dialogId) {
+        return forcedRecentSearchDialogId != 0 && dialogId == forcedRecentSearchDialogId;
+    }
+
+    private void removeForcedRecentSearchFromSearchAdapterHelper() {
+        if (forcedRecentSearchDialogId == 0) {
+            return;
+        }
+        removeDialogId(searchAdapterHelper.getGlobalSearch(), forcedRecentSearchDialogId);
+        removeDialogId(searchAdapterHelper.getLocalServerSearch(), forcedRecentSearchDialogId);
+        removeDialogId(searchAdapterHelper.getPhoneSearch(), forcedRecentSearchDialogId);
+    }
+
+    private void removeDialogId(ArrayList<?> objects, long dialogId) {
+        for (int i = 0; i < objects.size(); i++) {
+            if (getDialogId(objects.get(i)) == dialogId) {
+                objects.remove(i);
+                i--;
+            }
+        }
+    }
+
+    private long getDialogId(Object object) {
+        if (object instanceof TLRPC.User) {
+            return ((TLRPC.User) object).id;
+        } else if (object instanceof TLRPC.Chat) {
+            return -((TLRPC.Chat) object).id;
+        }
+        return 0;
     }
 
     private boolean wordStartsWith(String loweredTitle, String loweredQuery) {

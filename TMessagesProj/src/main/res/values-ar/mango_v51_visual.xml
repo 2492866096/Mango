@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">نقطة الاتصال على صور المرسلين</string>
+    <string name="MangoShowOnlineBadgeInfo">إظهار نقطة خضراء على صورة مرسل الرسالة عندما يشير Telegram إلى أنه متصل.</string>
+    <string name="MangoDisableTapMediaSwitch">تعطيل تبديل الصور بالنقر</string>
+    <string name="MangoDisableTapMediaSwitchInfo">لن يؤدي النقر على الجانب الأيسر أو الأيمن إلى تبديل الصور أو الصور الشخصية. يبقى السحب والتكبير والتشغيل والإغلاق متاحًا.</string>
+</resources>

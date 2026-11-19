@@ -66,6 +66,13 @@ public class MangoSettingsHistoryActivity extends BaseFragment {
                         MangoFeatureRegistry.label(change.key), value(change.before), value(change.after)))
                 .setNegativeButton(getString(R.string.Cancel), null)
                 .setPositiveButton(getString(R.string.Restore), (dialog, which) -> {
+                    if ("legacy:auto_reaction".equals(change.key) && Boolean.TRUE.equals(change.before)) {
+                        org.telegram.ui.Components.AutoReactionConfirmation.show(this, () -> {
+                            MangoLegacySettings.capture(currentAccount);
+                            listView.adapter.update(false);
+                        });
+                        return;
+                    }
                     MangoSettings.restore(currentAccount, change);
                     listView.adapter.update(false);
                 }).create());

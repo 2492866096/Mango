@@ -31,6 +31,7 @@ import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.MangoVisualPreferences;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
@@ -62,7 +63,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
     private final boolean isProfileFragment;
     private ImageLocation uploadingImageLocation;
 
-    private int currentAccount = UserConfig.selectedAccount;
+    private final int currentAccount;
 
     Path path = new Path();
     RectF rect = new RectF();
@@ -143,8 +144,9 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
 
     private ProfileGalleryBlurView blurView;
 
-    public ProfileGalleryView(Context context, ActionBar parentActionBar, RecyclerListView parentListView, Callback callback) {
+    public ProfileGalleryView(Context context, int currentAccount, ActionBar parentActionBar, RecyclerListView parentListView, Callback callback) {
         super(context);
+        this.currentAccount = currentAccount;
         setOffscreenPageLimit(2);
         blurView = null;
 
@@ -270,8 +272,9 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
         imagesLayerNum = value;
     }
 
-    public ProfileGalleryView(Context context, long dialogId, ActionBar parentActionBar, RecyclerListView parentListView, ProfileActivity.AvatarImageView parentAvatarImageView, int parentClassGuid, Callback callback, ProfileGalleryBlurView blurView) {
+    public ProfileGalleryView(Context context, int currentAccount, long dialogId, ActionBar parentActionBar, RecyclerListView parentListView, ProfileActivity.AvatarImageView parentAvatarImageView, int parentClassGuid, Callback callback, ProfileGalleryBlurView blurView) {
         super(context);
+        this.currentAccount = currentAccount;
         this.blurView = blurView;
         setPadding(0, 0, 0, blurView == null ? 0 : blurView.actionSize);
         if (blurView != null) {
@@ -483,7 +486,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
             isSwipingViewPager = true;
             scrolledByUser = true;
             downPoint.set(ev.getX(), ev.getY());
-            if (adapter.getCount() > 1 && callback != null) {
+            if (adapter.getCount() > 1 && callback != null && !MangoVisualPreferences.isTapMediaSwitchDisabled(currentAccount)) {
                 callback.onDown(ev.getX() < getWidth() / 3f);
             }
             isDownReleased = false;
@@ -491,7 +494,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
             if (!isDownReleased) {
                 int itemsCount = getRealCount();
                 int currentItem = getCurrentItem();
-                if (itemsCount > 1) {
+                if (itemsCount > 1 && !MangoVisualPreferences.isTapMediaSwitchDisabled(currentAccount)) {
                     if (ev.getX() > getWidth() / 3f) {
                         final int extraCount = adapter.getExtraCount();
                         if (++currentItem >= itemsCount + extraCount) {

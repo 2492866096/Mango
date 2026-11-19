@@ -50,8 +50,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class TranslateController extends BaseController {
 
@@ -76,6 +74,7 @@ public class TranslateController extends BaseController {
     private final HashMap<Long, String> detectedDialogLanguage = new HashMap<>();
     private final HashMap<Long, HashMap<Integer, MessageObject>> keptReplyMessageObjects = new HashMap<>();
     private final HashMap<Integer, Integer> translatedMessageIgnoreSignatures = new HashMap<>();
+    private final HashMap<String, Runnable> protectedTranslationCancels = new HashMap<>();
     private final Set<Long> hideTranslateDialogs = new HashSet<>();
 
     static class TranslatableDecision {
@@ -256,16 +255,7 @@ public class TranslateController extends BaseController {
     }
 
     private int getTranslationIgnoreSignature() {
-        int signature = 0;
-        if (shouldIgnoreLinksAndMentionsForTranslation()) {
-            signature |= 1;
-            signature |= 2;
-        }
-        return signature;
-    }
-
-    private static boolean shouldIgnoreLinksAndMentionsForTranslation() {
-        return SharedConfig.isAutoTranslateMessagesEnabled();
+        return 4; // Link entities are preserved for manual and automatic translation.
     }
 
     private boolean hasCurrentTranslationIgnoreSignature(MessageObject messageObject) {
@@ -274,7 +264,15 @@ public class TranslateController extends BaseController {
             return true;
         }
         Integer storedSignature = translatedMessageIgnoreSignatures.get(hash(messageObject));
-        return storedSignature != null && storedSignature == signature;
+        if (storedSignature != null && storedSignature == signature) return true;
+        TLRPC.TL_textWithEntities source = new TLRPC.TL_textWithEntities();
+        source.text = messageObject.messageOwner.message;
+        source.entities = messageObject.messageOwner.entities;
+        if (MangoTranslationLinks.prepare(source).linksPreserved(messageObject.messageOwner.translatedText)) {
+            translatedMessageIgnoreSignatures.put(hash(messageObject), signature);
+            return true;
+        }
+        return false;
     }
 
     private void markCurrentTranslationIgnoreSignature(MessageObject messageObject) {
@@ -806,6 +804,12 @@ public class TranslateController extends BaseController {
     }
 
     public void invalidateTranslation(MessageObject messageObject) {
+        if (messageObject != null) {
+            for (boolean transcription : new boolean[]{false, true}) {
+                Runnable cancel = protectedTranslationCancels.remove(messageObject.getDialogId() + ":" + messageObject.getId() + ":" + transcription);
+                if (cancel != null) cancel.run();
+            }
+        }
         if (messageObject == null || messageObject.messageOwner == null) {
             return;
         }
@@ -876,6 +880,7 @@ public class TranslateController extends BaseController {
 
     public void cleanup() {
         cancelAllTranslations();
+        MangoTranslationLinks.clear(currentAccount);
         resetTranslatingDialogsCache();
 
         translatingDialogs.clear();
@@ -1039,7 +1044,6 @@ public class TranslateController extends BaseController {
         Runnable runnable;
         ArrayList<Integer> messageIds = new ArrayList<>();
         ArrayList<TLRPC.TL_textWithEntities> messageTexts = new ArrayList<>();
-        ArrayList<ArrayList<IgnoredTranslationRange>> ignoredRanges = new ArrayList<>();
         ArrayList<Utilities.Callback4<Boolean, Integer, TLRPC.TL_textWithEntities, String>> callbacks = new ArrayList<>();
         String language;
 
@@ -1064,21 +1068,32 @@ public class TranslateController extends BaseController {
         final HashMap<Long, ArrayList<PendingTranslation>> pendingTranslations = isTranscription ? pendingTranscriptionsTranslations : this.pendingTranslations;
         final Set<Integer> loadingTranslations = isTranscription ? loadingTranscriptionTranslations : this.loadingTranslations;
 
-        final TLRPC.TL_textWithEntities source = new TLRPC.TL_textWithEntities();
-        final ArrayList<IgnoredTranslationRange> ignoredRanges;
-        final boolean useTextRequest = !isTranscription && shouldIgnoreLinksAndMentionsForTranslation();
-        if (isTranscription) {
-            source.text = message.messageOwner.voiceTranscription;
-            ignoredRanges = null;
-            if (TextUtils.isEmpty(source.text)) return;
-        } else if (useTextRequest) {
-            ignoredRanges = new ArrayList<>();
-            source.text = buildIgnoredTextForTranslation(message.messageOwner.message, message.messageOwner.entities, ignoredRanges);
-        } else {
-            source.text = message.messageOwner.message;
-            source.entities = message.messageOwner.entities;
-            ignoredRanges = null;
+        final TLRPC.TL_textWithEntities original = new TLRPC.TL_textWithEntities();
+        original.text = isTranscription ? message.messageOwner.voiceTranscription : message.messageOwner.message;
+        if (!isTranscription) original.entities = message.messageOwner.entities;
+        final MangoTranslationLinks.Plan linkPlan = MangoTranslationLinks.prepare(original);
+        if (linkPlan.hasLinks) {
+            final String key = dialogId + ":" + message.getId() + ":" + isTranscription;
+            if (protectedTranslationCancels.containsKey(key)) return;
+            loadingTranslations.add(message.getId());
+            protectedTranslationCancels.put(key, () -> { });
+            String method = getMessagesController().translationsAutoEnabled;
+            Runnable cancel = MangoTranslationLinks.translate(currentAccount, linkPlan, language,
+                    "alternative".equals(method) || "system".equals(method), (result, rateLimit) -> {
+                        if (protectedTranslationCancels.remove(key) == null) return;
+                        loadingTranslations.remove(message.getId());
+                        callback.run(isTranscription, message.getId(), result, language);
+                    });
+            if (protectedTranslationCancels.containsKey(key)) {
+                protectedTranslationCancels.put(key, () -> {
+                    cancel.run();
+                    loadingTranslations.remove(message.getId());
+                });
+            }
+            return;
         }
+
+        final TLRPC.TL_textWithEntities source = original;
         if (TextUtils.isEmpty(source.text)) {
             return;
         }
@@ -1125,7 +1140,6 @@ public class TranslateController extends BaseController {
             pendingTranslation.messageIds.add(message.getId());
             FileLog.d("pending translation +" + message.getId() + " message");
             pendingTranslation.messageTexts.add(source);
-            pendingTranslation.ignoredRanges.add(ignoredRanges);
             pendingTranslation.callbacks.add(callback);
             pendingTranslation.language = language;
             pendingTranslation.symbolsCount += messageSymbolsCount;
@@ -1148,12 +1162,10 @@ public class TranslateController extends BaseController {
                         final int id = pendingTranslation1.messageIds.get(i);
                         final Utilities.Callback4<Boolean, Integer, TLRPC.TL_textWithEntities, String> _callback = pendingTranslation1.callbacks.get(i);
                         final String _text = pendingTranslation1.messageTexts.get(i).text;
-                        final ArrayList<IgnoredTranslationRange> _ignoredRanges = i < pendingTranslation1.ignoredRanges.size() ? pendingTranslation1.ignoredRanges.get(i) : null;
                         TranslateAlert2.alternativeTranslate(_text, null, toLanguage, (result, rateLimit) -> {
                             if (result != null) {
                                 final TLRPC.TL_textWithEntities resultWithEntities = new TLRPC.TL_textWithEntities();
                                 resultWithEntities.text = result;
-                                restoreIgnoredTranslationRanges(resultWithEntities, _ignoredRanges);
                                 _callback.run(isTranscription, id, resultWithEntities, toLanguage);
                             } else {
                                 toggleTranslatingDialog(dialogId, false);
@@ -1183,7 +1195,7 @@ public class TranslateController extends BaseController {
                 }*/
 
                 final TLRPC.TL_messages_translateText req = new TLRPC.TL_messages_translateText();
-                if (isTranscription || useTextRequest) {
+                if (isTranscription) {
                     req.flags |= 2;
                     req.text.addAll(pendingTranslation1.messageTexts);
                 } else {
@@ -1197,13 +1209,11 @@ public class TranslateController extends BaseController {
                     final ArrayList<Integer> ids;
                     final ArrayList<Utilities.Callback4<Boolean, Integer, TLRPC.TL_textWithEntities, String>> callbacks;
                     final ArrayList<TLRPC.TL_textWithEntities> texts;
-                    final ArrayList<ArrayList<IgnoredTranslationRange>> ignoredTextRanges;
                     final String toLanguage;
                     synchronized (TranslateController.this) {
                         ids = pendingTranslation1.messageIds;
                         callbacks = pendingTranslation1.callbacks;
                         texts = pendingTranslation1.messageTexts;
-                        ignoredTextRanges = pendingTranslation1.ignoredRanges;
                         toLanguage = pendingTranslation1.language;
                     }
                     if (res instanceof TLRPC.TL_messages_translateResult) {
@@ -1211,9 +1221,6 @@ public class TranslateController extends BaseController {
                         final int count = Math.min(callbacks.size(), translated.size());
                         for (int i = 0; i < count; ++i) {
                             TLRPC.TL_textWithEntities result = TranslateAlert2.preprocess(texts.get(i), translated.get(i));
-                            if (ignoredTextRanges != null && i < ignoredTextRanges.size()) {
-                                restoreIgnoredTranslationRanges(result, ignoredTextRanges.get(i));
-                            }
                             callbacks.get(i).run(isTranscription, ids.get(i), result, toLanguage);
                         }
                     } else if (err != null && "TRANSLATIONS_DISABLED_ALT".equalsIgnoreCase(err.text)) {
@@ -1221,12 +1228,10 @@ public class TranslateController extends BaseController {
                             final int id = ids.get(i);
                             final Utilities.Callback4<Boolean, Integer, TLRPC.TL_textWithEntities, String> _callback = callbacks.get(i);
                             final String _text = texts.get(i).text;
-                            final ArrayList<IgnoredTranslationRange> _ignoredRanges = ignoredTextRanges != null && i < ignoredTextRanges.size() ? ignoredTextRanges.get(i) : null;
                             TranslateAlert2.alternativeTranslate(_text, null, toLanguage, (result, rateLimit) -> {
                                 if (result != null) {
                                     final TLRPC.TL_textWithEntities resultWithEntities = new TLRPC.TL_textWithEntities();
                                     resultWithEntities.text = result;
-                                    restoreIgnoredTranslationRanges(resultWithEntities, _ignoredRanges);
                                     _callback.run(isTranscription, id, resultWithEntities, toLanguage);
                                 } else {
                                     toggleTranslatingDialog(dialogId, false);
@@ -1258,127 +1263,6 @@ public class TranslateController extends BaseController {
             AndroidUtilities.runOnUIThread(pendingTranslation.runnable, pendingTranslation.delay);
             pendingTranslation.delay /= 2;
         }
-    }
-
-    private static String buildIgnoredTextForTranslation(String text, ArrayList<TLRPC.MessageEntity> entities, ArrayList<IgnoredTranslationRange> ignoredRanges) {
-        if (TextUtils.isEmpty(text)) {
-            return text;
-        }
-        StringBuilder builder = new StringBuilder(text);
-        if (entities != null) {
-            for (int i = 0; i < entities.size(); i++) {
-                TLRPC.MessageEntity entity = entities.get(i);
-                if (!shouldIgnoreEntity(entity)) {
-                    continue;
-                }
-                int start = Math.max(0, Math.min(builder.length(), entity.offset));
-                int end = Math.max(start, Math.min(builder.length(), entity.offset + entity.length));
-                addIgnoredRange(text, start, end, ignoredRanges);
-            }
-        }
-        if (shouldIgnoreLinksAndMentionsForTranslation()) {
-            addIgnoredMatches(text, Pattern.compile("(^|\\s)@[A-Za-z0-9_]{1,32}"), ignoredRanges);
-            addIgnoredMatches(text, Pattern.compile("(?i)\\b(?:https?://|www\\.)\\S+|\\b\\S+\\.(?:com|net|org|io|me|app|dev|cn|ru|jp|de|uk|co|info)\\S*"), ignoredRanges);
-        }
-        if (ignoredRanges != null && !ignoredRanges.isEmpty()) {
-            Collections.sort(ignoredRanges, (a, b) -> Integer.compare(b.start, a.start));
-            for (int i = 0; i < ignoredRanges.size(); i++) {
-                IgnoredTranslationRange range = ignoredRanges.get(i);
-                range.placeholder = "__TGIGNORE" + i + "__";
-                builder.replace(range.start, range.end, range.placeholder);
-            }
-        }
-        return builder.toString();
-    }
-
-    private static class IgnoredTranslationRange {
-        int start;
-        int end;
-        String text;
-        String placeholder;
-    }
-
-    private static boolean shouldIgnoreEntity(TLRPC.MessageEntity entity) {
-        if (entity == null) {
-            return false;
-        }
-        if (!SharedConfig.isAutoTranslateMessagesEnabled()) {
-            return false;
-        }
-        if (entity instanceof TLRPC.TL_messageEntityUrl ||
-                entity instanceof TLRPC.TL_messageEntityTextUrl ||
-                entity instanceof TLRPC.TL_messageEntityEmail) {
-            return true;
-        }
-        return entity instanceof TLRPC.TL_messageEntityMention ||
-                entity instanceof TLRPC.TL_messageEntityMentionName;
-    }
-
-    private static void addIgnoredMatches(String text, Pattern pattern, ArrayList<IgnoredTranslationRange> ignoredRanges) {
-        Matcher matcher = pattern.matcher(text);
-        while (matcher.find()) {
-            int start = matcher.start();
-            if (matcher.groupCount() > 0 && matcher.group(1) != null) {
-                start += matcher.group(1).length();
-            }
-            addIgnoredRange(text, start, matcher.end(), ignoredRanges);
-        }
-    }
-
-    private static void addIgnoredRange(String text, int start, int end, ArrayList<IgnoredTranslationRange> ignoredRanges) {
-        if (ignoredRanges == null || TextUtils.isEmpty(text)) {
-            return;
-        }
-        start = Math.max(0, Math.min(text.length(), start));
-        end = Math.max(start, Math.min(text.length(), end));
-        if (start >= end) {
-            return;
-        }
-        for (int i = 0; i < ignoredRanges.size(); i++) {
-            IgnoredTranslationRange range = ignoredRanges.get(i);
-            if (range != null && start < range.end && end > range.start) {
-                range.start = Math.min(range.start, start);
-                range.end = Math.max(range.end, end);
-                range.text = text.substring(range.start, range.end);
-                return;
-            }
-        }
-        IgnoredTranslationRange range = new IgnoredTranslationRange();
-        range.start = start;
-        range.end = end;
-        range.text = text.substring(start, end);
-        ignoredRanges.add(range);
-    }
-
-    private static void restoreIgnoredTranslationRanges(TLRPC.TL_textWithEntities text, ArrayList<IgnoredTranslationRange> ignoredRanges) {
-        if (text == null || TextUtils.isEmpty(text.text) || ignoredRanges == null || ignoredRanges.isEmpty()) {
-            return;
-        }
-        StringBuilder builder = new StringBuilder(text.text);
-        for (int i = 0; i < ignoredRanges.size(); i++) {
-            IgnoredTranslationRange range = ignoredRanges.get(i);
-            if (range == null || TextUtils.isEmpty(range.text) || TextUtils.isEmpty(range.placeholder)) {
-                continue;
-            }
-            int start = indexOfIgnoreCase(builder, range.placeholder, 0);
-            while (start >= 0) {
-                builder.replace(start, start + range.placeholder.length(), range.text);
-                start = indexOfIgnoreCase(builder, range.placeholder, start + range.text.length());
-            }
-        }
-        text.text = builder.toString();
-        if (text.entities == null) {
-            text.entities = new ArrayList<>();
-        } else {
-            text.entities.clear();
-        }
-    }
-
-    private static int indexOfIgnoreCase(StringBuilder builder, String needle, int fromIndex) {
-        if (builder == null || TextUtils.isEmpty(needle)) {
-            return -1;
-        }
-        return builder.toString().toLowerCase(Locale.US).indexOf(needle.toLowerCase(Locale.US), Math.max(0, fromIndex));
     }
 
 //    private void systemTranslate(String text, String fromLanguage, String toLanguage, Utilities.Callback<String> done) {
@@ -1691,6 +1575,8 @@ public class TranslateController extends BaseController {
 
     public void cancelAllTranslations() {
         synchronized (this) {
+            for (Runnable cancel : new ArrayList<>(protectedTranslationCancels.values())) cancel.run();
+            protectedTranslationCancels.clear();
             for (ArrayList<PendingTranslation> translations : pendingTranslations.values()) {
                 if (translations != null) {
                     for (PendingTranslation pendingTranslation : translations) {
@@ -1735,6 +1621,9 @@ public class TranslateController extends BaseController {
 
     public void cancelTranslations(long dialogId) {
         synchronized (this) {
+            for (String key : new ArrayList<>(protectedTranslationCancels.keySet())) {
+                if (key.startsWith(dialogId + ":")) protectedTranslationCancels.remove(key).run();
+            }
             ArrayList<PendingTranslation> translations = pendingTranslations.get(dialogId);
             if (translations != null) {
                 for (PendingTranslation pendingTranslation : translations) {

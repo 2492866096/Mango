@@ -30,7 +30,7 @@ adb -s emulator-5554 install -r build/extension-tests/extension-tests.apk
 adb -s emulator-5554 shell am instrument -w org.telegram.extensiontests/org.telegram.extensiontests.ExtensionSmokeInstrumentation
 ```
 
-This checks actual Android preferences, every menu permutation, local tag combinations and account isolation, durable wallpaper files, and renders the extension screens and tag editor. Screenshots are saved in the app's external files directory under `extension-smoke`. The test does not send chat messages. Use a fresh disposable installation so the synthetic local tag fixtures do not mix with your data.
+This checks actual Android preferences, every menu permutation, local tag combinations and account isolation, durable wallpaper files, and renders the extension screens and tag editor. Screenshots are saved in the app's external files directory under `extension-smoke`. The test does not send chat messages or start presence simulation. Use a fresh disposable installation so the synthetic local tag fixtures do not mix with your data.
 
 The builder reads the app's compile classpath from Gradle and uses the repository's development keystore; override `JAVA_HOME` and `ANDROID_HOME` for your machine. It adds no dependencies to the application.
 

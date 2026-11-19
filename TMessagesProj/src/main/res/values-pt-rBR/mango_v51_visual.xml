@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">Ponto online nos avatares</string>
+    <string name="MangoShowOnlineBadgeInfo">Mostra um ponto verde nos avatares dos remetentes quando o Telegram os indica como online.</string>
+    <string name="MangoDisableTapMediaSwitch">Desativar troca de fotos por toque</string>
+    <string name="MangoDisableTapMediaSwitchInfo">Tocar à esquerda ou à direita não muda mais fotos e avatares. Deslizar, ampliar, reproduzir e fechar continuam disponíveis.</string>
+</resources>

@@ -63,7 +63,6 @@ import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
-import org.telegram.skin.motion.SkinMotion;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
@@ -72,7 +71,6 @@ import org.telegram.ui.Stories.recorder.HintView2;
 
 import java.util.ArrayList;
 import java.util.Map;
-import org.telegram.ui.SkinStyle;
 
 @SuppressLint("ViewConstructor")
 public class FilterTabsView extends FrameLayout {
@@ -126,8 +124,6 @@ public class FilterTabsView extends FrameLayout {
         public boolean isDefault;
         public boolean isLocked;
         public boolean noanimate;
-        /** Not a folder (the skin's 未读): never moved or removed with the folders. */
-        public boolean local;
 
         public Tab(int i, CharSequence title, boolean noanimate) {
             this.id = i;
@@ -301,7 +297,7 @@ public class FilterTabsView extends FrameLayout {
         @Override
         protected void onDraw(@NonNull Canvas canvas) {
             boolean reorderEnabled = true;
-            boolean showRemove = !currentTab.isDefault && !currentTab.local && reorderEnabled;
+            boolean showRemove = !currentTab.isDefault && reorderEnabled;
             if (reorderEnabled && editingAnimationProgress != 0) {
                 canvas.save();
                 float p = editingAnimationProgress * (currentPosition % 2 == 0 ? 1.0f : -1.0f);
@@ -464,9 +460,6 @@ public class FilterTabsView extends FrameLayout {
                 } else {
                     counterPaint.setColor(textPaint.getColor());
                 }
-                if (SkinStyle.chatList()) {
-                    textCounterPaint.setColor(Theme.getColor(Theme.key_chats_message, resourcesProvider));
-                }
 
                 float x;
                 float titleWidth = currentTab.titleWidth;
@@ -497,10 +490,7 @@ public class FilterTabsView extends FrameLayout {
                     float s = animateCounterEnter ? changeProgress : 1f - changeProgress;
                     canvas.scale(s, s, rect.centerX(), rect.centerY());
                 }
-                // The skin shows counts as plain figures; the pill stays for the delete mark while editing.
-                if (!SkinStyle.chatList() || showRemove && (isEditing || editingStartAnimationProgress != 0)) {
-                    canvas.drawRoundRect(rect, 11.5f * AndroidUtilities.density, 11.5f * AndroidUtilities.density, counterPaint);
-                }
+                canvas.drawRoundRect(rect, 11.5f * AndroidUtilities.density, 11.5f * AndroidUtilities.density, counterPaint);
 
                 if (animateCounterReplace) {
                     float y = countTop;
@@ -914,13 +904,8 @@ public class FilterTabsView extends FrameLayout {
     public FilterTabsView(Context context, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.resourcesProvider = resourcesProvider;
-        if (SkinStyle.chatList()) {
-            textCounterPaint.setTextSize(dpf2(12f));
-            SkinStyle.useNumerals(textCounterPaint, false);
-        } else {
-            textCounterPaint.setTextSize(dpf2(11f));
-            textCounterPaint.setTypeface(AndroidUtilities.bold());
-        }
+        textCounterPaint.setTextSize(dpf2(11f));
+        textCounterPaint.setTypeface(AndroidUtilities.bold());
         textPaint.setTextSize(dpf2(14f));
         textPaint.setTypeface(AndroidUtilities.bold());
         deletePaint.setStyle(Paint.Style.STROKE);
@@ -1199,7 +1184,6 @@ public class FilterTabsView extends FrameLayout {
         animationTime = 0;
         animatingIndicatorProgress = 0;
         animatingIndicator = true;
-        skinStretch = SkinStyle.chatList() && !SkinMotion.reduced();
         setEnabled(false);
 
         AndroidUtilities.runOnUIThread(animationRunnable, 16);
@@ -1467,7 +1451,6 @@ public class FilterTabsView extends FrameLayout {
         float indicatorX = 0;
         float indicatorWidth = 0;
         float counterVisible = 0;
-        skinMoving = false;
         if (animatingIndicator || manualScrollingToPosition != -1) {
             int position = layoutManager.findFirstVisibleItemPosition();
             if (position != RecyclerListView.NO_POSITION) {
@@ -1496,13 +1479,6 @@ public class FilterTabsView extends FrameLayout {
                     }
                     indicatorWidth = lerp(prevW, newW, animatingIndicatorProgress);
                     counterVisible = lerp(prevH, newH, animatingIndicatorProgress);
-                    if (skinStretch) {
-                        // Both tabs' centres in the indicator's own coordinates.
-                        final float shift = indicatorX - lerp(prevX, newX, animatingIndicatorProgress);
-                        skinFrom = prevX + shift + prevW / 2f;
-                        skinTo = newX + shift + newW / 2f;
-                        skinMoving = true;
-                    }
                 }
             }
         } else {
@@ -1530,28 +1506,6 @@ public class FilterTabsView extends FrameLayout {
 
             final float add = additionalTabWidth / 2f;
 
-            if (SkinStyle.chatList()) {
-                // A short celadon bar under the current tab.
-                final float centerX = indicatorX + indicatorWidth / 2f;
-                final float bottom = height - getPaddingBottom() - dp(1);
-                float left = centerX - dp(9);
-                float right = centerX + dp(9);
-                if (skinMoving) {
-                    // On the move it runs like a drop of glaze: the front leads,
-                    // the back catches up, and it is short again on arrival.
-                    final float t = animatingIndicatorProgress;
-                    final float front = lerp(skinFrom, skinTo, 1f - (1f - t) * (1f - t));
-                    final float back = lerp(skinFrom, skinTo, t * t);
-                    left = Math.min(front, back) - dp(9);
-                    right = Math.max(front, back) + dp(9);
-                }
-                skinBarRect.set(left, bottom - dp(3), right, bottom);
-                skinBarPaint.setColor(Theme.getColor(Theme.key_chats_onlineCircle, resourcesProvider));
-                skinBarPaint.setAlpha((int) (255 * listView.getAlpha()));
-                canvas.drawRoundRect(skinBarRect, dp(1.5f), dp(1.5f), skinBarPaint);
-                canvas.restore();
-                return;
-            }
             final int y = height / 2 - dp(14);
             selectorDrawable.setBounds((int) (indicatorX - dp(TAB_INTERNAL_PADDING) - add), y, (int) (indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add), y + dp(28));
             selectorDrawable.setAlpha(31);
@@ -1570,33 +1524,12 @@ public class FilterTabsView extends FrameLayout {
             dp(16), dp(16), Path.Direction.CW);
     }
 
-    private final RectF skinBarRect = new RectF();
-    private boolean skinStretch;
-    private boolean skinMoving;
-    private float skinFrom;
-    private float skinTo;
-    private final Paint skinBarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
     @Override
     protected void dispatchDraw(@NonNull Canvas canvas) {
-        if (SkinStyle.chatList()) {
-            // A flat row on the page with a hairline under it, not a glass capsule.
-            canvas.drawColor(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider));
-            super.dispatchDraw(canvas);
-            skinBarPaint.setColor(Theme.getColor(Theme.key_divider, resourcesProvider));
-            canvas.drawRect(0, getHeight() - Math.max(1, dp(0.5f)), getWidth(), getHeight(), skinBarPaint);
-            return;
-        }
         canvas.save();
         canvas.clipPath(clipPath);
         super.dispatchDraw(canvas);
         canvas.restore();
-    }
-
-    /** Adds a tab that is not a folder: it stays put while folders are reordered and cannot be removed. */
-    public void addLocalTab(int id, int stableId, CharSequence text) {
-        addTab(id, stableId, text, true, false, false);
-        tabs.get(tabs.size() - 1).local = true;
     }
 
     public void updateColors() {
@@ -1689,9 +1622,6 @@ public class FilterTabsView extends FrameLayout {
         }
 
         if (progress > 0) {
-            if (manualScrollingToPosition == -1) {
-                skinStretch = SkinStyle.chatList() && !SkinMotion.reduced();
-            }
             manualScrollingToPosition = position;
             manualScrollingToId = id;
         } else {
@@ -1974,10 +1904,6 @@ public class FilterTabsView extends FrameLayout {
 
         @Override
         public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
-            final int position = viewHolder.getAdapterPosition();
-            if (position >= 0 && position < tabs.size() && tabs.get(position).local) {
-                return makeMovementFlags(0, 0);
-            }
             if (MessagesController.getInstance(UserConfig.selectedAccount).premiumFeaturesBlocked() && (!isEditing || (viewHolder.getAdapterPosition() == 0 && tabs.get(0).isDefault && !UserConfig.getInstance(UserConfig.selectedAccount).isPremium()))) {
                 return makeMovementFlags(0, 0);
             }
@@ -1986,10 +1912,6 @@ public class FilterTabsView extends FrameLayout {
 
         @Override
         public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder source, @NonNull RecyclerView.ViewHolder target) {
-            final int to = target.getAdapterPosition();
-            if (to >= 0 && to < tabs.size() && tabs.get(to).local) {
-                return false;
-            }
             if (MessagesController.getInstance(UserConfig.selectedAccount).premiumFeaturesBlocked() && ((source.getAdapterPosition() == 0 || target.getAdapterPosition() == 0) && !UserConfig.getInstance(UserConfig.selectedAccount).isPremium())) {
                 return false;
             }

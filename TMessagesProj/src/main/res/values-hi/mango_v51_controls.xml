@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">चैनलों में स्वचालित प्रतिक्रियाएँ</string>
+    <string name="MangoReactionGroups">समूहों में स्वचालित प्रतिक्रियाएँ</string>
+    <string name="MangoReactionPrivate">निजी चैट में स्वचालित प्रतिक्रियाएँ</string>
+    <string name="MangoReactionConfirmTitle">स्वचालित प्रतिक्रियाएँ चालू करें?</string>
+    <string name="MangoReactionConfirmInfo">क्लाइंट चुने हुए चैनलों, समूहों और निजी चैट में इमोजी प्रतिक्रियाएँ भेजेगा। दायरे के स्विच केवल स्वचालित प्रतिक्रियाएँ चालू होने पर लागू होते हैं। यह सेटिंग इस डिवाइस के सभी खातों पर लागू होती है।</string>
+    <string name="MangoDownloadHudPinned">स्थिर</string>
+    <string name="MangoDownloadHudLockHint">स्थान बदलने के लिए खींचें; स्थिर करने के लिए देर तक दबाएँ</string>
+    <string name="MangoDownloadHudUnlockHint">फिर से चलाने के लिए देर तक दबाकर अनलॉक करें</string>
+</resources>

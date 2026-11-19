@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="V4ScamProtectionTitle">Scam alerts</string>
+    <string name="V4ScamProtectionEnabled">Show scam keyword alerts</string>
+    <string name="V4ScamProtectionInfo">Shows a local hint when an incoming message you view contains a configured keyword. Messages stay visible. The same message is not repeatedly announced during this session.</string>
+    <string name="V4ScamRiskWarning">Detected keyword “%1$s”. Possible scam risk — please be careful!</string>
+    <string name="V4ScamKeywords">Edit additional keywords</string>
+    <string name="V4ScamKeywordsInfo">Add one keyword per line, up to 200 keywords of 80 characters each. Latin letters are case insensitive. These keywords supplement the remote list for this account and remain after updates. An empty list clears only your additions.</string>
+    <string name="V4RestoreScamKeywords">Clear additional keywords</string>
+    <string name="V4RestoreScamKeywordsConfirm">Clear the additional keywords for this account? The remote or bundled list will still apply.</string>
+    <string name="V4ScamRemoteKeywords">Remote keywords</string>
+    <string name="V4ScamKeywordsUpdateNow">Update keywords now</string>
+    <string name="V4ScamKeywordsUpdating">Updating keywords…</string>
+    <string name="V4ScamKeywordsLastUpdated">Last updated: %1$s</string>
+    <string name="V4ScamKeywordsBundledFallback">The remote list has not been downloaded yet. Using the bundled keywords.</string>
+    <string name="V4ScamKeywordsUpdateFailed">Update failed. The current keyword list is still in use. Tap Update keywords now to retry.</string>
+    <string name="V4ScamKeywordsAutoUpdateInfo">When alerts are enabled, the app reads the remote keyword list every 2 hours. System power saving may delay background updates. Opening the app also checks for overdue updates. Failed updates keep the last saved list.</string>
+    <string name="V4ScamKeywordsSource">Keyword source:\n%1$s</string>
+    <string name="V4ScamKeywordsPreview">Active keywords:\n%1$s</string>
+    <string name="V4ScamKeywordsPreviewMore">Showing the first 30 of %1$d keywords.</string>
     <string name="V4InteractionStatisticsTitle">Interaction statistics</string>
     <string name="V4SelectLocalChat">Choose a locally cached chat</string>
     <string name="V4StatisticsPerson">Person</string>

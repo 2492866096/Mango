@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">Punto en línea en los avatares</string>
+    <string name="MangoShowOnlineBadgeInfo">Muestra un punto verde en los avatares de los remitentes cuando Telegram indica que están en línea.</string>
+    <string name="MangoDisableTapMediaSwitch">Desactivar el cambio de foto al tocar</string>
+    <string name="MangoDisableTapMediaSwitchInfo">Tocar el lado izquierdo o derecho ya no cambia las fotos ni los avatares. Deslizar, ampliar, reproducir y cerrar siguen disponibles.</string>
+</resources>

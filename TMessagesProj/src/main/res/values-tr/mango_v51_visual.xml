@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">Mesaj avatarlarında çevrimiçi noktası</string>
+    <string name="MangoShowOnlineBadgeInfo">Telegram göndereni çevrimiçi gösterdiğinde mesaj avatarında yeşil bir nokta gösterir.</string>
+    <string name="MangoDisableTapMediaSwitch">Dokunarak fotoğraf değiştirmeyi kapat</string>
+    <string name="MangoDisableTapMediaSwitchInfo">Sola veya sağa dokunmak fotoğrafları ve avatarları değiştirmez. Kaydırma, yakınlaştırma, oynatma ve kapatma kullanılabilir.</string>
+</resources>

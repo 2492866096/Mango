@@ -615,13 +615,13 @@ public class ChatThemeBottomSheet extends BottomSheet implements NotificationCen
                 activeTheme = Theme.getActiveTheme();
             } else {
                 SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                String dayThemeName = preferences.getString("lastDayTheme", "Frost");
+                String dayThemeName = preferences.getString("lastDayTheme", "Blue");
                 if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                    dayThemeName = "Frost";
+                    dayThemeName = "Blue";
                 }
-                String nightThemeName = preferences.getString("lastDarkTheme", "Frost Night");
+                String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
                 if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                    nightThemeName = "Frost Night";
+                    nightThemeName = "Dark Blue";
                 }
                 activeTheme = originalIsDark ? Theme.getTheme(nightThemeName) : Theme.getTheme(dayThemeName);
             }

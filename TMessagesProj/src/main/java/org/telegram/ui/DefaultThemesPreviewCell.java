@@ -171,12 +171,6 @@ public class DefaultThemesPreviewCell extends LinearLayout {
 
             addView(browseThemesCell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-            if (SkinSwitch.CHAT_FRAME) {
-                // The skin has its own two themes, day and night; Telegram's stock and emoji themes are not offered.
-                frameLayout.setVisibility(GONE);
-                browseThemesCell.setVisibility(GONE);
-            }
-
             dayNightCell.setOnClickListener(new OnClickListener() {
                 @SuppressLint("NotifyDataSetChanged")
                 @Override

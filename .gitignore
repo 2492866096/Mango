@@ -13,20 +13,3 @@ TMessagesProj_App/afat/
 TMessagesProj_AppHockeyApp/afat/
 TMessagesProj_AppStandalone/afat/
 TMessagesProj_AppHuawei/afat/
-
-# Mango Client - private files
-*.keystore
-*.jks
-*.p12
-*.pfx
-*.asc
-*.env
-.env.*
-google-services.json
-**/google-services.json
-**/local.properties
-**/build/
-
-# Python cache
-__pycache__/
-*.pyc

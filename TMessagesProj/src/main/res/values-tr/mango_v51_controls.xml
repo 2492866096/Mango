@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">Kanallarda otomatik tepki</string>
+    <string name="MangoReactionGroups">Gruplarda otomatik tepki</string>
+    <string name="MangoReactionPrivate">Özel sohbetlerde otomatik tepki</string>
+    <string name="MangoReactionConfirmTitle">Otomatik tepkiler etkinleştirilsin mi?</string>
+    <string name="MangoReactionConfirmInfo">İstemci seçilen kanallarda, gruplarda ve özel sohbetlerde emoji tepkileri gönderir. Kapsam anahtarları yalnızca otomatik tepkiler etkin olduğunda geçerlidir. Bu ayar cihazdaki tüm hesaplara uygulanır.</string>
+    <string name="MangoDownloadHudPinned">Sabitlendi</string>
+    <string name="MangoDownloadHudLockHint">Taşımak için sürükleyin; sabitlemek için basılı tutun</string>
+    <string name="MangoDownloadHudUnlockHint">Hareket kilidini açmak için basılı tutun</string>
+</resources>

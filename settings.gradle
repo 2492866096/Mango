@@ -1,4 +1,3 @@
 include ':TMessagesProj'
-include ':TMessagesProj_Skin'
 include ':TMessagesProj_App'
 include ':TMessagesProj_AppTests'

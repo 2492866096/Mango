@@ -22,6 +22,11 @@ public final class MangoOutgoingTranslation {
     /** Returns a cancellation action. A canceled or timed-out request never invokes success later. */
     public static Runnable translate(int account, TLRPC.TL_textWithEntities source, String language,
                                      Utilities.Callback<TLRPC.TL_textWithEntities> done) {
+        MangoTranslationLinks.Plan links = MangoTranslationLinks.prepare(source);
+        if (links.hasLinks) {
+            return MangoTranslationLinks.translate(account, links, language, false,
+                    (result, rateLimit) -> done.run(result));
+        }
         final boolean[] complete = {false};
         final int[] requestId = {0};
         final Runnable[] timeout = {null};

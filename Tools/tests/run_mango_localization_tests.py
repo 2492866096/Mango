@@ -60,6 +60,9 @@ for directory in MANIFEST['locales']:
         check('tab' not in values[key].lower(), f'{directory}: Contacts still contains Tab')
     check(values['ContactsTabTitle'] == values['SettingsContactsTab'],
           f'{directory}: Contacts label differs between entry points')
+    check('channel:1234567890' in values['MangoScamUsersFormat'] and
+          '@channel_name' in values['MangoScamUsersFormat'],
+          f'{directory}: channel syntax example must remain a valid identifier')
 check(base['ContactsTabTitle'] == base['SettingsContactsTab'] == 'Contacts', 'Default Contacts label')
 # Formatted strings and server-string fallback must use the same bundled locale as titles.
 check('ApplicationLoader.applicationContext.getString(' not in SOURCE,

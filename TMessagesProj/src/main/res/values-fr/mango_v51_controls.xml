@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">Réactions automatiques dans les chaînes</string>
+    <string name="MangoReactionGroups">Réactions automatiques dans les groupes</string>
+    <string name="MangoReactionPrivate">Réactions automatiques en privé</string>
+    <string name="MangoReactionConfirmTitle">Activer les réactions automatiques ?</string>
+    <string name="MangoReactionConfirmInfo">Le client enverra des réactions emoji dans les chaînes, groupes et discussions privées sélectionnés. Les réglages de portée prennent effet lorsque les réactions automatiques sont activées. Ce réglage concerne tous les comptes de cet appareil.</string>
+    <string name="MangoDownloadHudPinned">Épinglé</string>
+    <string name="MangoDownloadHudLockHint">Faites glisser pour déplacer ; appuyez longuement pour épingler</string>
+    <string name="MangoDownloadHudUnlockHint">Appuyez longuement pour déverrouiller le déplacement</string>
+</resources>

@@ -10,6 +10,13 @@
     <string name="RootTerminalCancelled">Command stopped</string>
     <string name="RootTerminalFinished">Finished with exit code %1$d</string>
     <string name="RootTerminalTruncated">Output exceeded 64 KB and was truncated.</string>
+    <string name="DailyMessageTasksMode">Trigger mode</string>
+    <string name="DailyMessageTasksRandomMode">Random while online</string>
+    <string name="DailyMessageTasksFixedMode">Fixed daily time</string>
+    <string name="DailyMessageTasksWindowStart">Random window starts</string>
+    <string name="DailyMessageTasksWindowEnd">Random window ends</string>
+    <string name="DailyMessageTasksRandomInfo">Within this window, an active connected session waits a random 15–90 seconds before sending once that day. Leaving the app pauses the task; returning within the window schedules another random wait. The daily limit and chosen delay survive app restarts. The time window must fall within one calendar day.</string>
+    <string name="DailyMessageTasksInvalidWindow">The window end must be at or after its start.</string>
     <string name="DuplicateFilesTitle">Duplicate file cleaner</string>
     <string name="DuplicateFilesInfo">Scan this app’s downloaded media, public media folders and app-specific downloads. Files are compared by size and SHA-256, not names. Temporary, encrypted, recently written and active-transfer files are skipped. The oldest identical copy is kept by default; uncheck a file to keep it and select another copy instead. Long-press a file to preview it. This only removes local copies, so cloud media may download again.</string>
     <string name="DuplicateFilesScan">Scan duplicate files</string>

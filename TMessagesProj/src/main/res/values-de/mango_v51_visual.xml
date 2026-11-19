@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">Online-Punkt auf Nachrichtenavataren</string>
+    <string name="MangoShowOnlineBadgeInfo">Zeigt einen grünen Punkt auf dem Absenderavatar, wenn Telegram die Person als online meldet.</string>
+    <string name="MangoDisableTapMediaSwitch">Fotowechsel durch Tippen deaktivieren</string>
+    <string name="MangoDisableTapMediaSwitchInfo">Tippen links oder rechts wechselt keine Fotos und Avatare mehr. Wischen, Zoomen, Wiedergabe und Schließen bleiben verfügbar.</string>
+</resources>

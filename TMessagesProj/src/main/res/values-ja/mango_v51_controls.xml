@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">チャンネルで自動リアクション</string>
+    <string name="MangoReactionGroups">グループで自動リアクション</string>
+    <string name="MangoReactionPrivate">個人チャットで自動リアクション</string>
+    <string name="MangoReactionConfirmTitle">自動リアクションを有効にしますか？</string>
+    <string name="MangoReactionConfirmInfo">選択したチャンネル、グループ、個人チャットに絵文字リアクションを自動送信します。範囲の設定は自動リアクションが有効な場合に適用されます。この設定は端末内のすべてのアカウントに適用されます。</string>
+    <string name="MangoDownloadHudPinned">固定中</string>
+    <string name="MangoDownloadHudLockHint">ドラッグで移動、長押しで固定</string>
+    <string name="MangoDownloadHudUnlockHint">長押しで固定を解除して移動</string>
+</resources>

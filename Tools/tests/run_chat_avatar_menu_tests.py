@@ -44,6 +44,7 @@ public class ChatAvatarMenuRegression {
   boolean pinnedTop,pinnedBottom,layer; float sliding,checkbox;
   MessageObject.GroupedMessages group; MessageObject.GroupedMessagePosition groupPosition;
   ImageReceiver getAvatarImage(){return avatar;} MessageObject getMessageObject(){return message;}
+  void drawAvatarWithOnlineBadge(Canvas canvas){avatar.draw(canvas);}
   MessageObject.GroupedMessages getCurrentMessagesGroup(){return group;}
   MessageObject.GroupedMessagePosition getCurrentPosition(){return groupPosition;}
   Params getTransitionParams(){return params;} int getLayoutHeight(){return height-pad;}
@@ -125,7 +126,7 @@ with tempfile.TemporaryDirectory() as temp:
     harness.write_text(fixture.replace('/*AVATAR*/', broken))
     subprocess.run([str(JDK/'javac'), '-d', temp, str(source), str(harness)], check=True)
     result = subprocess.run([str(JDK/'java'), '-cp', temp, 'ChatAvatarMenuRegression'], capture_output=True)
-    assert result.returncode != 0 and b'owning cell alpha' in result.stderr
+    assert result.returncode != 0 and (b'owning cell alpha' in result.stderr or b'owning avatar is drawn' in result.stderr)
     print('PASS: rejected avatar-owner mutation')
 
 assert 'if (inOverflow) overflowItems.addView(cell' in chat

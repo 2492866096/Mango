@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">संदेश अवतार पर ऑनलाइन बिंदु</string>
+    <string name="MangoShowOnlineBadgeInfo">जब Telegram भेजने वाले को ऑनलाइन दिखाता है, तो संदेश अवतार पर हरा बिंदु दिखाएँ।</string>
+    <string name="MangoDisableTapMediaSwitch">टैप करके फ़ोटो और अवतार बदलना बंद करें</string>
+    <string name="MangoDisableTapMediaSwitchInfo">बाएँ या दाएँ टैप करने से फ़ोटो और अवतार नहीं बदलेंगे। स्वाइप, ज़ूम, प्लेबैक और बंद करना उपलब्ध रहेंगे।</string>
+</resources>

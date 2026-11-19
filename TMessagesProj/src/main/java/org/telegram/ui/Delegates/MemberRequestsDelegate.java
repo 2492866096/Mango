@@ -762,7 +762,7 @@ public class MemberRequestsDelegate implements MemberRequestCell.OnClickListener
                 }
             };
 
-            viewPager = new ProfileGalleryView(context, fragment.getActionBar(), parentListView, pagerIndicator);
+            viewPager = new ProfileGalleryView(context, fragment.getCurrentAccount(), fragment.getActionBar(), parentListView, pagerIndicator);
             viewPager.setCreateThumbFromParent(true);
             contentView.addView(viewPager);
 

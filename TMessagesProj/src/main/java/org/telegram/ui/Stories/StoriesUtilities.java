@@ -66,7 +66,6 @@ import org.telegram.ui.LaunchActivity;
 
 import java.io.File;
 import java.util.Collections;
-import org.telegram.ui.SkinStyle;
 
 public class StoriesUtilities {
 
@@ -135,7 +134,7 @@ public class StoriesUtilities {
         int state;
         int unreadState = 0;
         boolean showProgress = storiesController.isLoading(dialogId);
-        boolean isForum = params.squircle || ChatObject.isForum(currentAccount, dialogId) && !params.isDialogStoriesCell;
+        boolean isForum = ChatObject.isForum(currentAccount, dialogId) && !params.isDialogStoriesCell;
         if (params.drawHiddenStoriesAsSegments) {
             hasStories = storiesController.hasHiddenStories();
         }
@@ -688,8 +687,7 @@ public class StoriesUtilities {
         if (isForum) {
             forumRect.set(rectTmp);
             forumRect.inset(dp(0.5f), dp(0.5f));
-            final float corner = params.squircle ? forumRect.height() * SkinStyle.AVATAR_CORNER : dp(18);
-            canvas.drawRoundRect(forumRect, corner, corner, paint);
+            canvas.drawRoundRect(forumRect, dp(18), dp(18), paint);
             return;
         }
         if (params.progressToArc == 0) {
@@ -1226,8 +1224,6 @@ public class StoriesUtilities {
 
     public static class AvatarStoryParams {
         public boolean drawSegments = true;
-        /** Ring a rounded-square avatar (the skin's chat list) instead of a round one. */
-        public boolean squircle;
         public boolean animate = true;
         public int storyId;
         public TL_stories.StoryItem storyItem;

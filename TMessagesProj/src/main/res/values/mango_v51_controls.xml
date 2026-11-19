@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">Auto-react in channels</string>
+    <string name="MangoReactionGroups">Auto-react in groups</string>
+    <string name="MangoReactionPrivate">Auto-react in private chats</string>
+    <string name="MangoReactionConfirmTitle">Enable automatic reactions?</string>
+    <string name="MangoReactionConfirmInfo">The client will send emoji reactions in the selected channels, groups, and private chats. Scope switches take effect only while automatic reactions are enabled. This setting applies to all accounts on this device.</string>
+    <string name="MangoDownloadHudPinned">Pinned</string>
+    <string name="MangoDownloadHudLockHint">Drag to move; long press to pin</string>
+    <string name="MangoDownloadHudUnlockHint">Long press to unlock movement</string>
+</resources>

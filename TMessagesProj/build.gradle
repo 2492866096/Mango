@@ -1,3 +1,5 @@
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
 apply plugin: 'com.android.library'
 
 repositories {
@@ -5,107 +7,110 @@ repositories {
     google()
 }
 
-configurations.configureEach {
-    exclude module: 'support-v4'
+configurations {
+    compile.exclude module: 'support-v4'
+}
+
+configurations.all {
     exclude group: 'com.google.firebase', module: 'firebase-core'
     exclude group: 'androidx.recyclerview', module: 'recyclerview'
 }
 
 dependencies {
-    // The redesigned screens; this module reaches them through the Skin* bridge classes.
-    implementation project(':TMessagesProj_Skin')
-    implementation 'androidx.core:core:1.19.1'
-    implementation 'androidx.palette:palette:1.1.0'
-    implementation 'androidx.exifinterface:exifinterface:1.4.2'
-    implementation 'androidx.dynamicanimation:dynamicanimation:1.1.0'
+    implementation 'androidx.core:core:1.16.0'
+    implementation 'androidx.palette:palette:1.0.0'
+    implementation 'androidx.exifinterface:exifinterface:1.3.6'
+    implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
     implementation "androidx.sharetarget:sharetarget:1.2.0"
     implementation 'androidx.interpolator:interpolator:1.0.0'
     implementation 'androidx.biometric:biometric:1.1.0'
-    implementation 'androidx.documentfile:documentfile:1.1.0'
 
-    // 23.x requires a pre-release mediarouter 1.9; this is the newest pair that is all stable.
-    implementation 'com.google.android.gms:play-services-cast-framework:22.3.1'
-    implementation "androidx.mediarouter:mediarouter:1.8.1"
+    implementation 'com.google.android.gms:play-services-cast-framework:21.4.0'
+    implementation "androidx.mediarouter:mediarouter:1.7.0"
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
 
-    compileOnly 'org.checkerframework:checker-qual:4.4.0'
-    compileOnly 'org.checkerframework:checker-compat-qual:2.5.6'
-    // Guava stopped bringing these in; the bundled ExoPlayer still compiles against them.
-    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
-    implementation platform('com.google.firebase:firebase-bom:35.2.0')
-    implementation 'com.google.firebase:firebase-messaging'
-    implementation 'com.google.firebase:firebase-config'
-    // Not covered by the BoM.
-    implementation 'com.google.firebase:firebase-datatransport:21.0.0'
+    compileOnly 'org.checkerframework:checker-qual:2.5.2'
+    compileOnly 'org.checkerframework:checker-compat-qual:2.5.0'
+    implementation 'com.google.firebase:firebase-messaging:22.0.0'
+    implementation 'com.google.firebase:firebase-config:21.0.1'
+    implementation 'com.google.firebase:firebase-datatransport:18.1.0'
     implementation 'com.google.firebase:firebase-appindexing:20.0.0'
-    implementation 'com.google.android.gms:play-services-maps:20.1.0'
-    implementation 'com.google.android.gms:play-services-auth:22.0.0'
-    implementation 'com.google.android.gms:play-services-auth-api-phone:18.3.1'
+    implementation 'com.google.android.gms:play-services-maps:18.1.0'
+    implementation 'com.google.android.gms:play-services-auth:20.4.0'
     implementation 'com.google.android.gms:play-services-vision:20.1.3'
-    implementation 'com.google.android.gms:play-services-wearable:20.0.1'
-    implementation 'com.google.android.gms:play-services-location:21.4.0'
-    implementation 'com.google.android.gms:play-services-wallet:20.0.0'
+    implementation 'com.google.android.gms:play-services-wearable:18.0.0'
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+    implementation 'com.google.android.gms:play-services-wallet:19.1.0'
     implementation 'com.googlecode.mp4parser:isoparser:1.0.6'
     implementation 'com.stripe:stripe-android:2.0.2'
     implementation 'com.google.mlkit:language-id:17.0.6'
-    implementation 'com.android.billingclient:billing:9.1.0'
-    implementation 'com.google.code.gson:gson:2.15.0'
-    implementation 'com.google.guava:guava:33.8.0-android'
-    implementation 'com.google.android.play:integrity:1.6.0'
-    implementation 'com.google.android.gms:play-services-safetynet:18.1.0'
+    implementation 'com.android.billingclient:billing:7.1.1'
+    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'com.google.guava:guava:31.1-android'
+    implementation 'com.google.android.play:integrity:1.3.0'
+    implementation 'com.google.android.gms:play-services-safetynet:18.0.1'
 
     implementation 'com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1'
     implementation 'com.google.android.gms:play-services-mlkit-image-labeling:16.0.8'
 
-    implementation "androidx.credentials:credentials:1.6.0"
-    implementation "androidx.credentials:credentials-play-services-auth:1.6.0"
-    implementation "com.google.android.libraries.identity.googleid:googleid:1.2.1"
+    implementation "androidx.credentials:credentials:1.6.0-alpha04"
+    implementation "androidx.credentials:credentials-play-services-auth:1.6.0-alpha04"
 
 //    implementation 'com.google.mlkit:translate:17.0.3'
 
-    implementation 'com.google.android.recaptcha:recaptcha:18.9.4'
+    constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
+            because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
+        }
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0") {
+            because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
+        }
+    }
+    implementation 'com.google.android.recaptcha:recaptcha:18.7.1'
 
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 }
 
-def isWindows = String.valueOf(System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows'))
+def isWindows = String.valueOf(DefaultNativePlatform.currentOperatingSystem.toFamilyName() == OperatingSystemFamily.WINDOWS)
 android {
-    compileSdk = 37
-    buildToolsVersion '37.0.0'
-    ndkVersion = "30.0.16248370"
+    compileSdkVersion 35
+    buildToolsVersion '35.0.0'
+    ndkVersion "21.4.7075529"
 
     sourceSets.main.jniLibs.srcDirs = ['./jni/']
 
     externalNativeBuild {
         cmake {
             path 'jni/CMakeLists.txt'
-            version = '4.1.2'
         }
     }
 
-    lint {
-        disable += ['MissingTranslation', 'ExtraTranslation', 'BlockedPrivateApi']
+    lintOptions {
+        disable 'MissingTranslation'
+        disable 'ExtraTranslation'
+        disable 'BlockedPrivateApi'
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
 
-        coreLibraryDesugaringEnabled = true
+        coreLibraryDesugaringEnabled true
     }
 
 
     defaultConfig {
-        minSdk = 24
-        targetSdk = 37
+        minSdkVersion 21
+        targetSdkVersion 35
 
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
 
-        multiDexEnabled = true
+        multiDexEnabled true
 
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-24' //, '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
+                version '3.10.2'
+                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-21' //, '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
             }
         }
     }
@@ -114,9 +119,9 @@ android {
         debug {
             jniDebuggable true
             minifyEnabled false
-            shrinkResources = false
-            multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
+            shrinkResources false
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
             ndk.debugSymbolLevel = 'FULL'
             buildConfigField "String", "BUILD_VERSION_STRING", "\"" + APP_VERSION_NAME + "\""
             buildConfigField "String", "APP_CENTER_HASH", "\"\""
@@ -129,12 +134,10 @@ android {
         }
 
         HA_private {
-            // The skin module has no beta build types; it builds these as release.
-            matchingFallbacks = ["release"]
             jniDebuggable false
             minifyEnabled true
-            multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
             ndk.debugSymbolLevel = 'FULL'
             buildConfigField "String", "BUILD_VERSION_STRING", "\"" + APP_VERSION_NAME + "\""
             buildConfigField "String", "APP_CENTER_HASH", "\"" + getProps("APP_CENTER_HASH_PRIVATE") + "\""
@@ -147,12 +150,10 @@ android {
         }
 
         HA_public {
-            // The skin module has no beta build types; it builds these as release.
-            matchingFallbacks = ["release"]
             jniDebuggable false
             minifyEnabled true
-            multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
             ndk.debugSymbolLevel = 'FULL'
             buildConfigField "String", "BUILD_VERSION_STRING", "\"" + APP_VERSION_NAME + "\""
             buildConfigField "String", "APP_CENTER_HASH", "\"" + getProps("APP_CENTER_HASH_PUBLIC") + "\""
@@ -165,12 +166,10 @@ android {
         }
 
         HA_hardcore {
-            // The skin module has no beta build types; it builds these as release.
-            matchingFallbacks = ["release"]
             jniDebuggable false
             minifyEnabled true
-            multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro', '../TMessagesProj/proguard-rules-beta.pro'
             ndk.debugSymbolLevel = 'FULL'
             buildConfigField "String", "BUILD_VERSION_STRING", "\"" + APP_VERSION_NAME + "\""
             buildConfigField "String", "APP_CENTER_HASH", "\"" + getProps("APP_CENTER_HASH_HARDCORE") + "\""
@@ -185,8 +184,8 @@ android {
         standalone {
             jniDebuggable false
             minifyEnabled true
-            multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro'
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
             ndk.debugSymbolLevel = 'FULL'
             buildConfigField "String", "BUILD_VERSION_STRING", "\"" + APP_VERSION_NAME + "\""
             buildConfigField "String", "APP_CENTER_HASH", "\"\""
@@ -201,9 +200,9 @@ android {
         release {
             jniDebuggable false
             minifyEnabled true
-            shrinkResources = false
-            multiDexEnabled = true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro'
+            shrinkResources false
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
             ndk.debugSymbolLevel = 'FULL'
             buildConfigField "String", "BUILD_VERSION_STRING", "\"" + APP_VERSION_NAME + "\""
             buildConfigField "String", "APP_CENTER_HASH", "\"\""
@@ -216,11 +215,7 @@ android {
         }
     }
 
-    namespace = 'org.telegram.messenger'
-    enableKotlin = false
-    buildFeatures {
-        buildConfig = true
-    }
+    namespace 'org.telegram.messenger'
 }
 
 
@@ -234,24 +229,24 @@ def getProps(String propName) {
         return "";
     }
 }
-def requestedTasks = gradle.startParameter.taskNames
-def publicAllowed = !project.hasProperty("IS_PRIVATE") || !project.property("IS_PRIVATE").toBoolean()
-def privateBetaApk = file("${projectDir}_AppHockeyApp/afat/HA_private/Telegram-Beta.apk")
-
-def checkVisibility = tasks.register('checkVisibility') {
+task checkVisibility {
     doFirst {
-        def isPrivateBuild = requestedTasks.find {
+        def isPrivateBuild = project.gradle.startParameter.taskNames.find {
             it.contains("HA_private") || it.contains("HA_hardcore") || it.contains("Debug") || it.contains("Release")
         }
-        if (!isPrivateBuild && !publicAllowed) {
+        def isPublicAllowed = !project.hasProperty("IS_PRIVATE") || !project.property("IS_PRIVATE").toBoolean()
+        if (!isPrivateBuild && !isPublicAllowed) {
             throw new GradleException("Building public version of private code!")
         }
     }
     doLast {
-        if (requestedTasks.find { it.contains("HA_public") } && privateBetaApk.exists()) {
-            privateBetaApk.delete()
+        if (project.gradle.startParameter.taskNames.find { it.contains("HA_public") }) {
+            def privateBuild = file("${projectDir}_AppHockeyApp/afat/HA_private/Telegram-Beta.apk")
+            if (privateBuild.exists()) {
+                privateBuild.delete()
+            }
         }
     }
 }
 
-tasks.named('preBuild') { dependsOn checkVisibility }
+preBuild.dependsOn checkVisibility

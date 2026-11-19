@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="V4ScamProtectionTitle">反诈骗提示</string>
+    <string name="V4ScamProtectionEnabled">开启诈骗关键词提醒</string>
+    <string name="V4ScamProtectionInfo">查看收到的消息时，命中词库就显示本地提醒，消息仍正常显示。同一条消息在本次运行期间不会重复弹出提醒。</string>
+    <string name="V4ScamRiskWarning">检测到关键词“%1$s”，存在诈骗风险，请注意小心！</string>
+    <string name="V4ScamKeywords">编辑补充关键词</string>
+    <string name="V4ScamKeywordsInfo">每行一个关键词，最多 200 个，每个最多 80 字，英文字母不区分大小写。补充词仅用于当前账号，与远程词库合并使用，更新后仍保留。清空只会移除自己添加的词。</string>
+    <string name="V4RestoreScamKeywords">清空补充关键词</string>
+    <string name="V4RestoreScamKeywordsConfirm">清空当前账号自己添加的关键词？远程词库或内置词库仍会继续生效。</string>
+    <string name="V4ScamRemoteKeywords">远程关键词数量</string>
+    <string name="V4ScamKeywordsUpdateNow">立即更新词库</string>
+    <string name="V4ScamKeywordsUpdating">正在更新词库…</string>
+    <string name="V4ScamKeywordsLastUpdated">最近更新：%1$s</string>
+    <string name="V4ScamKeywordsBundledFallback">尚未下载远程词库，当前使用内置关键词。</string>
+    <string name="V4ScamKeywordsUpdateFailed">更新失败，当前词库继续生效。可点击“立即更新词库”重试。</string>
+    <string name="V4ScamKeywordsAutoUpdateInfo">开启提醒后每 2 小时自动读取远程词库，后台执行时间可能受系统省电限制；再次打开应用时检查过期更新。更新失败会保留上次保存的词库。</string>
+    <string name="V4ScamKeywordsSource">词库来源：\n%1$s</string>
+    <string name="V4ScamKeywordsPreview">当前生效关键词：\n%1$s</string>
+    <string name="V4ScamKeywordsPreviewMore">仅预览前 30 个，共 %1$d 个关键词。</string>
     <string name="V4InteractionStatisticsTitle">互动频率统计</string>
     <string name="V4SelectLocalChat">选择本地有消息的会话</string>
     <string name="V4StatisticsPerson">聊天对象</string>

@@ -2,6 +2,8 @@
 <resources>
     <string name="MangoHideProxyIcon">Hide proxy icon</string>
     <string name="MangoHideProxyIconInfo">Hide the proxy icon in the chat list. Proxy settings remain available in Settings.</string>
+    <string name="MangoDisablePullSearch">Disable pull-down search</string>
+    <string name="MangoDisablePullSearchInfo">Keep the search field collapsed when pulling down the chat list. Tap Search to search.</string>
     <string name="MangoCollapseMessageMenu">Collapse message actions</string>
     <string name="MangoCollapseMessageMenuInfo">Show the first half of message actions. Tap More actions to reveal the rest.</string>
     <string name="MangoMessageMenuMore">More actions</string>

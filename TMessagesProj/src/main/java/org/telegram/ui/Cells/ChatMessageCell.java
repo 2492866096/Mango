@@ -124,6 +124,7 @@ import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.MangoVisualPreferences;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SendMessagesHelper;
@@ -1468,6 +1469,15 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private boolean commentButtonPressed;
 
     private ImageReceiver avatarImage;
+    private final Paint onlineBadgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private long onlineBadgeExpiry;
+    private final Runnable onlineBadgeExpiryRunnable = () -> {
+        onlineBadgeExpiry = 0;
+        invalidate();
+        if (getParent() instanceof View) {
+            ((View) getParent()).invalidate();
+        }
+    };
     protected AvatarDrawable avatarDrawable;
     private boolean avatarPressed;
     private boolean forwardNamePressed;
@@ -5896,6 +5906,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        removeCallbacks(onlineBadgeExpiryRunnable);
+        onlineBadgeExpiry = 0;
 
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.startSpoilers);
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.stopSpoilers);
@@ -14084,7 +14096,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 avatarImage.setVisible(true, false);
                 avatarImage.setImageCoords(photoImage.getImageX() + dp(7), photoImage.getImageY() + dp(7), dp(26) * scale, dp(26) * scale);
                 avatarImage.setAlpha(avatarAlpha);
-                avatarImage.draw(canvas);
+                drawAvatarWithOnlineBadge(canvas);
                 avatarImage.setImageCoords(wasX, wasY, wasWidth, wasHeight);
                 avatarImage.setAlpha(wasAlpha);
                 avatarImage.setVisible(wasVisible, false);
@@ -18987,6 +18999,49 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         return h;
     }
 
+    public void drawAvatarWithOnlineBadge(Canvas canvas) {
+        avatarImage.draw(canvas);
+        if (currentMessageObject == null || currentMessageObject.isSponsored()
+                || currentMessageObject.customAvatarDrawable != null || !avatarImage.getVisible()
+                || avatarImage.getAlpha() <= 0 || avatarImage.getImageWidth() <= 0) {
+            scheduleOnlineBadgeExpiry(0);
+            return;
+        }
+        TLRPC.User avatarUser = currentUser;
+        if (avatarUser == null && currentChat != null && currentChat.signature_profiles
+                && currentMessageObject.getDialogId() != UserObject.REPLY_BOT) {
+            long senderId = DialogObject.getPeerDialogId(currentMessageObject.messageOwner.from_id);
+            if (senderId > 0) {
+                avatarUser = MessagesController.getInstance(currentAccount).getUser(senderId);
+            }
+        }
+        long onlineUntil = MangoVisualPreferences.getOnlineUntil(currentAccount, avatarUser);
+        scheduleOnlineBadgeExpiry(onlineUntil);
+        if (onlineUntil == 0) {
+            return;
+        }
+        float size = Math.min(avatarImage.getImageWidth(), avatarImage.getImageHeight());
+        float x = avatarImage.getImageX2() - size * 6f / 42f;
+        float y = avatarImage.getImageY2() - size * 6f / 42f;
+        onlineBadgePaint.setColor(Theme.multAlpha(getThemedColor(Theme.key_windowBackgroundWhite), avatarImage.getAlpha()));
+        canvas.drawCircle(x, y, size * 6.5f / 42f, onlineBadgePaint);
+        onlineBadgePaint.setColor(Theme.multAlpha(getThemedColor(Theme.key_chats_onlineCircle), avatarImage.getAlpha()));
+        canvas.drawCircle(x, y, size * 4.5f / 42f, onlineBadgePaint);
+    }
+
+    private void scheduleOnlineBadgeExpiry(long expires) {
+        if (onlineBadgeExpiry == expires) {
+            return;
+        }
+        removeCallbacks(onlineBadgeExpiryRunnable);
+        onlineBadgeExpiry = expires;
+        if (expires != 0) {
+            // Keep at most one expiry callback per cell; scrolling must not enqueue one per frame.
+            long delay = Math.max(1L, expires - ConnectionsManager.getInstance(currentAccount).getCurrentTime()) * 1000L;
+            postDelayed(onlineBadgeExpiryRunnable, delay);
+        }
+    }
+
     public ImageReceiver getAvatarImage() {
         return isAvatarVisible ? avatarImage : null;
     }
@@ -21153,7 +21208,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 avatarImage.setVisible(true, false);
                 avatarImage.setImageCoords(avatarX, ny + dp(13) * (1.0f - scale), dp(26) * scale, dp(26) * scale);
                 avatarImage.setAlpha(avatarAlpha);
-                avatarImage.draw(canvas);
+                drawAvatarWithOnlineBadge(canvas);
                 avatarImage.setImageCoords(wasX, wasY, wasWidth, wasHeight);
                 avatarImage.setAlpha(wasAlpha);
                 avatarImage.setVisible(wasVisible, false);

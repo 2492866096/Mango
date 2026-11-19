@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">تفاعلات تلقائية في القنوات</string>
+    <string name="MangoReactionGroups">تفاعلات تلقائية في المجموعات</string>
+    <string name="MangoReactionPrivate">تفاعلات تلقائية في المحادثات الخاصة</string>
+    <string name="MangoReactionConfirmTitle">تفعيل التفاعلات التلقائية؟</string>
+    <string name="MangoReactionConfirmInfo">سيرسل التطبيق تفاعلات بالرموز التعبيرية في القنوات والمجموعات والمحادثات الخاصة المحددة. تسري إعدادات النطاق فقط عند تفعيل التفاعلات التلقائية. يسري هذا الإعداد على جميع الحسابات على هذا الجهاز.</string>
+    <string name="MangoDownloadHudPinned">مثبّت</string>
+    <string name="MangoDownloadHudLockHint">اسحب للتحريك واضغط مطولاً للتثبيت</string>
+    <string name="MangoDownloadHudUnlockHint">اضغط مطولاً لإلغاء قفل الحركة</string>
+</resources>

@@ -4,6 +4,7 @@
     <string name="MangoCategoryChat">Chat</string>
     <string name="MangoCategoryPrivacy">Privacy</string>
     <string name="MangoCategoryMedia">Media</string>
+    <string name="MangoCategoryAutomation">Automation</string>
     <string name="MangoCategoryAppearance">Appearance</string>
     <string name="MangoCategoryTools">Tools</string>
     <string name="MangoSearchSettings">Search all features and settings</string>
@@ -26,6 +27,7 @@
     <string name="MangoResetNow">Reset now</string>
     <string name="MangoResetDone">Settings reset</string>
     <string name="MangoNotificationRules">Keyword notification rules</string>
+    <string name="MangoScamUsers">User and channel risk list</string>
     <string name="MangoSettingsSubtitle">Categories · Search · Reversible changes</string>
     <string name="MangoSearchPage">Open settings page: %1$s</string>
     <string name="MangoStandardSettings">More app settings</string>
@@ -46,6 +48,8 @@
     <string name="MangoDisableSentSoundInfo">Turn off the sound after sending messages.</string>
     <string name="MangoDisableReceivedSound">Disable received-message sound</string>
     <string name="MangoDisableReceivedSoundInfo">Silence incoming message sounds while keeping other alerts.</string>
+    <string name="MangoAutoRead">Automatically read messages</string>
+    <string name="MangoAutoReadInfo">Process only new messages while the app is in the foreground and connected. Hide read status takes priority.</string>
     <string name="MangoConfirmSend">Confirm before sending messages</string>
     <string name="MangoConfirmSendInfo">Ask for confirmation before manually sending a message.</string>
     <string name="MangoConfirmVoice">Confirm before sending voice</string>

@@ -76,20 +76,24 @@ import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
 
 public class MainTabsActivity extends ViewPagerActivity implements NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target {
-    public static final int TABS_COUNT = 6;
-    static final int POSITION_CONTACTS = 0;
-    static final int POSITION_CHATS = 1;
-    static final int POSITION_SETTINGS = 2;
-    static final int POSITION_PROFILE = 3;
-    static final int POSITION_MESSAGE_CENTER = 4;
-    static final int POSITION_UNIFIED_INBOX = 5;
+    public static final int TABS_COUNT = 8;
+    private static final int POSITION_CONTACTS = 0;
+    private static final int POSITION_CHANNEL_FEED = 1;
+    private static final int POSITION_UNREAD = 2;
+    private static final int POSITION_CHATS = 3;
+    private static final int POSITION_SETTINGS = 4;
+    private static final int POSITION_PROFILE = 5;
+    private static final int POSITION_MESSAGE_CENTER = 6;
+    private static final int POSITION_UNIFIED_INBOX = 7;
 
     private static final int INDEX_CONTACTS = 0;
-    private static final int INDEX_CHATS = 1;
-    private static final int INDEX_SETTINGS = 2;
-    private static final int INDEX_PROFILE = 3;
-    private static final int INDEX_MESSAGE_CENTER = 4;
-    private static final int INDEX_UNIFIED_INBOX = 5;
+    private static final int INDEX_CHANNEL_FEED = 1;
+    private static final int INDEX_UNREAD = 2;
+    private static final int INDEX_CHATS = 3;
+    private static final int INDEX_SETTINGS = 4;
+    private static final int INDEX_PROFILE = 5;
+    private static final int INDEX_MESSAGE_CENTER = 6;
+    private static final int INDEX_UNIFIED_INBOX = 7;
     private static final int TABS_WIDTH_TWO = 196;
     private static final int TABS_WIDTH_THREE = 284;
     private static final int TABS_WIDTH_FOUR = 320;
@@ -111,8 +115,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private boolean dropCallsFragmentAfterPageScroll;
 
     private UpdateLayoutWrapper updateLayoutWrapper;
-    // The skin's aluminium dock. When it is on, the glass bar below is never built.
-    private final SkinDock skinDock = SkinSwitch.MAIN_TABS ? new SkinDock(this) : null;
     private MainTabsLayout tabsView;
     private BlurredBackgroundDrawable tabsViewBackground;
     private View fadeView;
@@ -207,23 +209,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 super.onLayout(changed, left, top, right, bottom);
                 checkUi_tabsPosition();
                 checkUi_fadeView();
-                if (skinDock != null) {
-                    skinDock.onLayout();
-                }
-            }
-
-            // Lists in the pages report their scrolling up the tree; the dock
-            // folds and unfolds with it.
-            @Override
-            public boolean onStartNestedScroll(View child, View target, int axes) {
-                return skinDock != null && (axes & View.SCROLL_AXIS_VERTICAL) != 0;
-            }
-
-            @Override
-            public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
-                if (skinDock != null) {
-                    skinDock.onListScrolled(dyConsumed, dyUnconsumed);
-                }
             }
 
             @Override
@@ -240,11 +225,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         blur3_updateColors();
         checkContactsTabBadge();
         restoreTabOrder();
-        checkTabsVisibility(true);
+        checkUnreadDialogsTabVisibility(true);
         checkUnreadCount(true);
-        if (skinDock != null) {
-            skinDock.onResume();
-        }
 
         Bulletin.Delegate delegate = new Bulletin.Delegate() {
             @Override
@@ -283,36 +265,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     public View createView(Context context) {
         super.createView(context);
 
-        if (skinDock == null) {
-            createGlassTabs(context);
-        }
-
-        updateLayoutWrapper = new UpdateLayoutWrapper(context);
-        contentView.addView(updateLayoutWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
-
-        updateLayout = ApplicationLoader.applicationLoaderInstance.takeUpdateLayout(getParentActivity(), updateLayoutWrapper);
-        if (updateLayout != null) {
-            updateLayout.updateAppUpdateViews(currentAccount, false);
-        }
-
-        if (skinDock != null) {
-            skinDock.createViews(context, contentView);
-        }
-
-        //AndroidUtilities.cancelRunOnUIThread(justForTestR);
-        //AndroidUtilities.runOnUIThread(justForTestR, 2000);
-
-        checkUnreadCount(false);
-        return contentView;
-    }
-
-    private void createGlassTabs(Context context) {
         tabsView = new MainTabsLayout(context);
         tabsView.setClipChildren(false);
         tabsView.setPadding(dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4), dp(DialogsActivity.MAIN_TABS_MARGIN + 4));
 
         tabs = new GlassTabView[TABS_COUNT];
         tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CONTACTS, R.string.ContactsTabTitle);
+        tabs[INDEX_CHANNEL_FEED] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.REPLIES, R.string.ChannelFeedTitle);
+        tabs[INDEX_UNREAD] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHECKLIST, R.string.MainTabsUnread);
         tabs[INDEX_CHATS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CHATS, R.string.MainTabsChats);
         tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.SETTINGS, R.string.Settings);
         tabs[INDEX_PROFILE] = GlassTabView.createAvatar(context, resourceProvider, currentAccount, R.string.MainTabsProfile);
@@ -359,7 +319,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
             @Override
             public void onLongPressWithoutMove(View tab) {
-                if (tab == tabs[INDEX_CHATS]) {
+                if (tab == tabs[INDEX_UNREAD] || tab == tabs[INDEX_CHATS]) {
                     showReadAllMessagesOptions(tab);
                 } else if (tab == tabs[INDEX_PROFILE]) {
                     showAccountSwitchOptions(tab);
@@ -372,7 +332,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         });
         restoreTabOrder();
         selectTab(viewPager.getCurrentPosition(), false);
-        checkTabsVisibility(false);
+        checkUnreadDialogsTabVisibility(false);
 
         iBlur3SourceColor.setColor(getThemedColor(Theme.key_windowBackgroundWhite));
 
@@ -399,7 +359,21 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
         contentView.addView(fadeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 0, Gravity.BOTTOM));
         contentView.addView(tabsView, LayoutHelper.createFrame(TABS_WIDTH_THREE + DialogsActivity.MAIN_TABS_MARGIN * 2, DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
-        checkTabsVisibility(false);
+        checkUnreadDialogsTabVisibility(false);
+
+        updateLayoutWrapper = new UpdateLayoutWrapper(context);
+        contentView.addView(updateLayoutWrapper, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+
+        updateLayout = ApplicationLoader.applicationLoaderInstance.takeUpdateLayout(getParentActivity(), updateLayoutWrapper);
+        if (updateLayout != null) {
+            updateLayout.updateAppUpdateViews(currentAccount, false);
+        }
+
+        //AndroidUtilities.cancelRunOnUIThread(justForTestR);
+        //AndroidUtilities.runOnUIThread(justForTestR, 2000);
+
+        checkUnreadCount(false);
+        return contentView;
     }
 
     private void restoreTabOrder() {
@@ -410,10 +384,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void checkUnreadCount(boolean animated) {
-        if (skinDock != null) {
-            skinDock.updateUnread();
-            return;
-        }
         if (tabsView == null) {
             return;
         }
@@ -425,14 +395,33 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         } else {
             tabs[INDEX_CHATS].setCounter(null, false, animated);
         }
+
+        if (tabs[INDEX_UNREAD] != null && isUnreadDialogsTabEnabled()) {
+            final int unreadUnmutedCount = DialogsActivity.getUnreadUnmutedDialogs(getMessagesController(), 0).size();
+            if (unreadUnmutedCount > 0) {
+                tabs[INDEX_UNREAD].setCounter(LocaleController.formatNumber(unreadUnmutedCount, ','), false, animated);
+            } else {
+                tabs[INDEX_UNREAD].setCounter(null, false, animated);
+            }
+        } else if (tabs[INDEX_UNREAD] != null) {
+            tabs[INDEX_UNREAD].setCounter(null, false, animated);
+        }
+    }
+
+    private boolean isUnreadDialogsTabEnabled() {
+        return getMessagesController().isUnreadDialogsTabEnabled();
     }
 
     private boolean isContactsTabEnabled() {
         return getUserConfig().showContactsTab;
     }
 
-    private int getTabsWidthDp(boolean contactsVisible) {
-        int visibleCount = 3 + (contactsVisible ? 1 : 0) + (MessageActionSettings.isCenterEnabled(currentAccount) ? 1 : 0) + (CrossAccountInboxActivity.isEnabled(currentAccount) ? 1 : 0);
+    private boolean isChannelFeedTabEnabled() {
+        return SharedConfig.isChannelFeedEnabled();
+    }
+
+    private int getTabsWidthDp(boolean contactsVisible, boolean unreadVisible, boolean channelFeedVisible) {
+        int visibleCount = 3 + (contactsVisible ? 1 : 0) + (unreadVisible ? 1 : 0) + (channelFeedVisible ? 1 : 0) + (MessageActionSettings.isCenterEnabled(currentAccount) ? 1 : 0) + (CrossAccountInboxActivity.isEnabled(currentAccount) ? 1 : 0);
         if (visibleCount <= 2) {
             return TABS_WIDTH_TWO;
         } else if (visibleCount == 3) {
@@ -445,16 +434,16 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         return TABS_WIDTH_SIX;
     }
 
-    private void checkTabsVisibility(boolean animated) {
-        if (skinDock != null) {
-            skinDock.refreshOrder();
-            return;
-        }
-        if (tabsView == null || tabs == null || tabs[INDEX_CONTACTS] == null) {
+    private void checkUnreadDialogsTabVisibility(boolean animated) {
+        if (tabsView == null || tabs == null || tabs[INDEX_CONTACTS] == null || tabs[INDEX_UNREAD] == null || tabs[INDEX_CHANNEL_FEED] == null) {
             return;
         }
         final boolean contactsVisible = isContactsTabEnabled();
+        final boolean unreadVisible = isUnreadDialogsTabEnabled();
+        final boolean channelFeedVisible = isChannelFeedTabEnabled();
         tabsView.setViewVisible(tabs[INDEX_CONTACTS], contactsVisible, animated);
+        tabsView.setViewVisible(tabs[INDEX_CHANNEL_FEED], channelFeedVisible, animated);
+        tabsView.setViewVisible(tabs[INDEX_UNREAD], unreadVisible, animated);
         final boolean messageCenterVisible = MessageActionSettings.isCenterEnabled(currentAccount);
         tabsView.setViewVisible(tabs[INDEX_MESSAGE_CENTER], messageCenterVisible, animated);
         final boolean unifiedInboxVisible = CrossAccountInboxActivity.isEnabled(currentAccount);
@@ -462,14 +451,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         ViewGroup.LayoutParams lp = tabsView.getLayoutParams();
         if (lp != null) {
             int availableWidth = contentView != null && contentView.getMeasuredWidth() > 0 ? contentView.getMeasuredWidth() : AndroidUtilities.displaySize.x;
-            int targetWidth = Math.min(availableWidth, dp(getTabsWidthDp(contactsVisible) + DialogsActivity.MAIN_TABS_MARGIN * 2));
+            int targetWidth = Math.min(availableWidth, dp(getTabsWidthDp(contactsVisible, unreadVisible, channelFeedVisible) + DialogsActivity.MAIN_TABS_MARGIN * 2));
             if (lp.width != targetWidth) {
                 lp.width = targetWidth;
                 tabsView.setLayoutParams(lp);
             }
         }
         int currentPosition = viewPager != null ? viewPager.getCurrentPosition() : POSITION_CHATS;
-        if ((!contactsVisible && currentPosition == POSITION_CONTACTS) || (!messageCenterVisible && currentPosition == POSITION_MESSAGE_CENTER) || (!unifiedInboxVisible && currentPosition == POSITION_UNIFIED_INBOX)) {
+        if ((!contactsVisible && currentPosition == POSITION_CONTACTS) || (!unreadVisible && currentPosition == POSITION_UNREAD) || (!channelFeedVisible && currentPosition == POSITION_CHANNEL_FEED) || (!messageCenterVisible && currentPosition == POSITION_MESSAGE_CENTER) || (!unifiedInboxVisible && currentPosition == POSITION_UNIFIED_INBOX)) {
             selectTab(POSITION_CHATS, animated);
             viewPager.scrollToPosition(POSITION_CHATS);
         } else {
@@ -482,7 +471,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         checkUnreadCount(animated);
     }
 
-    void showReadAllMessagesOptions(View anchor) {
+    private void showReadAllMessagesOptions(View anchor) {
         if (anchor == null || getContext() == null) {
             return;
         }
@@ -495,7 +484,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                     DialogsActivity.markDialogsAsRead(currentAccount, getMessagesController(), dialogs);
                     checkUnreadCount(true);
                 })
-                .addIf((tabs == null || anchor == tabs[INDEX_CHATS]) && getMessagesController().isFrozen() && !getFrozenUserDialogs().isEmpty(), R.drawable.msg_delete, getString(R.string.FrozenAccountClearChatsTitle), this::showFrozenAccountClearChatsConfirm)
+                .addIf(anchor == tabs[INDEX_CHATS] && getMessagesController().isFrozen() && !getFrozenUserDialogs().isEmpty(), R.drawable.msg_delete, getString(R.string.FrozenAccountClearChatsTitle), this::showFrozenAccountClearChatsConfirm)
                 .setDimAlpha(0x08)
                 .setGravity(Gravity.CENTER)
                 .translate(0, -dp(4))
@@ -632,11 +621,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             setGestureSelectedOverride(0, false);
         }
         blur3_invalidateBlur();
-        if (skinDock != null) {
-            // The fixed page numbers below belong to the glass bar's layout.
-            skinDock.onPageSettled();
-            return;
-        }
 
         // A disabled summary must not keep observers, rows, or account caches
         // attached through a retained pager fragment. Destroy it only after
@@ -668,9 +652,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
                 selectTab(Math.round(position), true);
             }
         }
-        if (skinDock != null) {
-            skinDock.onPagerMoved(viewPager.getPositionAnimated());
-        }
 
         checkUi_fadeView();
         blur3_invalidateBlur();
@@ -679,24 +660,18 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     protected int getFragmentsCount() {
-        return skinDock != null ? skinDock.count() : TABS_COUNT;
+        return TABS_COUNT;
     }
 
     @Override
     protected int getStartPosition() {
-        return skinDock != null ? skinDock.chatsPosition() : POSITION_CHATS;
+        return POSITION_CHATS;
     }
 
     private DialogsActivity dialogsActivity;
 
     @Override
     public boolean onBackPressed(boolean invoked) {
-        if (skinDock != null && skinDock.isOpen()) {
-            if (invoked) {
-                skinDock.close();
-            }
-            return false;
-        }
         final boolean result = super.onBackPressed(invoked);
         if (result) {
             final int startPosition = getStartPosition();
@@ -719,25 +694,19 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         bundle.putBoolean("allowSwitchAccount", true);
         dialogsActivity = new DialogsActivity(bundle);
         dialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
-        putFragmentAtPosition(skinDock != null ? skinDock.chatsPosition() : POSITION_CHATS, dialogsActivity);
+        putFragmentAtPosition(POSITION_CHATS, dialogsActivity);
         return dialogsActivity;
     }
 
     @Override
     protected BaseFragment createBaseFragmentAt(int position) {
-        if (skinDock != null) {
-            // Pages the glass bar also had are built as before; the rest are the dock's own.
-            final int legacy = skinDock.legacyPosition(position);
-            if (legacy < 0) {
-                return skinDock.createFragment(position);
-            }
-            position = legacy;
-        }
         if (position == POSITION_CONTACTS) {
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
             args.putBoolean("destroyAfterSelect", false);
             return new ContactsActivity(args);
+        } else if (position == POSITION_CHANNEL_FEED) {
+            return new ChannelFeedActivity();
         } else if (position == POSITION_MESSAGE_CENTER) {
             MessageManagementActivity center = new MessageManagementActivity(true);
             center.setCurrentAccount(currentAccount);
@@ -761,6 +730,14 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             args.putBoolean("my_profile", true);
             args.putBoolean("hasMainTabs", true);
             return new ProfileActivity(args);
+        } else if (position == POSITION_UNREAD) {
+            Bundle args = new Bundle();
+            args.putBoolean("hasMainTabs", true);
+            args.putBoolean("allowSwitchAccount", true);
+            args.putInt("dialogsType", DialogsActivity.DIALOGS_TYPE_UNREAD_UNMUTED);
+            DialogsActivity unreadDialogsActivity = new DialogsActivity(args);
+            unreadDialogsActivity.setMainTabsActivityController(new MainTabsActivityControllerImpl());
+            return unreadDialogsActivity;
         } else if (position == POSITION_CHATS) {
             Bundle args = new Bundle();
             args.putBoolean("hasMainTabs", true);
@@ -781,9 +758,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     public GlassTabView[] tabs;
 
     public void selectTab(int position, boolean animated) {
-        if (tabs == null) {
-            return;
-        }
         for (int a = 0; a < tabs.length; a++) {
             GlassTabView tab = tabs[a];
             tab.setSelected(indexToPosition(a) == position, animated);
@@ -791,9 +765,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     public void setGestureSelectedOverride(float animatedPosition, boolean allow) {
-        if (tabs == null) {
-            return;
-        }
         for (int index = 0; index < tabs.length; index++) {
             final int position = indexToPosition(index);
             final float visibility = Math.max(0, 1f - Math.abs(position - animatedPosition));
@@ -830,9 +801,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private boolean canScrollInternal(MotionEvent ev, boolean forward) {
-        if (skinDock != null) {
-            return skinDock.canScroll(ev, forward);
-        }
         if (forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_MESSAGE_CENTER && !CrossAccountInboxActivity.isEnabled(currentAccount)) {
             return false;
         }
@@ -842,8 +810,23 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         if (forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_PROFILE && !MessageActionSettings.isCenterEnabled(currentAccount)) {
             return false;
         }
-        if (!forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_CHATS) {
+        if (!forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_CHATS && !isUnreadDialogsTabEnabled()) {
+            return false;
+        }
+        if (!forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_UNREAD) {
+            return isChannelFeedTabEnabled();
+        }
+        if (!forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_CHANNEL_FEED) {
             return isContactsTabEnabled();
+        }
+        if (forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_CONTACTS) {
+            return isChannelFeedTabEnabled();
+        }
+        if (forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_CHANNEL_FEED) {
+            return isUnreadDialogsTabEnabled();
+        }
+        if (forward && viewPager != null && viewPager.getCurrentPosition() == POSITION_UNREAD && isUnreadDialogsTabEnabled()) {
+            return true;
         }
         final BaseFragment fragment = getCurrentVisibleFragment();
         if (fragment instanceof TabFragmentDelegate) {
@@ -869,16 +852,13 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         updateLayoutWrapper.setPadding(0, 0, 0, navigationBarHeight);
 
         ViewGroup.MarginLayoutParams lp;
-        if (fadeView != null) {
+        {
             final int height = navigationBarHeight + updateLayoutHeight + dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS);
             lp = (ViewGroup.MarginLayoutParams) fadeView.getLayoutParams();
             if (lp.height != height) {
                 lp.height = height;
                 fadeView.setLayoutParams(lp);
             }
-        }
-        if (skinDock != null) {
-            skinDock.onInsets(insets, navigationBarHeight + updateLayoutHeight);
         }
         {
             final int bottomMargin = isUpdateLayoutVisible ? (navigationBarHeight + updateLayoutHeight) : 0;
@@ -902,7 +882,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     public void didReceivedNotification(int id, int account, Object... args) {
         if (id == NotificationCenter.notificationsCountUpdated || id == NotificationCenter.updateInterfaces || id == NotificationCenter.contactsTabVisibleToggled) {
             if (id == NotificationCenter.updateInterfaces || id == NotificationCenter.contactsTabVisibleToggled) {
-                checkTabsVisibility(fragmentView != null && fragmentView.isAttachedToWindow());
+                checkUnreadDialogsTabVisibility(fragmentView != null && fragmentView.isAttachedToWindow());
             }
             checkUnreadCount(fragmentView != null && fragmentView.isAttachedToWindow());
         } else if (id == NotificationCenter.mainUserInfoChanged) {
@@ -989,9 +969,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.appUpdateAvailable);
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.appUpdateLoading);
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.needSetDayNightTheme);
-        if (skinDock != null) {
-            skinDock.destroy();
-        }
 
         super.onFragmentDestroy();
     }
@@ -1016,9 +993,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void checkUi_tabsPosition() {
-        if (tabsView == null) {
-            return;
-        }
         final boolean isUpdateLayoutVisible = updateLayoutWrapper.isUpdateLayoutVisible();
         final int updateLayoutHeight = isUpdateLayoutVisible ? dp(UpdateLayoutWrapper.HEIGHT) : 0;
         final int normalY = -(navigationBarHeight + updateLayoutHeight);
@@ -1054,14 +1028,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         @Override
         public void setTabsVisible(boolean visible) {
             animatorTabsVisible.setValue(visible, true);
-            if (skinDock != null) {
-                skinDock.setShown(visible);
-            }
-        }
-
-        @Override
-        public boolean ownsComposeButton() {
-            return skinDock != null;
         }
     }
 
@@ -1133,9 +1099,6 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void blur3_updateColors() {
-        if (skinDock != null) {
-            skinDock.onThemeChanged();
-        }
         iBlur3SourceColor.setColor(getThemedColor(Theme.key_windowBackgroundWhite));
         if (tabsViewBackground != null) {
             tabsViewBackground.updateColors();

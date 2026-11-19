@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">消息头像在线圆点</string>
+    <string name="MangoShowOnlineBadgeInfo">当 Telegram 显示发送者在线时，在消息头像右下角显示绿色圆点。</string>
+    <string name="MangoDisableTapMediaSwitch">禁用点按切换图片、头像</string>
+    <string name="MangoDisableTapMediaSwitchInfo">开启后，点按左右区域不再切换图片或头像；仍可滑动切换、缩放、播放和关闭。</string>
+</resources>

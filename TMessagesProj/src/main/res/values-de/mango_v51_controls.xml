@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoReactionChannels">Automatische Reaktionen in Kanälen</string>
+    <string name="MangoReactionGroups">Automatische Reaktionen in Gruppen</string>
+    <string name="MangoReactionPrivate">Automatische Reaktionen in privaten Chats</string>
+    <string name="MangoReactionConfirmTitle">Automatische Reaktionen aktivieren?</string>
+    <string name="MangoReactionConfirmInfo">Der Client sendet Emoji-Reaktionen in den ausgewählten Kanälen, Gruppen und privaten Chats. Die Bereichsschalter gelten nur bei aktivierten automatischen Reaktionen. Diese Einstellung gilt für alle Konten auf diesem Gerät.</string>
+    <string name="MangoDownloadHudPinned">Fixiert</string>
+    <string name="MangoDownloadHudLockHint">Zum Verschieben ziehen; zum Fixieren gedrückt halten</string>
+    <string name="MangoDownloadHudUnlockHint">Gedrückt halten, um das Verschieben freizugeben</string>
+</resources>

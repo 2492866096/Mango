@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="MangoShowOnlineBadge">메시지 아바타 온라인 표시</string>
+    <string name="MangoShowOnlineBadgeInfo">Telegram에서 발신자를 온라인으로 표시할 때 메시지 아바타에 녹색 점을 표시합니다.</string>
+    <string name="MangoDisableTapMediaSwitch">탭으로 사진 및 아바타 전환 끄기</string>
+    <string name="MangoDisableTapMediaSwitchInfo">왼쪽이나 오른쪽을 탭해도 사진과 아바타가 바뀌지 않습니다. 스와이프, 확대, 재생 및 닫기는 계속 사용할 수 있습니다.</string>
+</resources>
