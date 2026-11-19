@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10.2)
+project(tmessages)
 
 set(CMAKE_CXX_FLAGS "-std=c++14 -DANDROID -g")
 set(CMAKE_C_FLAGS "-w -std=c11 -DANDROID -D_LARGEFILE_SOURCE=1 -g")
@@ -18,19 +19,10 @@ if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND DEFINED ANDROID_NDK)
         set(CMAKE_ASM_ARCHIVE_FINISH "<CMAKE_RANLIB> <TARGET>")
     endif()
 endif()
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,libtgvoip.a,libtgcalls.a,libtgcalls_tp.a,libtgnet.a,libflac.a,librlottie.a,libsqlite.a,
-${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libswscale.a,
-${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libavformat.a,
-${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libavcodec.a,
-${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libavresample.a,
-${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libavutil.a,
-${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libswresample.a,
-${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libvpx.a,
-${CMAKE_HOME_DIRECTORY}/ffmpeg/${ANDROID_ABI}/libdav1d.a,
-${CMAKE_HOME_DIRECTORY}/boringssl/lib/${ANDROID_ABI}/libssl.a,
-${CMAKE_HOME_DIRECTORY}/boringssl/lib/${ANDROID_ABI}/libcrypto.a,
-${CMAKE_HOME_DIRECTORY}/tde2e/${ANDROID_ABI}/libtde2e.a,
-${CMAKE_HOME_DIRECTORY}/tde2e/${ANDROID_ABI}/libtdutils.a")
+# lld takes this list colon separated; with commas -Wl splits it into extra input files.
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,libtgvoip.a:libtgcalls.a:libtgcalls_tp.a:libtgnet.a:libFLAC.a:librlottie.a:libsqlite.a:\
+libswscale.a:libavformat.a:libavcodec.a:libavresample.a:libavutil.a:libswresample.a:libvpx.a:libdav1d.a:\
+libssl.a:libcrypto.a:libtde2e.a:libtdutils.a -Wl,-Bsymbolic")
 
 if (${ANDROID_ABI} STREQUAL "armeabi-v7a" OR ${ANDROID_ABI} STREQUAL "arm64-v8a")
     enable_language(ASM)
@@ -277,15 +269,11 @@ target_include_directories(rlottie PUBLIC
         rlottie/src/vector/stb)
 
 if (${ANDROID_ABI} STREQUAL "armeabi-v7a")
-    target_compile_options(rlottie PRIVATE
-            -fno-integrated-as)
     target_compile_definitions(rlottie PUBLIC
             USE_ARM_NEON)
     target_sources(rlottie PRIVATE
             rlottie/src/vector/pixman/pixman-arm-neon-asm.S)
 elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
-    target_compile_options(rlottie PRIVATE
-            -fno-integrated-as)
     target_compile_definitions(rlottie PUBLIC
             USE_ARM_NEON __ARM64_NEON__)
     target_sources(rlottie PRIVATE
@@ -294,41 +282,14 @@ endif()
 
 
 #flac
-add_library(flac STATIC
-        exoplayer/libFLAC/bitmath.c
-        exoplayer/libFLAC/bitreader.c
-        exoplayer/libFLAC/bitwriter.c
-        exoplayer/libFLAC/cpu.c
-        exoplayer/libFLAC/crc.c
-        exoplayer/libFLAC/fixed.c
-        exoplayer/libFLAC/fixed_intrin_sse2.c
-        exoplayer/libFLAC/fixed_intrin_ssse3.c
-        exoplayer/libFLAC/float.c
-        exoplayer/libFLAC/format.c
-        exoplayer/libFLAC/lpc.c
-        exoplayer/libFLAC/lpc_intrin_avx2.c
-        exoplayer/libFLAC/lpc_intrin_sse2.c
-        exoplayer/libFLAC/lpc_intrin_sse41.c
-        exoplayer/libFLAC/lpc_intrin_sse.c
-        exoplayer/libFLAC/md5.c
-        exoplayer/libFLAC/memory.c
-        exoplayer/libFLAC/metadata_iterators.c
-        exoplayer/libFLAC/metadata_object.c
-        exoplayer/libFLAC/stream_decoder.c
-        exoplayer/libFLAC/stream_encoder.c
-        exoplayer/libFLAC/stream_encoder_framing.c
-        exoplayer/libFLAC/stream_encoder_intrin_avx2.c
-        exoplayer/libFLAC/stream_encoder_intrin_sse2.c
-        exoplayer/libFLAC/stream_encoder_intrin_ssse3.c
-        exoplayer/libFLAC/window.c)
-target_compile_options(flac PUBLIC
-        -O3 -funroll-loops -finline-functions -fPIC -frtti)
-set_target_properties(flac PROPERTIES
-        ANDROID_ARM_MODE arm)
-target_compile_definitions(flac PUBLIC
-        _REENTRANT PIC U_COMMON_IMPLEMENTATION HAVE_SYS_PARAM_H VERSION="1.3.1" FLAC__NO_MD5 FLAC__INTEGER_ONLY_LIBRARY FLAC__NO_ASM)
-target_include_directories(flac PUBLIC
-        exoplayer/libFLAC/include)
+# Upstream build, library only; the switches stay inside this block.
+block()
+    foreach(option BUILD_CXXLIBS BUILD_PROGRAMS BUILD_EXAMPLES BUILD_TESTING BUILD_DOCS INSTALL_MANPAGES
+            INSTALL_PKGCONFIG_MODULES INSTALL_CMAKE_CONFIG_MODULE WITH_OGG ENABLE_MULTITHREADING)
+        set(${option} OFF)
+    endforeach()
+    add_subdirectory(exoplayer/flac EXCLUDE_FROM_ALL)
+endblock()
 
 #sqlite
 add_library(sqlite STATIC
@@ -341,23 +302,24 @@ target_compile_definitions(sqlite PUBLIC
         NULL=0 SOCKLEN_T=socklen_t LOCALE_NOT_USED ANDROID_NDK DISABLE_IMPORTGL AVOID_TABLES ANDROID_TILE_BASED_DECODE HAVE_STRCHRNUL=0 ANDROID_ARMV6_IDCT)
 
 #breakpad
+# Sources as listed in upstream android/google_breakpad/Android.mk.
 add_library(breakpad STATIC
         third_party/breakpad/src/client/linux/crash_generation/crash_generation_client.cc
+        third_party/breakpad/src/client/linux/dump_writer_common/thread_info.cc
+        third_party/breakpad/src/client/linux/dump_writer_common/ucontext_reader.cc
         third_party/breakpad/src/client/linux/handler/exception_handler.cc
         third_party/breakpad/src/client/linux/handler/minidump_descriptor.cc
         third_party/breakpad/src/client/linux/log/log.cc
-        third_party/breakpad/src/client/linux/dump_writer_common/thread_info.cc
-        third_party/breakpad/src/client/linux/dump_writer_common/seccomp_unwinder.cc
-        third_party/breakpad/src/client/linux/dump_writer_common/ucontext_reader.cc
         third_party/breakpad/src/client/linux/microdump_writer/microdump_writer.cc
         third_party/breakpad/src/client/linux/minidump_writer/linux_dumper.cc
         third_party/breakpad/src/client/linux/minidump_writer/linux_ptrace_dumper.cc
         third_party/breakpad/src/client/linux/minidump_writer/minidump_writer.cc
+        third_party/breakpad/src/client/linux/minidump_writer/pe_file.cc
         third_party/breakpad/src/client/minidump_file_writer.cc
-        third_party/breakpad/src/common/android/breakpad_getcontext.S
-        third_party/breakpad/src/common/convert_UTF.c
+        third_party/breakpad/src/common/convert_UTF.cc
         third_party/breakpad/src/common/md5.cc
         third_party/breakpad/src/common/string_conversion.cc
+        third_party/breakpad/src/common/linux/breakpad_getcontext.S
         third_party/breakpad/src/common/linux/elfutils.cc
         third_party/breakpad/src/common/linux/file_id.cc
         third_party/breakpad/src/common/linux/guid_creator.cc
@@ -365,7 +327,7 @@ add_library(breakpad STATIC
         third_party/breakpad/src/common/linux/memory_mapped_file.cc
         third_party/breakpad/src/common/linux/safe_readlink.cc)
 set_target_properties(breakpad PROPERTIES ANDROID_ARM_MODE arm)
-set_property(SOURCE third_party/breakpad/src/common/android/breakpad_getcontext.S PROPERTY LANGUAGE C)
+set_property(SOURCE third_party/breakpad/src/common/linux/breakpad_getcontext.S PROPERTY LANGUAGE C)
 target_include_directories(breakpad PUBLIC
         third_party/breakpad/src/common/android/include
         third_party/breakpad/src)
@@ -661,7 +623,7 @@ target_link_libraries(${NATIVE_LIB}
         tgcalls_tp
 #        mozjpeg
         tgnet
-        flac
+        FLAC
         rlottie
         sqlite
         swscale

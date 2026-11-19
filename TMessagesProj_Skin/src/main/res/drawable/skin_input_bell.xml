@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Channel posts notify subscribers: the bell (struck through when silent). The skin's console glyph: 24-unit grid, round strokes,
+     drawn white so Telegram's tint colours it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M18,10a6,6 0,0 0,-12,0c0,5 -2,7 -2,7h16s-2,-2 -2,-7M10,21h4"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -2783,8 +2783,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
             int type = -1;
             DelayedMessage delayedMessage = null;
             long peer = messageObject.getDialogId();
-            int autoReplyPresetTopicId = getAutoReplyPresetTopicId(messageObject);
-            boolean autoReplyPreset = autoReplyPresetTopicId != 0;
             boolean supportsSendingNewEntities = true;
             if (DialogObject.isEncryptedDialog(peer)) {
                 int encryptedId = DialogObject.getEncryptedChatId(peer);
@@ -2913,9 +2911,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                         if (messageObject.editingMessageEntities != null) {
                             newMsg.entities = messageObject.editingMessageEntities;
                             newMsg.flags |= 128;
-                        } else if (autoReplyPreset) {
-                            newMsg.entities.clear();
-                            newMsg.flags &=~ 128;
                         } else if (!TextUtils.equals(oldMessge, newMsg.message)) {
                             newMsg.flags &=~ 128;
                         }
@@ -2932,9 +2927,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                             if (entities != null && !entities.isEmpty()) {
                                 newMsg.entities = entities;
                                 newMsg.flags |= 128;
-                            } else if (autoReplyPreset) {
-                                newMsg.entities.clear();
-                                newMsg.flags &=~ 128;
                             } else if (!TextUtils.equals(oldMessge, newMsg.message)) {
                                 newMsg.flags &=~ 128;
                             }
@@ -2948,18 +2940,9 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                     }
                 }
 
-                if (autoReplyPreset) {
-                    newMsg.send_state = MessageObject.MESSAGE_SEND_STATE_SENT;
-                }
                 ArrayList<TLRPC.Message> arr = new ArrayList<>();
                 arr.add(newMsg);
-                int saveMode = messageObject.scheduled ? ChatActivity.MODE_SCHEDULED : 0;
-                long saveThreadMessageId = 0;
-                if (autoReplyPreset) {
-                    saveMode = ChatActivity.MODE_QUICK_REPLIES;
-                    saveThreadMessageId = autoReplyPresetTopicId;
-                }
-                getMessagesStorage().putMessages(arr, false, true, false, 0, saveMode, saveThreadMessageId);
+                getMessagesStorage().putMessages(arr, false, true, false, 0, messageObject.scheduled ? 1 : 0, 0);
                 getMessagesController().getTopicsController().processEditedMessage(newMsg);
 
                 messageObject.type = -1;
@@ -2976,13 +2959,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                 ArrayList<MessageObject> arrayList = new ArrayList<>();
                 arrayList.add(messageObject);
                 getNotificationCenter().postNotificationName(NotificationCenter.replaceMessagesObjects, peer, arrayList);
-                if (autoReplyPreset) {
-                    messageObject.editingMessage = null;
-                    messageObject.editingMessageEntities = null;
-                    AutoReplyManager.getInstance(currentAccount).onLocalPresetMessagesChanged(autoReplyPresetTopicId);
-                    processSentMessage(newMsg.id);
-                    return;
-                }
             }
 
             String originalPath = null;
@@ -3254,48 +3230,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
     }
 
     public int editMessage(MessageObject messageObject, String message, boolean searchLinks, final BaseFragment fragment, ArrayList<TLRPC.MessageEntity> entities, int scheduleDate, int scheduleRepeatPeriod) {
-        if (messageObject == null) {
-            return 0;
-        }
-        if (isAutoReplyPresetMessage(messageObject)) {
-            TLRPC.Message newMsg = messageObject.messageOwner;
-            if (message != null && newMsg != null) {
-                String oldMessage = newMsg.message;
-                ArrayList<TLRPC.MessageEntity> oldEntities = newMsg.entities == null ? new ArrayList<>() : new ArrayList<>(newMsg.entities);
-                newMsg.message = message;
-                if (entities != null && !entities.isEmpty()) {
-                    newMsg.entities = entities;
-                    newMsg.flags |= 128;
-                } else {
-                    if (newMsg.entities != null) {
-                        newMsg.entities.clear();
-                    } else {
-                        newMsg.entities = new ArrayList<>();
-                    }
-                    newMsg.flags &=~ 128;
-                }
-                if (!TextUtils.equals(oldMessage, newMsg.message) || !MediaDataController.entitiesEqual(oldEntities, newMsg.entities)) {
-                    newMsg.originalText = createOriginalText(oldMessage, oldEntities);
-                } else {
-                    newMsg.originalText = null;
-                }
-                messageObject.caption = null;
-                messageObject.type = -1;
-                messageObject.setType();
-                if (messageObject.messageOwner.media instanceof TLRPC.TL_messageMediaPhoto || messageObject.messageOwner.media instanceof TLRPC.TL_messageMediaDocument) {
-                    messageObject.generateCaption();
-                } else {
-                    messageObject.resetLayout();
-                    messageObject.checkLayout();
-                }
-                messageObject.createMessageSendInfo();
-                persistAutoReplyPresetEditedMessage(messageObject);
-                ArrayList<MessageObject> arrayList = new ArrayList<>();
-                arrayList.add(messageObject);
-                getNotificationCenter().postNotificationName(NotificationCenter.replaceMessagesObjects, messageObject.getDialogId(), arrayList);
-            }
-            return 0;
-        }
         if (fragment == null || fragment.getParentActivity() == null) {
             return 0;
         }
@@ -3331,34 +3265,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                 AndroidUtilities.runOnUIThread(() -> AlertsCreator.processError(currentAccount, error, fragment, req));
             }
         });
-    }
-
-    private boolean isAutoReplyPresetMessage(MessageObject messageObject) {
-        return getAutoReplyPresetTopicId(messageObject) != 0;
-    }
-
-    private int getAutoReplyPresetTopicId(MessageObject messageObject) {
-        if (messageObject == null || messageObject.messageOwner == null) {
-            return 0;
-        }
-        return AutoReplyManager.getInstance(currentAccount).getAutoReplyTopicId(messageObject.getQuickReplyName(), messageObject.getQuickReplyId());
-    }
-
-    private void persistAutoReplyPresetEditedMessage(MessageObject messageObject) {
-        if (messageObject == null || messageObject.messageOwner == null) {
-            return;
-        }
-        TLRPC.Message newMsg = messageObject.messageOwner;
-        int topicId = getAutoReplyPresetTopicId(messageObject);
-        if (topicId == 0) {
-            return;
-        }
-        newMsg.send_state = MessageObject.MESSAGE_SEND_STATE_SENT;
-        ArrayList<TLRPC.Message> arr = new ArrayList<>();
-        arr.add(newMsg);
-        getMessagesStorage().putMessages(arr, false, true, false, 0, ChatActivity.MODE_QUICK_REPLIES, topicId);
-        AutoReplyManager.getInstance(currentAccount).onLocalPresetMessagesChanged(topicId);
-        processSentMessage(newMsg.id);
     }
 
     private void sendLocation(Location location) {
@@ -4040,12 +3946,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         boolean invert_media = sendMessageParams.invert_media;
         String quick_reply_shortcut = sendMessageParams.quick_reply_shortcut;
         int quick_reply_shortcut_id = sendMessageParams.quick_reply_shortcut_id;
-        int autoReplyPresetTopicId = AutoReplyManager.getInstance(currentAccount).getAutoReplyTopicId(quick_reply_shortcut, quick_reply_shortcut_id);
-        boolean autoReplyPreset = autoReplyPresetTopicId != 0;
-        if (autoReplyPreset) {
-            quick_reply_shortcut_id = autoReplyPresetTopicId;
-            sendMessageParams.quick_reply_shortcut_id = autoReplyPresetTopicId;
-        }
         long stars = sendMessageParams.stars;
 
         if (user != null && user.phone == null) {
@@ -4751,7 +4651,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
             if (newMsg.from_id == null) {
                 newMsg.from_id = newMsg.peer_id;
             }
-            newMsg.send_state = autoReplyPreset ? MessageObject.MESSAGE_SEND_STATE_SENT : MessageObject.MESSAGE_SEND_STATE_SENDING;
+            newMsg.send_state = MessageObject.MESSAGE_SEND_STATE_SENDING;
             newMsg.errorAllowedPriceStars = 0;
             newMsg.errorNewPriceStars = 0;
             if (payStars > 0) {
@@ -4769,12 +4669,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                     newMsg.flags |= 131072;
                 }
                 isFinalGroupMedia = params.get("final") != null;
-            }
-            if (autoReplyPreset) {
-                groupId = 0;
-                isFinalGroupMedia = false;
-                newMsg.grouped_id = 0;
-                newMsg.flags &= ~131072;
             }
 
             if (stars > 0) {
@@ -4834,11 +4728,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                 MessagesController.getInstance(currentAccount).updateInterfaceWithMessages(peer, objArr, mode);
                 if (scheduleDate == 0) {
                     NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.dialogsNeedReload);
-                }
-                if (autoReplyPreset) {
-                    AutoReplyManager.getInstance(currentAccount).onLocalPresetMessagesChanged(quick_reply_shortcut_id);
-                    processSentMessage(newMsg.id);
-                    return;
                 }
             } else {
                 String key = "group_" + groupId;
@@ -7685,9 +7574,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                             newMsgObj.send_state = MessageObject.MESSAGE_SEND_STATE_SENT;
                             newMsgObj.errorNewPriceStars = 0;
                             newMsgObj.errorAllowedPriceStars = 0;
-                            if (!currentSchedule) {
-                                AutoReactionManager.getInstance(currentAccount).processSentMessage(msgObj);
-                            }
                             if (scheduled != currentSchedule) {
                                 final boolean finalCurrentSchedule = currentSchedule;
                                 ArrayList<Integer> messageIds = new ArrayList<>();

@@ -1,5 +1,4 @@
-// Copyright (c) 2014, Google Inc.
-// All rights reserved.
+// Copyright 2014 Google LLC
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -11,7 +10,7 @@
 // copyright notice, this list of conditions and the following disclaimer
 // in the documentation and/or other materials provided with the
 // distribution.
-//     * Neither the name of Google Inc. nor the names of its
+//     * Neither the name of Google LLC nor the names of its
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -40,9 +39,10 @@
 
 namespace google_breakpad {
 
+class Microdump;
 class ProcessState;
 class StackFrameSymbolizer;
- 
+
 class MicrodumpProcessor {
  public:
   // Initializes the MicrodumpProcessor with a stack frame symbolizer.
@@ -52,7 +52,7 @@ class MicrodumpProcessor {
   virtual ~MicrodumpProcessor();
 
   // Processes the microdump contents and fills process_state with the result.
-  google_breakpad::ProcessResult Process(const string& microdump_contents,
+  google_breakpad::ProcessResult Process(Microdump* microdump,
                                          ProcessState* process_state);
  private:
   StackFrameSymbolizer* frame_symbolizer_;

@@ -19,6 +19,8 @@ import androidx.annotation.NonNull;
 
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.SkinMetal;
+import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.ScaleStateListAnimator;
@@ -48,6 +50,12 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
         R.drawable.input_gift_s,
         R.drawable.input_message,
         R.drawable.msg_help
+    };
+    private static final @DrawableRes int[] skinButtonIcons = new int[] {
+        org.telegram.skin.R.drawable.skin_side_search,
+        org.telegram.skin.R.drawable.skin_input_gift,
+        org.telegram.skin.R.drawable.skin_search_chat,
+        org.telegram.skin.R.drawable.skin_side_info
     };
     private static final int[] buttonsOrderLeft = new int[] {
         BUTTON_SEARCH
@@ -113,7 +121,7 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
                 blurredBackgroundDrawableViewFactory,
                 colorProvider,
                 resourcesProvider,
-                buttonIcons[buttonId],
+                (SkinSwitch.CHAT_FRAME ? skinButtonIcons : buttonIcons)[buttonId],
                 48
             );
 
@@ -343,15 +351,23 @@ public class ChatActivityChannelButtonsLayout extends FrameLayout implements Fac
                 getMeasuredWidth() - dp(10) - totalWidthRight,
                 getMeasuredHeight() - dp(9)
             );
-            backgroundAccentPaint.setColor(accentColor);
-            backgroundAccentPaint.setAlpha(accentAlpha);
-            canvas.drawRoundRect(tmpRect, dp(19), dp(19), backgroundAccentPaint);
+            if (skinPorcelain) {
+                SkinMetal.drawPorcelain(canvas, tmpRect, dp(15),
+                    SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider)), true, accentAlpha / 255f);
+            } else {
+                backgroundAccentPaint.setColor(accentColor);
+                backgroundAccentPaint.setAlpha(accentAlpha);
+                canvas.drawRoundRect(tmpRect, dp(19), dp(19), backgroundAccentPaint);
+            }
         }
 
         super.dispatchDraw(canvas);
     }
 
     private int accentColor = 0;
+
+    /** Draws the accent key as the skin's celadon porcelain instead of a filled accent colour. */
+    public boolean skinPorcelain;
 
     public void setAccentColor(int accentColor) {
         this.accentColor = accentColor;

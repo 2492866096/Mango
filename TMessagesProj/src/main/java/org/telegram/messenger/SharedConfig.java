@@ -38,6 +38,7 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.SwipeGestureSettingsView;
 import org.telegram.ui.LaunchActivity;
+import org.telegram.ui.SkinSwitch;
 
 import java.io.File;
 import java.io.RandomAccessFile;
@@ -83,12 +84,6 @@ public class SharedConfig {
     private static final String PREF_AUTO_TRANSLATE_MESSAGES = "autoTranslateMessagesEnabled";
     private static final String PREF_DIALOG_ROW_HEIGHT_PERCENT = "dialogRowHeightPercent";
     private static final String PREF_TRANSLATION_DISPLAY_MODE = "translationDisplayMode";
-    private static final String PREF_AUTO_REACTION_ENABLED = "autoReactionEnabled";
-    private static final String PREF_AUTO_REACTION_EMOJI = "autoReactionEmoji";
-    private static final String PREF_AUTO_REACTION_TARGET = "autoReactionTarget";
-    private static final String PREF_AUTO_REACTION_USERS_PREFIX = "autoReactionUsers_";
-    private static final String PREF_CHANNEL_FEED_ENABLED = "channelFeedEnabled";
-    private static final String PREF_CHANNEL_FEED_CUSTOM_ENTRIES = "channelFeedCustomEntries";
     private static final String PREF_UNLIMITED_CHANNEL_JOIN_ENABLED = "unlimitedChannelJoinEnabled";
     private static final String PREF_UNLIMITED_DIALOG_FILTERS_ENABLED = "unlimitedDialogFiltersEnabled";
     private static final String PREF_LOCAL_HOLD_VERIFICATION_ENABLED = "localHoldVerificationEnabled";
@@ -110,10 +105,6 @@ public class SharedConfig {
     public static final int[] MESSAGE_TEXT_SIZES = {12, 14, 16, 18, 20, 22, 24, 26, 28, 30};
     public static final int TRANSLATION_DISPLAY_TRANSLATED_ONLY = 0;
     public static final int TRANSLATION_DISPLAY_ORIGINAL_AND_TRANSLATED = 1;
-    public static final int AUTO_REACTION_TARGET_INCOMING = 0;
-    public static final int AUTO_REACTION_TARGET_OUTGOING = 1;
-    public static final int AUTO_REACTION_TARGET_BOTH = 2;
-    public static final String CHANNEL_FEED_URL = "https://1812652903.v.123pan.cn/1812652903/GY/PDL.txt";
 
     /**
      * V2: Ping and check time serialized
@@ -568,6 +559,10 @@ public class SharedConfig {
         return MessagesController.getGlobalMainSettings().getBoolean(PREF_VPN_PROXY_AUTO_SWITCH_ENABLED, true);
     }
 
+    public static boolean isVpnProxyAutoSwitchSetByUser() {
+        return MessagesController.getGlobalMainSettings().contains(PREF_VPN_PROXY_AUTO_SWITCH_ENABLED);
+    }
+
     public static void setVpnProxyAutoSwitchEnabled(boolean enabled) {
         MessagesController.getGlobalMainSettings().edit().putBoolean(PREF_VPN_PROXY_AUTO_SWITCH_ENABLED, enabled).apply();
     }
@@ -874,200 +869,6 @@ public class SharedConfig {
                     .getSharedPreferences("userconfing", Context.MODE_PRIVATE)
                     .edit()
                     .putInt(PREF_TRANSLATION_DISPLAY_MODE, translationDisplayMode)
-                    .apply();
-        }
-    }
-
-    public static boolean isAutoReactionEnabled() {
-        return autoReactionEnabled;
-    }
-
-    public static void setAutoReactionEnabled(boolean enabled) {
-        autoReactionEnabled = enabled;
-        saveExtensionPreference(PREF_AUTO_REACTION_ENABLED, enabled);
-    }
-
-    public static String getAutoReactionEmoji() {
-        return TextUtils.isEmpty(autoReactionEmoji) ? "\uD83D\uDC4D" : autoReactionEmoji;
-    }
-
-    public static void setAutoReactionEmoji(String emoji) {
-        autoReactionEmoji = TextUtils.isEmpty(emoji) ? "\uD83D\uDC4D" : emoji.trim();
-        if (ApplicationLoader.applicationContext != null) {
-            ApplicationLoader.applicationContext
-                    .getSharedPreferences("userconfing", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString(PREF_AUTO_REACTION_EMOJI, autoReactionEmoji)
-                    .apply();
-        }
-    }
-
-    public static int getAutoReactionTarget() {
-        if (autoReactionTarget < AUTO_REACTION_TARGET_INCOMING || autoReactionTarget > AUTO_REACTION_TARGET_BOTH) {
-            return AUTO_REACTION_TARGET_INCOMING;
-        }
-        return autoReactionTarget;
-    }
-
-    public static void setAutoReactionTarget(int target) {
-        if (target < AUTO_REACTION_TARGET_INCOMING || target > AUTO_REACTION_TARGET_BOTH) {
-            target = AUTO_REACTION_TARGET_INCOMING;
-        }
-        autoReactionTarget = target;
-        if (ApplicationLoader.applicationContext != null) {
-            ApplicationLoader.applicationContext
-                    .getSharedPreferences("userconfing", Context.MODE_PRIVATE)
-                    .edit()
-                    .putInt(PREF_AUTO_REACTION_TARGET, autoReactionTarget)
-                    .apply();
-        }
-    }
-
-    public static HashSet<Long> getAutoReactionUserIds(int account) {
-        HashSet<Long> result = new HashSet<>();
-        if (ApplicationLoader.applicationContext == null) {
-            return result;
-        }
-        Set<String> values = ApplicationLoader.applicationContext
-                .getSharedPreferences("userconfing", Context.MODE_PRIVATE)
-                .getStringSet(PREF_AUTO_REACTION_USERS_PREFIX + account, null);
-        if (values == null) {
-            return result;
-        }
-        for (String value : values) {
-            try {
-                long userId = Long.parseLong(value);
-                if (userId > 0) {
-                    result.add(userId);
-                }
-            } catch (Exception ignore) {
-            }
-        }
-        return result;
-    }
-
-    public static void setAutoReactionUserIds(int account, Collection<Long> userIds) {
-        if (ApplicationLoader.applicationContext == null) {
-            return;
-        }
-        HashSet<String> values = new HashSet<>();
-        if (userIds != null) {
-            for (Long userId : userIds) {
-                if (userId != null && userId > 0) {
-                    values.add(String.valueOf(userId));
-                }
-            }
-        }
-        ApplicationLoader.applicationContext
-                .getSharedPreferences("userconfing", Context.MODE_PRIVATE)
-                .edit()
-                .putStringSet(PREF_AUTO_REACTION_USERS_PREFIX + account, values)
-                .apply();
-    }
-
-    public static boolean isAutoReactionUserAllowed(int account, long userId) {
-        HashSet<Long> selectedUsers = getAutoReactionUserIds(account);
-        return selectedUsers.isEmpty() || selectedUsers.contains(userId);
-    }
-
-    public static boolean isChannelFeedEnabled() {
-        return channelFeedEnabled;
-    }
-
-    public static void setChannelFeedEnabled(boolean enabled) {
-        channelFeedEnabled = enabled;
-        saveExtensionPreference(PREF_CHANNEL_FEED_ENABLED, enabled);
-    }
-
-    public static ArrayList<String> getCustomChannelFeedEntries() {
-        ArrayList<String> entries = new ArrayList<>();
-        if (TextUtils.isEmpty(channelFeedCustomEntries)) {
-            return entries;
-        }
-        String[] lines = channelFeedCustomEntries.split("\\n");
-        HashSet<String> seen = new HashSet<>();
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i] == null ? "" : lines[i].trim();
-            if (TextUtils.isEmpty(line)) {
-                continue;
-            }
-            String key = line.toLowerCase(Locale.US);
-            if (seen.add(key)) {
-                entries.add(line);
-            }
-        }
-        return entries;
-    }
-
-    public static boolean addCustomChannelFeedEntry(String entry) {
-        String value = sanitizeChannelFeedEntry(entry);
-        if (TextUtils.isEmpty(value)) {
-            return false;
-        }
-        ArrayList<String> entries = getCustomChannelFeedEntries();
-        String key = value.toLowerCase(Locale.US);
-        for (int i = 0; i < entries.size(); i++) {
-            if (key.equals(entries.get(i).toLowerCase(Locale.US))) {
-                return false;
-            }
-        }
-        entries.add(value);
-        saveCustomChannelFeedEntries(entries);
-        return true;
-    }
-
-    public static boolean removeCustomChannelFeedEntry(String entry) {
-        String value = sanitizeChannelFeedEntry(entry);
-        if (TextUtils.isEmpty(value)) {
-            return false;
-        }
-        ArrayList<String> entries = getCustomChannelFeedEntries();
-        String key = value.toLowerCase(Locale.US);
-        boolean removed = false;
-        for (int i = entries.size() - 1; i >= 0; i--) {
-            if (key.equals(entries.get(i).toLowerCase(Locale.US))) {
-                entries.remove(i);
-                removed = true;
-            }
-        }
-        if (removed) {
-            saveCustomChannelFeedEntries(entries);
-        }
-        return removed;
-    }
-
-    private static String sanitizeChannelFeedEntry(String entry) {
-        if (entry == null) {
-            return "";
-        }
-        return entry.replace('\n', ' ').replace('\r', ' ').trim();
-    }
-
-    private static void saveCustomChannelFeedEntries(ArrayList<String> entries) {
-        StringBuilder builder = new StringBuilder();
-        if (entries != null) {
-            HashSet<String> seen = new HashSet<>();
-            for (int i = 0; i < entries.size(); i++) {
-                String entry = sanitizeChannelFeedEntry(entries.get(i));
-                if (TextUtils.isEmpty(entry)) {
-                    continue;
-                }
-                String key = entry.toLowerCase(Locale.US);
-                if (!seen.add(key)) {
-                    continue;
-                }
-                if (builder.length() > 0) {
-                    builder.append('\n');
-                }
-                builder.append(entry);
-            }
-        }
-        channelFeedCustomEntries = builder.toString();
-        if (ApplicationLoader.applicationContext != null) {
-            ApplicationLoader.applicationContext
-                    .getSharedPreferences("userconfing", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString(PREF_CHANNEL_FEED_CUSTOM_ENTRIES, channelFeedCustomEntries)
                     .apply();
         }
     }
@@ -1801,7 +1602,9 @@ public class SharedConfig {
     public static boolean useSystemBoldFont;
     public static int fontSize = 16;
 	public static boolean fontSizeIsDefault;
-	public static int bubbleRadius = 17;
+	/** Message bubble corner radius in dp; the skin's bubbles are rounder by default. */
+	public static final int DEFAULT_BUBBLE_RADIUS = SkinSwitch.CHAT_FRAME ? 20 : 17;
+	public static int bubbleRadius = DEFAULT_BUBBLE_RADIUS;
 	public static int bubbleOpacity = 100;
 	public static int ivFontSize = 16;
     public static boolean proxyRotationEnabled;
@@ -1818,11 +1621,6 @@ public class SharedConfig {
     public static boolean autoTranslateMessages = false;
     public static int dialogRowHeightPercent = 100;
     public static int translationDisplayMode = TRANSLATION_DISPLAY_TRANSLATED_ONLY;
-    public static boolean autoReactionEnabled = true;
-    public static String autoReactionEmoji = "\uD83D\uDC4D";
-    public static int autoReactionTarget = AUTO_REACTION_TARGET_INCOMING;
-    public static boolean channelFeedEnabled = true;
-    public static String channelFeedCustomEntries = "";
     public static boolean unlimitedChannelJoinEnabled = true;
     public static boolean unlimitedDialogFiltersEnabled = true;
     public static boolean localHoldVerificationEnabled = true;
@@ -2000,11 +1798,6 @@ public class SharedConfig {
                 editor.putBoolean(PREF_AUTO_TRANSLATE_MESSAGES, autoTranslateMessages);
                 editor.putInt(PREF_DIALOG_ROW_HEIGHT_PERCENT, getDialogRowHeightPercent());
                 editor.putInt(PREF_TRANSLATION_DISPLAY_MODE, getTranslationDisplayMode());
-                editor.putBoolean(PREF_AUTO_REACTION_ENABLED, autoReactionEnabled);
-                editor.putString(PREF_AUTO_REACTION_EMOJI, getAutoReactionEmoji());
-                editor.putInt(PREF_AUTO_REACTION_TARGET, getAutoReactionTarget());
-                editor.putBoolean(PREF_CHANNEL_FEED_ENABLED, channelFeedEnabled);
-                editor.putString(PREF_CHANNEL_FEED_CUSTOM_ENTRIES, channelFeedCustomEntries == null ? "" : channelFeedCustomEntries);
                 editor.putBoolean(PREF_UNLIMITED_CHANNEL_JOIN_ENABLED, unlimitedChannelJoinEnabled);
                 editor.putBoolean(PREF_UNLIMITED_DIALOG_FILTERS_ENABLED, unlimitedDialogFiltersEnabled);
                 editor.putBoolean(PREF_LOCAL_HOLD_VERIFICATION_ENABLED, localHoldVerificationEnabled);
@@ -2094,11 +1887,6 @@ public class SharedConfig {
             autoTranslateMessages = false;
             dialogRowHeightPercent = sanitizeDialogRowHeightPercent(preferences.getInt(PREF_DIALOG_ROW_HEIGHT_PERCENT, 100));
             translationDisplayMode = preferences.getInt(PREF_TRANSLATION_DISPLAY_MODE, TRANSLATION_DISPLAY_TRANSLATED_ONLY) == TRANSLATION_DISPLAY_ORIGINAL_AND_TRANSLATED ? TRANSLATION_DISPLAY_ORIGINAL_AND_TRANSLATED : TRANSLATION_DISPLAY_TRANSLATED_ONLY;
-            autoReactionEnabled = preferences.getBoolean(PREF_AUTO_REACTION_ENABLED, true);
-            autoReactionEmoji = preferences.getString(PREF_AUTO_REACTION_EMOJI, "\uD83D\uDC4D");
-            autoReactionTarget = preferences.getInt(PREF_AUTO_REACTION_TARGET, AUTO_REACTION_TARGET_INCOMING);
-            channelFeedEnabled = preferences.getBoolean(PREF_CHANNEL_FEED_ENABLED, true);
-            channelFeedCustomEntries = preferences.getString(PREF_CHANNEL_FEED_CUSTOM_ENTRIES, "");
             unlimitedChannelJoinEnabled = preferences.getBoolean(PREF_UNLIMITED_CHANNEL_JOIN_ENABLED, true);
             unlimitedDialogFiltersEnabled = preferences.getBoolean(PREF_UNLIMITED_DIALOG_FILTERS_ENABLED, true);
             localHoldVerificationEnabled = preferences.getBoolean(PREF_LOCAL_HOLD_VERIFICATION_ENABLED, true);
@@ -2182,7 +1970,7 @@ public class SharedConfig {
             repeatMode = preferences.getInt("repeatMode", 0);
 	        fontSize = preferences.getInt("fons_size", AndroidUtilities.isTablet() ? 18 : 16);
 	        fontSizeIsDefault = !preferences.contains("fons_size");
-	        bubbleRadius = preferences.getInt("bubbleRadius", 17);
+	        bubbleRadius = preferences.getInt("bubbleRadius", DEFAULT_BUBBLE_RADIUS);
 	        bubbleOpacity = Math.max(30, Math.min(100, preferences.getInt("bubbleOpacity", 100)));
 	        ivFontSize = preferences.getInt("iv_font_size", fontSize);
             allowBigEmoji = preferences.getBoolean("allowBigEmoji", true);

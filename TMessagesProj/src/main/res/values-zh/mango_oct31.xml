@@ -2,8 +2,6 @@
 <resources>
     <string name="MangoHideProxyIcon">隐藏代理图标</string>
     <string name="MangoHideProxyIconInfo">隐藏对话列表右上角的代理图标，可继续在设置中管理代理。</string>
-    <string name="MangoDisablePullSearch">禁止下拉展开搜索框</string>
-    <string name="MangoDisablePullSearchInfo">下拉对话列表时不展开搜索框，仍可点击搜索按钮。</string>
     <string name="MangoCollapseMessageMenu">折叠消息功能菜单</string>
     <string name="MangoCollapseMessageMenuInfo">消息菜单默认只显示前半部分，点击更多功能展开其余操作。</string>
     <string name="MangoMessageMenuMore">更多功能</string>

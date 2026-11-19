@@ -18,13 +18,13 @@ public class MangoSettingsTest {
         MangoSettings.restore(0, history.get(0));
         check(!MangoSettings.getBoolean(0, "confirm_send"), "undo takes effect immediately");
         check(MangoSettings.getHistory(0).size() == 2, "undo itself is audited");
-        check(MangoSettings.getBoolean(0, "scam_users_enabled", true), "default-enabled preference starts enabled");
-        MangoSettings.setBoolean(0, "scam_users_enabled", false);
-        check(!MangoSettings.getBoolean(0, "scam_users_enabled", true), "first explicit false overrides true fallback");
+        check(MangoSettings.getBoolean(0, "cross_account_inbox", true), "default-enabled preference starts enabled");
+        MangoSettings.setBoolean(0, "cross_account_inbox", false);
+        check(!MangoSettings.getBoolean(0, "cross_account_inbox", true), "first explicit false overrides true fallback");
         MangoSettings.Change disabled = MangoSettings.getHistory(0).get(0);
         check(org.json.JSONObject.NULL.equals(disabled.before) && Boolean.FALSE.equals(disabled.after), "default-enabled initial disable is audited");
         MangoSettings.restore(0, disabled);
-        check(MangoSettings.getBoolean(0, "scam_users_enabled", true), "undo first disable restores true fallback");
+        check(MangoSettings.getBoolean(0, "cross_account_inbox", true), "undo first disable restores true fallback");
         MangoSettings.setBoolean(0, "hide_stories", true);
         check(NotificationCenter.counts[2] == 1 && NotificationCenter.counts[3] == 1, "story visibility invalidation");
         check(!MangoSettings.getBoolean(1, "hide_stories"), "account slots isolated even for same owner");

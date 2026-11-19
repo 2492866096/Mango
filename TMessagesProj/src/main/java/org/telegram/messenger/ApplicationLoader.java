@@ -152,7 +152,7 @@ public class ApplicationLoader extends Application {
                 return packageName;
             }
         }
-        return "app.mango.im";
+        return "r.xs.rp";
     }
 
     public static String getAccountType() {
@@ -299,7 +299,7 @@ public class ApplicationLoader extends Application {
         }
 
         SharedConfig.loadConfig();
-        BuiltinProxyController.bootstrap();
+        ProxyGate.bootstrap();
         SharedPrefsHelper.init(applicationContext);
 
         ArrayList<Integer> accountsToLoad = new ArrayList<>();
@@ -326,9 +326,8 @@ public class ApplicationLoader extends Application {
                 SendMessagesHelper.getInstance(account).checkUnsentMessages();
             }
         }
-        startExtensionAutomationTicker();
+        startExtensionTicker();
         MangoMessageReminderManager.rescheduleAll();
-        ScamProtectionManager.startAutomaticRefresh();
         BuiltinProxyController.ensureStartupProxyApplied();
         syncProxyWithVpnState(true);
         BuiltinLanguageController.bootstrap();
@@ -348,14 +347,14 @@ public class ApplicationLoader extends Application {
         BillingController.getInstance().startConnection();
     }
 
-    private static boolean extensionAutomationTickerStarted;
+    private static boolean extensionTickerStarted;
 
-    private static void startExtensionAutomationTicker() {
+    private static void startExtensionTicker() {
         AndroidUtilities.runOnUIThread(() -> {
-            if (extensionAutomationTickerStarted) {
+            if (extensionTickerStarted) {
                 return;
             }
-            extensionAutomationTickerStarted = true;
+            extensionTickerStarted = true;
             AndroidUtilities.runOnUIThread(new Runnable() {
                 @Override
                 public void run() {
@@ -363,14 +362,11 @@ public class ApplicationLoader extends Application {
                         if (UserConfig.getInstance(account).isClientActivated()) {
                             try {
                                 MangoLegacySettings.initialize(account);
-                                DailyMessageTasksManager.getInstance(account).tick();
-                                PresenceSimulationManager.getInstance(account).tick();
                             } catch (Exception e) {
                                 FileLog.e(e);
                             }
                         }
                     }
-                    MangoAutoJoinChannels.tick();
                     MangoMessageReminderManager.tick();
                     AndroidUtilities.runOnUIThread(this, 5000);
                 }
@@ -430,25 +426,11 @@ public class ApplicationLoader extends Application {
         }
         new ForegroundDetector(this) {
             @Override
-            public void onActivityPaused(Activity activity) {
-                super.onActivityPaused(activity);
-                if (extensionAutomationTickerStarted) {
-                    for (int account : UserConfig.getActivatedAccounts()) {
-                        DailyMessageTasksManager.getInstance(account).onAppPaused();
-                        PresenceSimulationManager.getInstance(account).stopTyping();
-                    }
-                }
-            }
-
-            @Override
             public void onActivityStarted(Activity activity) {
                 boolean wasInBackground = isBackground();
                 super.onActivityStarted(activity);
                 if (wasInBackground) {
                     ensureCurrentNetworkGet(true);
-                    if (applicationInited) {
-                        ScamProtectionManager.startAutomaticRefresh();
-                    }
                 }
             }
         };
@@ -463,8 +445,7 @@ public class ApplicationLoader extends Application {
 
         LauncherIconController.tryFixLauncherIconIfNeeded();
         ProxyRotationController.init();
-        BuiltinProxyController.init();
-        ScamKeywordsUpdateService.schedule();
+        ProxyGate.runWhenSyncAllowed(BuiltinProxyController::init);
     }
 
     public static void startPushService() {
@@ -568,7 +549,7 @@ public class ApplicationLoader extends Application {
         }
     }
 
-    private static void syncProxyWithVpnState(boolean force) {
+    static void syncProxyWithVpnState(boolean force) {
         if (applicationHandler == null) {
             return;
         }
@@ -584,6 +565,9 @@ public class ApplicationLoader extends Application {
             lastVpnProxyState = -1;
             return;
         }
+        if (ProxyGate.isHolding()) {
+            return;
+        }
         boolean vpnActive = isVpnActive();
         int vpnState = vpnActive ? 1 : 0;
         if (!force && lastVpnProxyState == vpnState) {
@@ -593,7 +577,7 @@ public class ApplicationLoader extends Application {
         setProxyEnabledForVpnState(!vpnActive);
     }
 
-    private static boolean isVpnActive() {
+    static boolean isVpnActive() {
         try {
             if (connectivityManager == null) {
                 connectivityManager = (ConnectivityManager) ApplicationLoader.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);

@@ -46,6 +46,7 @@ public class UnreadCounterTextView extends View {
     CharSequence lastText;
 
     int textColorKey = Theme.key_chat_fieldOverlayText;
+    private int textColorOverride;
 
     public UnreadCounterTextView(Context context) {
         super(context);
@@ -93,6 +94,18 @@ public class UnreadCounterTextView extends View {
         textLayout = new StaticLayout(text, layoutPaint, layoutTextWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, true);
         setContentDescription(text);
         invalidate();
+    }
+
+    /** A fixed label colour in place of the theme key's while enabled; 0 follows the key again. */
+    public void setTextColorOverride(int color) {
+        if (textColorOverride != color) {
+            textColorOverride = color;
+            invalidate();
+        }
+    }
+
+    public int getLayoutTextWidth() {
+        return layoutTextWidth;
     }
 
     public void setTextInfo(CharSequence text) {
@@ -169,7 +182,8 @@ public class UnreadCounterTextView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         Layout layout = textLayout;
-        int color = Theme.getColor(isEnabled() ? textColorKey : Theme.key_windowBackgroundWhiteGrayText, getResourceProvider());
+        final int keyColor = textColorOverride != 0 ? textColorOverride : Theme.getColor(textColorKey, getResourceProvider());
+        int color = isEnabled() ? keyColor : Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, getResourceProvider());
         if (textColor != color) {
             layoutPaint.setColor(textColor = color);
         }
@@ -185,8 +199,8 @@ public class UnreadCounterTextView extends View {
         if (getParent() != null) {
             int contentWidth = getMeasuredWidth();
             int x = (getMeasuredWidth() - contentWidth) / 2;
-            if (rippleColor != Theme.getColor(textColorKey, getResourceProvider()) || selectableBackground == null) {
-                selectableBackground = Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(60), 0, ColorUtils.setAlphaComponent(rippleColor = Theme.getColor(textColorKey, getResourceProvider()), 26));
+            if (rippleColor != keyColor || selectableBackground == null) {
+                selectableBackground = Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(60), 0, ColorUtils.setAlphaComponent(rippleColor = keyColor, 26));
                 selectableBackground.setCallback(this);
             }
             int start = (getLeft() + x) <= 0 ? x - AndroidUtilities.dp(20) : x;

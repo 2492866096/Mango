@@ -26,9 +26,9 @@ layout_methods = '\n'.join(block(layout, marker) for marker in (
     '    public boolean startReordering(', '    private void moveDraggedTab(',
     '    private void applyDragTransform(', '    private void finishReordering('))
 dialog_methods = '\n'.join(block(dialogs, marker) for marker in (
-    '    private boolean isPullDownSearchDisabled(', '    private int getPullDownSearchHeight(',
     '    private int getMaxScrollYOffsetWithoutSearch(', '    private int getMaxScrollYOffset(',
-    '    private void updateProxyIconVisibility(', '    private void checkUi_searchFieldVisibility('))
+    '    private void updateProxyIconVisibility(', '    private void checkUi_itemProxyVisibility(',
+    '    private void checkUi_searchFieldVisibility('))
 fixture = '''
 import java.util.*;
 import org.telegram.messenger.MainTabsOrder;
@@ -60,10 +60,11 @@ public class MainTabsRegression {
  }
  static class MangoSettings {static boolean hidden;static boolean getBoolean(int a,String k,boolean d){return hidden;}}
  static class DialogStoriesCell {static int HEIGHT_IN_DP=80;}
+ static class FragmentFloatingButton {static void setAnimatedVisibility(View v,float f){if(v==null)return;v.setAlpha(f);v.setScaleX(f);v.setScaleY(f);v.setVisibility(f>0?View.VISIBLE:View.GONE);}}
  static class MathUtils {static float clamp(float n,float min,float max){return Math.max(min,Math.min(max,n));}}
  static class Animator {float value;boolean bool;float getFloatValue(){return value;}void setValue(boolean b,boolean a){bool=b;}}
  static class DialogHarness {
-  boolean pullDownSearchDisabled,hasStories;int currentAccount;float scrollYOffset,progressToActionMode;
+  boolean hasStories,proxyIconHidden;int currentAccount;float scrollYOffset,progressToActionMode;
   static final int SEARCH_FIELD_HEIGHT=48;
   View proxyItem=new View(),fragmentSearchField=new View();
   Animator animatorActionModeVisible=new Animator(),animatorSearchVisible=new Animator(),animatorDoneButtonVisible=new Animator(),animatorSearchButtonVisible=new Animator();
@@ -87,11 +88,11 @@ public class MainTabsRegression {
   h.pointerId=-1;h.startReordering(h.children.get(0));check(legacyCount[0]==2,"accessibility long click preserves shortcut");
   check(h.draggedTab==null&&h.children.get(0).z==0,"release restores drag state");
   h.setTabOrder(new int[]{2,0,3,1});order(h.order(),2,0,3,1);
-  DialogHarness d=new DialogHarness();check(d.getPullDownSearchHeight()==48,"default search space retained");
-  d.pullDownSearchDisabled=true;check(d.getPullDownSearchHeight()==0&&d.getMaxScrollYOffset()==0,"disabled pull has no empty gap");
-  d.hasStories=true;check(d.getMaxScrollYOffset()==80,"stories remain scrollable without search extension");
-  d.checkUi_searchFieldVisibility();check(d.fragmentSearchField.visibility==View.GONE&&d.animatorSearchButtonVisible.bool,"disabled passive search leaves explicit search button");
+  DialogHarness d=new DialogHarness();check(d.getMaxScrollYOffset()==48,"the search field scrolls away above the list");
+  d.hasStories=true;check(d.getMaxScrollYOffset()==128,"stories and search scroll away together");
   d.animatorSearchVisible.value=1;d.checkUi_searchFieldVisibility();check(d.fragmentSearchField.visibility==View.VISIBLE&&d.fragmentSearchField.alpha==1,"explicit search still opens input");
+  MangoSettings.hidden=false;d.updateProxyIconVisibility();check(d.proxyItem.visibility==View.GONE,"proxy key folds away while searching");
+  d.animatorSearchVisible.value=0;d.updateProxyIconVisibility();check(d.proxyItem.visibility==View.VISIBLE&&d.proxyItem.alpha==1,"proxy key back after search");
   MangoSettings.hidden=true;d.updateProxyIconVisibility();check(d.proxyItem.visibility==View.GONE,"hide proxy icon");
   MangoSettings.hidden=false;d.updateProxyIconVisibility();check(d.proxyItem.visibility==View.VISIBLE,"restore proxy icon");
   System.out.println("PASS: "+checks+" tab ordering/drag and dialog visibility checks");
@@ -108,6 +109,6 @@ assert 'MangoSettings.setString(currentAccount, MainTabsOrder.SETTING_KEY' in ac
 assert 'MangoSettings.getString(currentAccount, MainTabsOrder.SETTING_KEY' in activity
 assert 'tabsView.startReordering(v)' in activity
 assert 'setOnClickListener(v -> {\n            showSearch(true, false, true);' in dialogs
-assert 'if (mask == 0) applyExtensionAppearance();' in dialogs
+assert 'if (mask == 0) updateProxyIconVisibility();' in dialogs
 assert 'cancel.setAction(MotionEvent.ACTION_CANCEL)' in layout
 print('PASS: 6 settings/gesture wiring checks')

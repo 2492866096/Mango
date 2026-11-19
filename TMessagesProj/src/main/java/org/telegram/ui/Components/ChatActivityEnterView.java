@@ -167,7 +167,16 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.BasePermissionsActivity;
 import org.telegram.ui.Business.BusinessLinksController;
 import org.telegram.ui.Business.QuickRepliesController;
+import org.telegram.skin.motion.SkinHaptics;
+import org.telegram.skin.motion.SkinMotion;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ChatActivity;
+import org.telegram.ui.SkinKeys;
+import org.telegram.ui.SkinLed;
+import org.telegram.ui.SkinMetal;
+import org.telegram.ui.SkinSpring;
+import org.telegram.ui.SkinStyle;
+import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Components.Forum.ForumUtilities;
 import org.telegram.ui.Components.Premium.PremiumFeatureBottomSheet;
 import org.telegram.ui.Components.Premium.boosts.BoostRepository;
@@ -507,6 +516,13 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void setText(CharSequence text) {
+            if (skin) {
+                final CharSequence old = textView.getText();
+                if (old != null && old.length() > 0 && text != null && !TextUtils.equals(old, text) && !SkinMotion.reduced()) {
+                    skinRollFrom = old.toString();
+                    skinRollStart = SystemClock.uptimeMillis();
+                }
+            }
             textView.setText(text);
             invalidate();
         }
@@ -516,12 +532,92 @@ public class ChatActivityEnterView extends FrameLayout implements
             invalidate();
         }
 
+        private Theme.ResourcesProvider skinResources;
+        private boolean skin;
+        private TextPaint skinTextPaint;
+        private String skinRollFrom;
+        private long skinRollStart;
+
+        /**
+         * The countdown turning to its next second like a counter's drums: only
+         * the digits that change roll up out of the cap while the new ones come
+         * up from below. A figure that changes length rolls over whole.
+         */
+        private void drawSkinRoll(Canvas canvas, String figure, String from, float cx, float baseline, float cap, float p) {
+            final float shift = skinTextPaint.getTextSize() * 1.1f;
+            canvas.save();
+            canvas.clipRect(cx - cap, baseline - shift, cx + cap, baseline + shift * 0.4f);
+            final int alpha = skinTextPaint.getAlpha();
+            if (figure.length() != from.length()) {
+                skinTextPaint.setAlpha((int) (alpha * (1f - p)));
+                canvas.drawText(from, cx, baseline - shift * p, skinTextPaint);
+                skinTextPaint.setAlpha((int) (alpha * p));
+                canvas.drawText(figure, cx, baseline + shift * (1f - p), skinTextPaint);
+            } else {
+                final float left = cx - skinTextPaint.measureText(figure) / 2f;
+                for (int i = 0; i < figure.length(); i++) {
+                    final float x = left + skinTextPaint.measureText(figure, 0, i) + skinTextPaint.measureText(figure, i, i + 1) / 2f;
+                    if (figure.charAt(i) == from.charAt(i)) {
+                        skinTextPaint.setAlpha(alpha);
+                        canvas.drawText(figure, i, i + 1, x, baseline, skinTextPaint);
+                    } else {
+                        skinTextPaint.setAlpha((int) (alpha * (1f - p)));
+                        canvas.drawText(from, i, i + 1, x, baseline - shift * p, skinTextPaint);
+                        skinTextPaint.setAlpha((int) (alpha * p));
+                        canvas.drawText(figure, i, i + 1, x, baseline + shift * (1f - p), skinTextPaint);
+                    }
+                }
+            }
+            skinTextPaint.setAlpha(alpha);
+            canvas.restore();
+        }
+
+        /** Shows the countdown on the console's knob, its LED out, in place of Telegram's bare figure. */
+        public void setSkin(Theme.ResourcesProvider resourcesProvider) {
+            skin = true;
+            skinResources = resourcesProvider;
+            skinTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+            skinTextPaint.setTypeface(SkinStyle.numerals(false));
+            skinTextPaint.setTextAlign(Paint.Align.CENTER);
+            invalidate();
+        }
+
         public CharSequence getText() {
             return textView.getText();
         }
 
         @Override
         protected void onDraw(Canvas canvas) {
+            if (skin && !isPremiumMode) {
+                final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, skinResources));
+                final float r = dp(19);
+                final float cx = getMeasuredWidth() - dp(3) - r;
+                final float cy = getMeasuredHeight() - dp(3) - r;
+                SkinMetal.drawKnob(canvas, cx, cy, r, false, m, 1f);
+                final CharSequence text = textView.getText();
+                if (text != null && text.length() > 0) {
+                    // The figure has to sit inside the cap, whose diameter is 0.78 of the knob's.
+                    final String figure = text.toString();
+                    final float room = 2 * r * 0.78f - dp(5);
+                    skinTextPaint.setTextSize(dp(12));
+                    final float width = skinTextPaint.measureText(figure);
+                    if (width > room) {
+                        skinTextPaint.setTextSize(dp(12) * room / width);
+                    }
+                    skinTextPaint.setColor(m.text);
+                    final Paint.FontMetrics fm = skinTextPaint.getFontMetrics();
+                    final float baseline = cy - (fm.ascent + fm.descent) / 2f;
+                    final float roll = skinRollFrom != null ? Math.min(1f, (SystemClock.uptimeMillis() - skinRollStart) / (float) SkinMotion.ROLL_MS) : 1f;
+                    if (roll < 1f) {
+                        drawSkinRoll(canvas, figure, skinRollFrom, cx, baseline, r * 0.78f, SkinMotion.ROLL.getInterpolator().getInterpolation(roll));
+                        invalidate();
+                    } else {
+                        skinRollFrom = null;
+                        canvas.drawText(figure, cx, baseline, skinTextPaint);
+                    }
+                }
+                return;
+            }
             if (isPremiumMode) {
                 canvas.save();
                 int heightRect = dp(26);
@@ -536,6 +632,10 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         @Override
         protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+            if (child == textView && skin && !isPremiumMode) {
+                // The knob carries the figure; see onDraw.
+                return false;
+            }
             if (child instanceof SimpleTextView && isPremiumMode) {
                 SimpleTextView simpleTextView = (SimpleTextView) child;
                 canvas.save();
@@ -971,8 +1071,8 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void updateColors() {
-            int dotColor = getThemedColor(Theme.key_chat_recordedVoiceDot);
-            int background = getThemedColor(Theme.key_chat_messagePanelBackground);
+            int dotColor = skinFrame ? skinMaterials().danger : getThemedColor(Theme.key_chat_recordedVoiceDot);
+            int background = skinFrame ? skinMaterials().sheenMid : getThemedColor(Theme.key_chat_messagePanelBackground);
             redDotPaint.setColor(dotColor);
             drawable.beginApplyLayerColors();
             drawable.setLayerColor("Cup Red.**", dotColor);
@@ -1028,7 +1128,12 @@ public class ChatActivityEnterView extends FrameLayout implements
                 drawable.draw(canvas);
             }
             if (!playing || !drawable.hasBitmap()) {
-                canvas.drawCircle(this.getMeasuredWidth() >> 1, this.getMeasuredHeight() >> 1, dp(5), redDotPaint);
+                if (skinFrame) {
+                    final CanvasMaterials m = skinMaterials();
+                    SkinStyle.drawLed(canvas, getMeasuredWidth() >> 1, getMeasuredHeight() >> 1, dpf2(4), true, m.led, m.textTertiary, alpha);
+                } else {
+                    canvas.drawCircle(this.getMeasuredWidth() >> 1, this.getMeasuredHeight() >> 1, dp(5), redDotPaint);
+                }
             }
             invalidate();
         }
@@ -1056,6 +1161,8 @@ public class ChatActivityEnterView extends FrameLayout implements
     private final Theme.ResourcesProvider resourcesProvider;
 
     private final boolean isChat;
+    /** In a chat screen with the skin on, the bar is the aluminium console: a well for the text, a knob to send. */
+    private final boolean skinFrame;
 
     private Runnable runEmojiPanelAnimation = new Runnable() {
         @Override
@@ -1198,8 +1305,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             radiiRight[0] = radiiRight[1] = radiiRight[6] = radiiRight[7] = 0;
             radiiRight[2] = radiiRight[3] = radiiRight[4] = radiiRight[5] = dp(3);
 
-            micDrawable = getResources().getDrawable(R.drawable.input_mic).mutate();
-            vidDrawable = getResources().getDrawable(R.drawable.input_video).mutate();
+            micDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_mic : R.drawable.input_mic).mutate();
+            vidDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_video : R.drawable.input_video).mutate();
 
             setWillNotDraw(false);
             updateColors();
@@ -1213,6 +1320,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void showPauseHint() {
+            if (skinFrame) {
+                // The pause key sits in plain sight in the console.
+                return;
+            }
             if (MessagesController.getGlobalMainSettings().getInt("voicepausehint", 0) > 3) {
                 return;
             }
@@ -1235,6 +1346,22 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         public void showOnceHint() {
             hideHintView();
+            if (skinFrame) {
+                // The seal is in the console, not beside the latch, so the note comes up from the bottom.
+                if (parentFragment != null) {
+                    final int text;
+                    if (isInVideoMode) {
+                        text = voiceOnce ? R.string.VideoSetOnceHintEnabled : R.string.VideoSetOnceHint;
+                    } else {
+                        text = voiceOnce ? R.string.VoiceSetOnceHintEnabled : R.string.VoiceSetOnceHint;
+                    }
+                    if (!voiceOnce) {
+                        MessagesController.getGlobalMainSettings().edit().putInt("voiceoncehint", MessagesController.getGlobalMainSettings().getInt("voiceoncehint", 0) + 1).apply();
+                    }
+                    BulletinFactory.of(parentFragment).createSimpleBulletin(voiceOnce ? R.raw.fire_on : R.raw.chats_infotip, AndroidUtilities.replaceTags(getString(text))).show();
+                }
+                return;
+            }
             onceHint = new HintView2(getContext(), HintView2.DIRECTION_RIGHT);
             onceHint.setJoint(1, 0);
             onceHint.setMultilineText(true);
@@ -1433,7 +1560,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             float progressToSeekbarStep1 = 0f;
             float progressToSeekbarStep2 = 0;
             float exitProgress2 = 0f;
-            float hidePause = hidePauseT.set(isInVideoMode && millisecondsRecorded >= 59_000);
+            // On the skin the console carries pause and resume once the recording is locked, so the latch folds away.
+            float hidePause = hidePauseT.set(isInVideoMode && millisecondsRecorded >= 59_000 || skinFrame && sendButtonVisible);
 
             if (transformToSeekbar != 0 && audioTimelineView != null) {
                 float step1Time = 0.38f;
@@ -1611,7 +1739,7 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             final float cy = lerp(lockY, getMeasuredHeight() - dp(118), Math.max(exitTransition, Math.min(progressToSeekbarStep1, slideToCancelLockProgress))) + dy + dp(38) * hidePause;
             rectF.set(cx - dpf2(18), cy, cx + dpf2(18), cy + lockSize);
-            onceVisible = delegate != null && delegate.onceVoiceAvailable();
+            onceVisible = !skinFrame && delegate != null && delegate.onceVoiceAvailable();
             if (onceVisible) {
                 final float onceOffset = dpf2(12);
                 rectF.set(
@@ -1701,6 +1829,18 @@ public class ChatActivityEnterView extends FrameLayout implements
 
             micDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock), PorterDuff.Mode.SRC_IN));
             vidDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(useGlassDesign ? Theme.key_glass_defaultIcon : Theme.key_chat_messagePanelVoiceLock), PorterDuff.Mode.SRC_IN));
+
+            if (skinFrame) {
+                // The latch is metal: lock, pause and resume in the metal's ink, the keyhole cut in its face;
+                // the view-once seal fills with celadon glaze when on.
+                final CanvasMaterials m = skinMaterials();
+                periodDrawable.updateColors(m.text, ColorUtils.blendARGB(m.glazeTop, m.glazeBottom, 0.5f), m.porcelainText);
+                lockBackgroundPaint.setColor(m.sheenMid);
+                lockPaint.setColor(m.text);
+                lockOutlinePaint.setColor(m.text);
+                micDrawable.setColorFilter(new PorterDuffColorFilter(m.text, PorterDuff.Mode.SRC_IN));
+                vidDrawable.setColorFilter(new PorterDuffColorFilter(m.text, PorterDuff.Mode.SRC_IN));
+            }
         }
 
         private void scale(RectF rect, float s) {
@@ -1728,65 +1868,11 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             } else if (event.getAction() == MotionEvent.ACTION_UP) {
                 if (pausePressed && pauseRect.contains(x, y)) {
-                    if (isInVideoMode()) {
-                        if (slideText != null) {
-                            slideText.setEnabled(false);
-                        }
-                        delegate.toggleVideoRecordingPause();
-                    } else {
-                        final Runnable resume = () -> {
-                            if (!MediaController.getInstance().isRecordingPaused()) {
-                                MessagesController.getGlobalMainSettings().edit().putInt("voicepausehint", 3).apply();
-                            }
-                            if (sendButtonVisible) {
-                                calledRecordRunnable = true;
-                            }
-                            MediaController.getInstance().toggleRecordingPause(voiceOnce);
-                            delegate.needStartRecordAudio(0);
-                            if (slideText != null) {
-                                slideText.setEnabled(false);
-                            }
-                        };
-                        if (pauseHint != null && pauseHint.shown()) {
-                            hideHintView();
-                        }
-                        if (audioTimelineView != null) {
-                            audioTimelineView.setPlaying(false);
-                        }
-                        if (MediaController.getInstance().isRecordingPaused() && (audioTimelineView.getAudioLeft() > 0.01f || audioTimelineView.getAudioRight() < 0.99f)) {
-                            final Runnable trim = () -> {
-                                millisecondsRecorded = audioTimelineView.getAudioRightMs() - audioTimelineView.getAudioLeftMs();
-                                MediaController.getInstance().trimCurrentRecording(audioTimelineView.getAudioLeftMs(), audioTimelineView.getAudioRightMs(), resume);
-                            };
-                            if (MessagesController.getGlobalMainSettings().getBoolean("trimvoicehint", true)) {
-                                new AlertDialog.Builder(getContext(), resourcesProvider)
-                                    .setTitle(getString(R.string.RecordingTrimTitle))
-                                    .setMessage(getString(R.string.RecordingTrimText))
-                                    .setPositiveButton(getString(R.string.OK), (di, w) -> {
-                                        trim.run();
-                                        MessagesController.getGlobalMainSettings().edit().putBoolean("trimvoicehint", false).apply();
-                                    })
-                                    .setNegativeButton(getString(R.string.Cancel), null)
-                                    .show();
-                            } else {
-                                trim.run();
-                            }
-                        } else {
-                            resume.run();
-                        }
-                    }
+                    togglePause();
                     pausePressed = oncePressed = false;
                     return true;
                 } else if (oncePressed && onceRect.contains(x, y)) {
-                    voiceOnce = !voiceOnce;
-                    periodDrawable.setValue(1, voiceOnce, true);
-                    MediaDataController.getInstance(currentAccount).toggleDraftVoiceOnce(dialog_id, parentFragment != null && parentFragment.isTopic ? parentFragment.getTopicId() : 0, voiceOnce);
-                    if (voiceOnce) {
-                        showOnceHint();
-                    } else {
-                        hideHintView();
-                    }
-                    invalidate();
+                    toggleOnce();
                     pausePressed = oncePressed = false;
                     return true;
                 }
@@ -1795,6 +1881,73 @@ public class ChatActivityEnterView extends FrameLayout implements
                 pausePressed = oncePressed = false;
             }
             return pausePressed || oncePressed;
+        }
+
+        /** Pauses a locked recording, or resumes a paused one (trimming it first if its ends were moved). */
+        public void togglePause() {
+            if (isInVideoMode()) {
+                if (slideText != null) {
+                    slideText.setEnabled(false);
+                }
+                delegate.toggleVideoRecordingPause();
+            } else {
+                final Runnable resume = () -> {
+                    if (!MediaController.getInstance().isRecordingPaused()) {
+                        MessagesController.getGlobalMainSettings().edit().putInt("voicepausehint", 3).apply();
+                    }
+                    if (sendButtonVisible) {
+                        calledRecordRunnable = true;
+                    }
+                    MediaController.getInstance().toggleRecordingPause(voiceOnce);
+                    delegate.needStartRecordAudio(0);
+                    if (slideText != null) {
+                        slideText.setEnabled(false);
+                    }
+                };
+                if (pauseHint != null && pauseHint.shown()) {
+                    hideHintView();
+                }
+                if (audioTimelineView != null) {
+                    audioTimelineView.setPlaying(false);
+                }
+                if (MediaController.getInstance().isRecordingPaused() && (audioTimelineView.getAudioLeft() > 0.01f || audioTimelineView.getAudioRight() < 0.99f)) {
+                    final Runnable trim = () -> {
+                        millisecondsRecorded = audioTimelineView.getAudioRightMs() - audioTimelineView.getAudioLeftMs();
+                        MediaController.getInstance().trimCurrentRecording(audioTimelineView.getAudioLeftMs(), audioTimelineView.getAudioRightMs(), resume);
+                    };
+                    if (MessagesController.getGlobalMainSettings().getBoolean("trimvoicehint", true)) {
+                        new AlertDialog.Builder(getContext(), resourcesProvider)
+                            .setTitle(getString(R.string.RecordingTrimTitle))
+                            .setMessage(getString(R.string.RecordingTrimText))
+                            .setPositiveButton(getString(R.string.OK), (di, w) -> {
+                                trim.run();
+                                MessagesController.getGlobalMainSettings().edit().putBoolean("trimvoicehint", false).apply();
+                            })
+                            .setNegativeButton(getString(R.string.Cancel), null)
+                            .show();
+                    } else {
+                        trim.run();
+                    }
+                } else {
+                    resume.run();
+                }
+            }
+        }
+
+        /** Turns view-once on or off for the message being recorded. */
+        public void toggleOnce() {
+            voiceOnce = !voiceOnce;
+            periodDrawable.setValue(1, voiceOnce, true);
+            MediaDataController.getInstance(currentAccount).toggleDraftVoiceOnce(dialog_id, parentFragment != null && parentFragment.isTopic ? parentFragment.getTopicId() : 0, voiceOnce);
+            if (voiceOnce) {
+                showOnceHint();
+            } else {
+                hideHintView();
+            }
+            invalidate();
+            if (skinRecordKeys != null) {
+                skinRecordKeys.invalidate();
+            }
         }
 
         @Override
@@ -1982,19 +2135,20 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (micDrawable != null) {
                 return;
             }
-            micDrawable = getResources().getDrawable(R.drawable.input_mic_pressed).mutate();
-            micDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
+            final int glyph = skinFrame ? skinMaterials().text : getThemedColor(Theme.key_chat_messagePanelVoicePressed);
+            micDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_mic : R.drawable.input_mic_pressed).mutate();
+            micDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
 
-            cameraDrawable = getResources().getDrawable(R.drawable.input_video_pressed).mutate();
-            cameraDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
+            cameraDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_video : R.drawable.input_video_pressed).mutate();
+            cameraDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
 
-            sendDrawable = getResources().getDrawable(R.drawable.attach_send).mutate();
-            sendDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_messagePanelVoicePressed), PorterDuff.Mode.MULTIPLY));
+            sendDrawable = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_send : R.drawable.attach_send).mutate();
+            sendDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
 
-            micOutline = getResources().getDrawable(R.drawable.input_mic).mutate();
+            micOutline = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_mic : R.drawable.input_mic).mutate();
             micOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
 
-            cameraOutline = getResources().getDrawable(R.drawable.input_video).mutate();
+            cameraOutline = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_video : R.drawable.input_video).mutate();
             cameraOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
         }
 
@@ -2003,6 +2157,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             tinyWaveDrawable.setValue((float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE), false);
 
             animateToAmplitude = (float) (Math.min(WaveDrawable.MAX_AMPLITUDE, value) / WaveDrawable.MAX_AMPLITUDE);
+            if (skinFrame) {
+                skinLevels[skinLevelCount++ % skinLevels.length] = animateToAmplitude;
+            }
             animateAmplitudeDiff = (animateToAmplitude - amplitude) / (100 + 500.0f * WaveDrawable.animationSpeedCircle);
 
             invalidate();
@@ -2080,6 +2237,10 @@ public class ChatActivityEnterView extends FrameLayout implements
                 return 1;
             }
             if (startTranslation - lockAnimatedTranslation >= dp(57)) {
+                if (skinFrame && !sendButtonVisible) {
+                    // The latch clicks shut.
+                    SkinHaptics.confirm(this);
+                }
                 sendButtonVisible = true;
                 if (controlsView != null) {
                     controlsView.showPauseHint();
@@ -2260,7 +2421,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             lastUpdateTime = System.currentTimeMillis();
             float slideToCancelProgress1 = slideToCancelProgress > 0.7f ? 1f : slideToCancelProgress / 0.7f;
 
-            if (LiteMode.isEnabled(LiteMode.FLAGS_CHAT) && progressToSeekbarStep2 != 1 && exitProgress2 < 0.4f && slideToCancelProgress1 > 0 && !canceledByGesture) {
+            if (!skinFrame && LiteMode.isEnabled(LiteMode.FLAGS_CHAT) && progressToSeekbarStep2 != 1 && exitProgress2 < 0.4f && slideToCancelProgress1 > 0 && !canceledByGesture) {
                 if (showWaves && wavesEnterAnimation != 1f) {
                     wavesEnterAnimation += 0.04f;
                     if (wavesEnterAnimation > 1f) {
@@ -2322,10 +2483,10 @@ public class ChatActivityEnterView extends FrameLayout implements
                             rectF.set(left, top, right, bottom);
                             audioTimelineView.drawIn(canvas, rectF, progressToSeekbarStep3);
                         } else {
-                            canvas.drawCircle(cx + slideDelta, cy, radius * (1f - progressToSeekbarStep3), paint);
+                            drawRecordCircle(canvas, cx + slideDelta, cy, radius * (1f - progressToSeekbarStep3));
                         }
                     } else {
-                        canvas.drawCircle(cx + slideDelta, cy, radius, paint);
+                        drawRecordCircle(canvas, cx + slideDelta, cy, radius);
                     }
                     canvas.save();
                     float a = (1f - exitProgress2);
@@ -2336,14 +2497,62 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
 
             if (scale != 1f) {
-                canvas.drawCircle(cx + slideDelta, cy, radius, paint);
+                drawRecordCircle(canvas, cx + slideDelta, cy, radius);
                 float a = (canceledByGesture ? (1f - slideToCancelProgress) : 1);
                 canvas.save();
                 canvas.translate(slideDelta, 0);
                 drawIconInternal(canvas, drawable, replaceDrawable, progressToSendButton, (int) (255 * a));
                 canvas.restore();
             }
-            drawingCircleRadius = radius;
+            drawingCircleRadius = skinFrame ? skinKnobRadius(radius) : radius;
+        }
+
+        /** Telegram's circle under the thumb, or with the skin on, the knob held down. */
+        private void drawRecordCircle(Canvas canvas, float x, float y, float r) {
+            if (!skinFrame) {
+                canvas.drawCircle(x, y, r, paint);
+                return;
+            }
+            // The knob keeps its size under the thumb; the voice shows in its celadon rim.
+            final float rim = dpf2(2.5f) + dpf2(1.5f) * skinVoiceLevel();
+            SkinMetal.drawKnob(canvas, x, y, skinKnobRadius(r), true, rim, skinMaterials(), paint.getAlpha() / 255f);
+        }
+
+        private float skinLevel;
+        private long skinLevelAt;
+        private boolean skinReduced;
+        private long skinReducedAt;
+
+        /**
+         * How loud the voice is, as the rim breathes it: up at once with each
+         * syllable, sinking back slowly between them. Still, with motion reduced;
+         * the meter in the console still shows the level.
+         */
+        private float skinVoiceLevel() {
+            final long now = SystemClock.uptimeMillis();
+            // Settings can change mid-recording; looking twice a second is enough.
+            if (now - skinReducedAt > 500) {
+                skinReducedAt = now;
+                skinReduced = SkinMotion.reduced();
+            }
+            if (skinReduced) {
+                skinLevel = 0f;
+                return 0f;
+            }
+            final float elapsed = skinLevelAt == 0 ? 0f : Math.min(100f, now - skinLevelAt);
+            skinLevelAt = now;
+            skinLevel = SkinMotion.follow(skinLevel, animateToAmplitude, elapsed);
+            return skinLevel;
+        }
+
+        /** The knob's radius for a circle radius: the circle's grow-and-shrink kept, its swelling with the voice taken out. */
+        private float skinKnobRadius(float r) {
+            return r * dp(19) / (circleRadius + circleRadiusAmplitude * amplitude);
+        }
+
+        /** The circle's colour where the sent voice message starts its flight into the chat. */
+        public int getFlightColor() {
+            return skinFrame ? skinMaterials().capMid : getThemedColor(Theme.key_chat_messagePanelVoiceBackground);
         }
 
         @Override
@@ -2351,6 +2560,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             super.invalidate();
             if (controlsView != null) {
                 controlsView.invalidate();
+            }
+            if (skinRecordKeys != null) {
+                skinRecordKeys.invalidate();
             }
         }
 
@@ -2426,6 +2638,12 @@ public class ChatActivityEnterView extends FrameLayout implements
             bigWaveDrawable.paint.setColor(ColorUtils.setAlphaComponent(getThemedColor(Theme.key_chat_messagePanelVoiceBackground), (int) (255 * WaveDrawable.CIRCLE_ALPHA_1)));
 
             paintAlpha = paint.getAlpha();
+            if (skinFrame && micDrawable != null) {
+                final int glyph = skinMaterials().text;
+                micDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
+                cameraDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
+                sendDrawable.setColorFilter(new PorterDuffColorFilter(glyph, PorterDuff.Mode.MULTIPLY));
+            }
         }
 
         public void canceledByGesture() {
@@ -2449,6 +2667,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void drawWaves(Canvas canvas, float cx, float cy, float additionalScale) {
+            if (skinFrame) {
+                return;
+            }
             float enter = CubicBezierInterpolator.EASE_OUT.getInterpolation(wavesEnterAnimation);
             float slideToCancelProgress1 = slideToCancelProgress > 0.7f ? 1f : slideToCancelProgress / 0.7f;
             canvas.save();
@@ -2539,6 +2760,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         super(context);
         this.resourcesProvider = resourcesProvider;
         this.isChat = isChat;
+        this.skinFrame = SkinSwitch.CHAT_FRAME && fragment != null;
 
         smoothKeyboard = isChat && !AndroidUtilities.isInMultiwindow && (fragment == null || !fragment.isInBubbleMode());
         dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -2578,6 +2800,20 @@ public class ChatActivityEnterView extends FrameLayout implements
         sendByEnter = preferences.getBoolean("send_by_enter", false);
 
         textFieldContainer = new FrameLayout(context) {
+            @Override
+            protected void dispatchDraw(@NonNull Canvas canvas) {
+                if (skinFrame && !recordingAudioVideo && sendButtonContainer != null && sendButtonContainer.getVisibility() == VISIBLE) {
+                    float x = messageEditTextContainer.getRight() - dp(2);
+                    if (sendButton != null && sendButton.getVisibility() == VISIBLE && sendButton.hasPrice()) {
+                        // A paid message's price is engraved before the knob, so the groove sits between them.
+                        x = sendButtonContainer.getX() + sendButton.getX() + sendButton.knobLeft() - dp(5);
+                    }
+                    final float cy = getHeight() - dp(22);
+                    SkinMetal.drawGroove(canvas, x, cy - dp(12), cy + dp(12), skinMaterials(), 1f);
+                }
+                super.dispatchDraw(canvas);
+            }
+
             @Override
             public boolean dispatchTouchEvent(MotionEvent ev) {
                 if (botWebViewButton != null && botWebViewButton.getVisibility() == VISIBLE) {
@@ -2621,6 +2857,14 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
 
             @Override
+            protected void dispatchDraw(@NonNull Canvas canvas) {
+                if (skinFrame) {
+                    drawSkinWell(canvas, this);
+                }
+                super.dispatchDraw(canvas);
+            }
+
+            @Override
             protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
                 if (child != null && child == messageEditText) {
                     return drawMessageEditText(canvas, () -> super.drawChild(canvas, child, drawingTime));
@@ -2646,6 +2890,9 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
         };
+        if (skinFrame) {
+            emojiButton.useGlyphs(SKIN_GLYPHS);
+        }
         emojiButton.setContentDescription(getString(R.string.AccDescrEmojiButton));
         emojiButton.setFocusable(true);
         int padding = dp(7.5f);
@@ -2709,7 +2956,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             messageEditTextContainer.addView(attachLayout, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT, 0, 0, DEFAULT_HEIGHT, 0));
 
             notifyButton = new ImageView(context);
-            notifySilentDrawable = new CrossOutDrawable(context, R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
+            notifySilentDrawable = new CrossOutDrawable(context, skinFrame ? org.telegram.skin.R.drawable.skin_input_bell : R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
             notifyButton.setImageDrawable(notifySilentDrawable);
             notifySilentDrawable.setCrossOut(silent, false);
             notifyButton.setContentDescription(silent ? getString("AccDescrChanSilentOn", R.string.AccDescrChanSilentOn) : getString("AccDescrChanSilentOff", R.string.AccDescrChanSilentOff));
@@ -2724,7 +2971,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     if (fragment == null) return;
                     silent = !silent;
                     if (notifySilentDrawable == null) {
-                        notifySilentDrawable = new CrossOutDrawable(context, R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
+                        notifySilentDrawable = new CrossOutDrawable(context, skinFrame ? org.telegram.skin.R.drawable.skin_input_bell : R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
                     }
                     notifySilentDrawable.setCrossOut(silent, true);
                     notifyButton.setImageDrawable(notifySilentDrawable);
@@ -2748,7 +2995,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             };
             attachButton.setScaleType(ImageView.ScaleType.CENTER);
             attachButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-            attachButton.setImageResource(R.drawable.msg_input_attach2);
+            attachButton.setImageResource(skinFrame ? org.telegram.skin.R.drawable.skin_input_attach : R.drawable.msg_input_attach2);
             attachButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
             messageEditTextContainer.addView(attachButton, LayoutHelper.createFrame(DEFAULT_HEIGHT, DEFAULT_HEIGHT, Gravity.BOTTOM | Gravity.RIGHT));
             attachButton.setOnClickListener(v -> {
@@ -2897,6 +3144,9 @@ public class ChatActivityEnterView extends FrameLayout implements
                             recordingAudioVideo = false;
                             updateRecordInterface(RECORD_STATE_CANCEL_BY_GESTURE, true);
                         } else {
+                            if (skinFrame) {
+                                SkinHaptics.confirm(audioVideoButtonContainer);
+                            }
                             sendButtonVisible = true;
                             startLockTransition();
                         }
@@ -3063,7 +3313,11 @@ public class ChatActivityEnterView extends FrameLayout implements
 
                     canvas.save();
                     canvas.scale(s, s, backgroundRect.centerX(), backgroundRect.centerY());
-                    canvas.drawRoundRect(backgroundRect, r, r, paint);
+                    if (skinFrame) {
+                        SkinMetal.drawKnob(canvas, backgroundRect.centerX(), backgroundRect.centerY(), r, false, skinMaterials(), 1f);
+                    } else {
+                        canvas.drawRoundRect(backgroundRect, r, r, paint);
+                    }
                     canvas.restore();
                 }
                 super.dispatchDraw(canvas);
@@ -3242,10 +3496,10 @@ public class ChatActivityEnterView extends FrameLayout implements
 //            return true;
 //        });
 
-        micOutline = getResources().getDrawable(R.drawable.input_mic).mutate();
+        micOutline = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_mic : R.drawable.input_mic).mutate();
         micOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
 
-        cameraOutline = getResources().getDrawable(R.drawable.input_video).mutate();
+        cameraOutline = getResources().getDrawable(skinFrame ? org.telegram.skin.R.drawable.skin_input_video : R.drawable.input_video).mutate();
         cameraOutline.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
 
         audioVideoSendButton = new ChatActivityEnterViewAnimatedIconView(context, 24) {
@@ -3263,6 +3517,9 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
         };
+        if (skinFrame) {
+            audioVideoSendButton.useGlyphs(SKIN_GLYPHS);
+        }
         audioVideoSendButton.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
 //        audioVideoSendButton.setFocusable(true);
 //        audioVideoSendButton.setAccessibilityDelegate(mediaMessageButtonsDelegate);
@@ -3296,7 +3553,10 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
         });
 
-        sendButton = new SendButton(context, isInScheduleMode() ? R.drawable.input_schedule : R.drawable.send_plane_24, resourcesProvider, true) {
+        final int sendGlyph = isInScheduleMode()
+                ? (skinFrame ? org.telegram.skin.R.drawable.skin_input_clock : R.drawable.input_schedule)
+                : (skinFrame ? org.telegram.skin.R.drawable.skin_input_send : R.drawable.send_plane_24);
+        sendButton = new SendButton(context, sendGlyph, resourcesProvider, true) {
             @Override
             public boolean isInScheduleMode() {
                 return ChatActivityEnterView.this.isInScheduleMode();
@@ -3323,6 +3583,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 updateAttachButtonTranslationX();
             }
         };
+        sendButton.skinKnob = skinFrame;
         sendButton.setVisibility(INVISIBLE);
         sendButton.setContentDescription(getString(R.string.Send));
         sendButton.setSoundEffectsEnabled(false);
@@ -3349,6 +3610,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         slowModeButton.setPadding(0, 0, dp(10), 0);
         slowModeButton.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         slowModeButton.setTextColor(getThemedColor(Theme.key_glass_defaultIcon));
+        if (skinFrame) {
+            slowModeButton.setSkin(resourcesProvider);
+        }
         sendButtonContainer.addView(slowModeButton, LayoutHelper.createFrame(74, DEFAULT_HEIGHT, Gravity.RIGHT | Gravity.BOTTOM));
         slowModeButton.setOnClickListener(v -> {
             if (delegate != null) {
@@ -3487,11 +3751,18 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
 
-        final Drawable drawable1 = getContext().getResources().getDrawable(R.drawable.input_calendar1).mutate();
-        final Drawable drawable2 = getContext().getResources().getDrawable(R.drawable.input_calendar2).mutate();
-        drawable1.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-        drawable2.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_recordedVoiceDot), PorterDuff.Mode.MULTIPLY));
-        CombinedDrawable combinedDrawable = new CombinedDrawable(drawable1, drawable2);
+        final Drawable scheduledIcon;
+        if (skinFrame) {
+            // An engraved clock in the well: there are scheduled messages.
+            scheduledIcon = getContext().getResources().getDrawable(org.telegram.skin.R.drawable.skin_input_clock).mutate();
+            scheduledIcon.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
+        } else {
+            final Drawable drawable1 = getContext().getResources().getDrawable(R.drawable.input_calendar1).mutate();
+            final Drawable drawable2 = getContext().getResources().getDrawable(R.drawable.input_calendar2).mutate();
+            drawable1.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
+            drawable2.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_recordedVoiceDot), PorterDuff.Mode.MULTIPLY));
+            scheduledIcon = new CombinedDrawable(drawable1, drawable2);
+        }
 
         scheduledButton = new ImageView(getContext()) {
             private float innerTranslationX;
@@ -3510,7 +3781,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 );
             }
         };
-        scheduledButton.setImageDrawable(combinedDrawable);
+        scheduledButton.setImageDrawable(scheduledIcon);
         scheduledButton.setVisibility(GONE);
         scheduledButton.setContentDescription(getString(R.string.ScheduledMessages));
         scheduledButton.setScaleType(ImageView.ScaleType.CENTER);
@@ -3551,7 +3822,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 }
             }
         };
-        giftButton.setImageResource(R.drawable.msg_input_gift);
+        giftButton.setImageResource(skinFrame ? org.telegram.skin.R.drawable.skin_input_gift : R.drawable.msg_input_gift);
         giftButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
         giftButton.setVisibility(GONE);
         giftButton.setContentDescription(getString(R.string.GiftPremium));
@@ -3603,7 +3874,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         suggestButton = new ImageView(getContext());
         suggestButton.setScaleType(ImageView.ScaleType.CENTER);
         suggestButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-        suggestButton.setImageResource(R.drawable.input_suggest_paid_24);
+        suggestButton.setImageResource(skinFrame ? org.telegram.skin.R.drawable.skin_slip_suggest : R.drawable.input_suggest_paid_24);
         suggestButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
         if (isLiveComment) {
             suggestButton.setTranslationX(dp(42));
@@ -3695,7 +3966,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         };
         botButton.setImageDrawable(botButtonDrawable = new ReplaceableIconDrawable(getContext()));
         botButtonDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.MULTIPLY));
-        botButtonDrawable.setIcon(R.drawable.input_bot2, false);
+        botButtonDrawable.setIcon(skinFrame ? org.telegram.skin.R.drawable.skin_input_keyboard : R.drawable.input_bot2, false);
         botButton.setScaleType(ImageView.ScaleType.CENTER);
         botButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
         botButton.setVisibility(GONE);
@@ -3737,7 +4008,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
 
-        doneButton = new SendButton(getContext(), R.drawable.input_done, resourcesProvider, true) {
+        doneButton = new SendButton(getContext(), skinFrame ? org.telegram.skin.R.drawable.skin_input_done : R.drawable.input_done, resourcesProvider, true) {
             @Override
             public boolean isOpen() {
                 return true;
@@ -3748,6 +4019,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 return !doneButtonEnabled;
             }
         };
+        doneButton.skinKnob = skinFrame;
         if (bounceable) {
             ScaleStateListAnimator.apply(doneButton);
         }
@@ -3891,7 +4163,9 @@ public class ChatActivityEnterView extends FrameLayout implements
         sizeNotifierLayout.addView(videoTimeHintView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, 0, 0, 0, 52));
 
         audioTimelineView = new RecordedAudioPlayerView(getContext(), resourcesProvider);
+        audioTimelineView.setSkin(skinFrame);
         recordedAudioPanel.addView(audioTimelineView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 32, Gravity.CENTER_VERTICAL | Gravity.LEFT, DEFAULT_HEIGHT, 0, 4, 0));
+        ensureSkinRecordKeys();
 
         updateFieldRight(lastAttachVisible);
     }
@@ -3929,6 +4203,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
         senderSelectView = new SenderSelectView(getContext());
+        senderSelectView.setSkin(skinFrame);
         senderSelectView.setOnClickListener(v -> {
             if (isLiveComment ? isPopupShowing() : getTranslationY() != 0) {
                 onEmojiSearchClosed = () -> senderSelectView.callOnClick();
@@ -4263,6 +4538,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             return;
         }
         botCommandsMenuButton = new BotCommandsMenuView(getContext());
+        botCommandsMenuButton.setSkin(skinFrame);
         botCommandsMenuButton.setOnClickListener(view -> {
             boolean open = !botCommandsMenuButton.isOpened();
             botCommandsMenuButton.setOpened(open);
@@ -4619,12 +4895,31 @@ public class ChatActivityEnterView extends FrameLayout implements
 
                 boolean scheduleButtonValue = parentFragment != null && parentFragment.canScheduleMessage();
                 boolean sendWithoutSoundButtonValue = !(self || slowModeTimer > 0 && !isInScheduleMode());
+                final Runnable addSilent = () -> {
+                    if (sendWithoutSoundButtonValue) {
+                        ActionBarMenuSubItem sendWithoutSoundButton = new ActionBarMenuSubItem(getContext(), !scheduleButtonValue, true, resourcesProvider);
+                        sendWithoutSoundButton.setTextAndIcon(LocaleController.getString(R.string.SendWithoutSound), skinFrame ? org.telegram.skin.R.drawable.skin_key_quiet : R.drawable.input_notify_off);
+                        sendWithoutSoundButton.setMinimumWidth(dp(196));
+                        sendWithoutSoundButton.setOnClickListener(v -> {
+                            if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                                sendPopupWindow.dismiss();
+                            }
+                            sendMessageInternal(false, 0, 0, 0, true);
+                        });
+                        sendPopupLayout.addView(sendWithoutSoundButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT));
+                    }
+                };
+                if (skinFrame) {
+                    // The skin's order: send silently, schedule, send when online.
+                    addSilent.run();
+                }
                 if (scheduleButtonValue) {
                     actionScheduleButton = new ActionBarMenuSubItem(getContext(), true, !sendWithoutSoundButtonValue, resourcesProvider);
+                    final int clock = skinFrame ? org.telegram.skin.R.drawable.skin_input_clock : R.drawable.msg_calendar2;
                     if (self) {
-                        actionScheduleButton.setTextAndIcon(LocaleController.getString(R.string.SetReminder), R.drawable.msg_calendar2);
+                        actionScheduleButton.setTextAndIcon(LocaleController.getString(R.string.SetReminder), clock);
                     } else {
-                        actionScheduleButton.setTextAndIcon(LocaleController.getString(R.string.ScheduleMessage), R.drawable.msg_calendar2);
+                        actionScheduleButton.setTextAndIcon(LocaleController.getString(R.string.ScheduleMessage), clock);
                     }
                     actionScheduleButton.setMinimumWidth(dp(196));
                     actionScheduleButton.setOnClickListener(v -> {
@@ -4642,7 +4937,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     SharedConfig.removeScheduledHint();
                     if (!self && dialog_id > 0) {
                         sendWhenOnlineButton = new ActionBarMenuSubItem(getContext(), true, !sendWithoutSoundButtonValue, resourcesProvider);
-                        sendWhenOnlineButton.setTextAndIcon(LocaleController.getString(R.string.SendWhenOnline), R.drawable.msg_online);
+                        sendWhenOnlineButton.setTextAndIcon(LocaleController.getString(R.string.SendWhenOnline), skinFrame ? org.telegram.skin.R.drawable.skin_key_online : R.drawable.msg_online);
                         sendWhenOnlineButton.setMinimumWidth(dp(196));
                         sendWhenOnlineButton.setOnClickListener(v -> {
                             if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
@@ -4653,19 +4948,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                         sendPopupLayout.addView(sendWhenOnlineButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT));
                     }
                 }
-                if (sendWithoutSoundButtonValue) {
-                    ActionBarMenuSubItem sendWithoutSoundButton = new ActionBarMenuSubItem(getContext(), !scheduleButtonValue, true, resourcesProvider);
-                    sendWithoutSoundButton.setTextAndIcon(LocaleController.getString(R.string.SendWithoutSound), R.drawable.input_notify_off);
-                    sendWithoutSoundButton.setMinimumWidth(dp(196));
-                    sendWithoutSoundButton.setOnClickListener(v -> {
-                        if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
-                            sendPopupWindow.dismiss();
-                        }
-                        sendMessageInternal(false, 0, 0, 0, true);
-                    });
-                    sendPopupLayout.addView(sendWithoutSoundButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT));
+                if (!skinFrame) {
+                    addSilent.run();
                 }
                 sendPopupLayout.setupRadialSelectors(getThemedColor(Theme.key_dialogButtonSelector));
+                if (skinFrame) {
+                    skinPopupKeys(sendPopupLayout, skinMaterials());
+                }
 
                 sendPopupWindow = new ActionBarPopupWindow(sendPopupLayout, LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT) {
                     @Override
@@ -4852,26 +5141,49 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         ItemOptions options = ItemOptions.makeOptions(this, resourcesProvider, sendButton);
 
-        if (containsSendMessage && audioToSend == null && videoToSendMessageObject == null &&
-                editingMessageObject == null && messageEditText != null && !TextUtils.isEmpty(messageEditText.getText())) {
+        final boolean canTranslate = containsSendMessage && audioToSend == null && videoToSendMessageObject == null &&
+                editingMessageObject == null && messageEditText != null && !TextUtils.isEmpty(messageEditText.getText());
+        final Runnable addTranslate = () -> {
             final String language = org.telegram.messenger.MangoOutgoingTranslation.getLanguage(currentAccount, dialog_id);
-            String languageName = TranslateAlert2.languageName(language);
-            options.add(R.drawable.msg_translate, LocaleController.formatString(R.string.MangoSendTranslateTo,
+            final String languageName = TranslateAlert2.languageName(language);
+            options.add(skinFrame ? org.telegram.skin.R.drawable.skin_key_language : R.drawable.msg_translate, LocaleController.formatString(R.string.MangoSendTranslateTo,
                     languageName == null ? language : languageName), () -> {
                 dismissMangoTranslationPreview();
                 translateMangoDraftAndSend(language);
             });
-            options.add(R.drawable.msg_language, getString(R.string.MangoSendTranslateChoose), () -> {
+            options.add(skinFrame ? org.telegram.skin.R.drawable.skin_key_chevron : R.drawable.msg_language, getString(R.string.MangoSendTranslateChoose), () -> {
                 dismissMangoTranslationPreview();
                 showMangoSendTranslationLanguages();
             });
+            if (skinFrame) {
+                skinOptionValue(options.getLast(), languageName == null ? language : languageName);
+            }
+        };
+        if (canTranslate && !skinFrame) {
+            addTranslate.run();
         }
 
         final boolean self = parentFragment != null && UserObject.isUserSelf(parentFragment.getCurrentUser());
         boolean scheduleButtonValue = parentFragment != null && parentFragment.canScheduleMessage();
         boolean sendWithoutSoundButtonValue = !(self || slowModeTimer > 0 && !isInScheduleMode());
+        final Runnable addSilent = () -> options.add(skinFrame ? org.telegram.skin.R.drawable.skin_key_quiet : R.drawable.input_notify_off, getString(R.string.SendWithoutSound), () -> {
+            sentFromPreview = System.currentTimeMillis();
+            final boolean shownDialog = sendMessageInternal(false, 0, 0, 0, true);
+            if (!containsSendMessage && messageSendPreview != null) {
+                messageSendPreview.dismiss(!shownDialog);
+                messageSendPreview = null;
+            } else {
+                dismissSendPreviewSent = !shownDialog;
+                AndroidUtilities.cancelRunOnUIThread(dismissSendPreview);
+                AndroidUtilities.runOnUIThread(dismissSendPreview, 500);
+            }
+        });
+        if (sendWithoutSoundButtonValue && skinFrame) {
+            // The skin's order: send silently, schedule, send when online; translation below a groove.
+            addSilent.run();
+        }
         if (scheduleButtonValue) {
-            options.add(R.drawable.msg_calendar2, getString(self ? R.string.SetReminder : R.string.ScheduleMessage), () -> {
+            options.add(skinFrame ? org.telegram.skin.R.drawable.skin_input_clock : R.drawable.msg_calendar2, getString(self ? R.string.SetReminder : R.string.ScheduleMessage), () -> {
                 AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), new AlertsCreator.ScheduleDatePickerDelegate() {
                     @Override
                     public void didSelectDate(boolean notify, int scheduleDate, int scheduleRepeatPeriod) {
@@ -4885,7 +5197,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             });
 
             if (!self && dialog_id > 0) {
-                options.add(R.drawable.msg_online, getString(R.string.SendWhenOnline), () -> {
+                options.add(skinFrame ? org.telegram.skin.R.drawable.skin_key_online : R.drawable.msg_online, getString(R.string.SendWhenOnline), () -> {
                     sendMessageInternal(true, 0x7FFFFFFE, 0, 0, true);
                     if (messageSendPreview != null) {
                         messageSendPreview.dismiss(false);
@@ -4897,7 +5209,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         if (parentFragment != null && delegate != null && ChatObject.isMonoForum(parentFragment.getCurrentChat())) {
-            options.add(R.drawable.input_suggest_paid_24, getString(R.string.PostSuggestionsSendWithOffer), () -> {
+            options.add(skinFrame ? org.telegram.skin.R.drawable.skin_slip_suggest : R.drawable.input_suggest_paid_24, getString(R.string.PostSuggestionsSendWithOffer), () -> {
                 if (messageSendPreview != null) {
                     messageSendPreview.dismiss(false);
                     messageSendPreview = null;
@@ -4926,21 +5238,17 @@ public class ChatActivityEnterView extends FrameLayout implements
             ;*/
         }
 
-        if (sendWithoutSoundButtonValue) {
-            options.add(R.drawable.input_notify_off, getString(R.string.SendWithoutSound), () -> {
-                sentFromPreview = System.currentTimeMillis();
-                final boolean shownDialog = sendMessageInternal(false, 0, 0, 0, true);
-                if (!containsSendMessage && messageSendPreview != null) {
-                    messageSendPreview.dismiss(!shownDialog);
-                    messageSendPreview = null;
-                } else {
-                    dismissSendPreviewSent = !shownDialog;
-                    AndroidUtilities.cancelRunOnUIThread(dismissSendPreview);
-                    AndroidUtilities.runOnUIThread(dismissSendPreview, 500);
-                }
-            });
+        if (sendWithoutSoundButtonValue && !skinFrame) {
+            addSilent.run();
+        }
+        if (canTranslate && skinFrame) {
+            if (options.getItemsCount() > 0) {
+                options.addView(skinOptionsGroove(), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 10));
+            }
+            addTranslate.run();
         }
         options.setupSelectors();
+        skinSendOptions(options, messageSendPreview);
         if (sendWhenOnlineButton != null) {
             TLRPC.User user = parentFragment == null ? null : parentFragment.getCurrentUser();
             if (user != null && !user.bot && !(user.status instanceof TLRPC.TL_userStatusEmpty) && !(user.status instanceof TLRPC.TL_userStatusOnline) && !(user.status instanceof TLRPC.TL_userStatusRecently) && !(user.status instanceof TLRPC.TL_userStatusLastMonth) && !(user.status instanceof TLRPC.TL_userStatusLastWeek)) {
@@ -6330,7 +6638,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         audioVideoButtonContainer.setAlpha(audioVideoButtonContainerForbidden ? 0.5f : 1.0f);
         audioVideoButtonContainer.invalidate();
         audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ?
-            getThemedColor(Theme.key_glass_defaultIcon) : Color.WHITE, PorterDuff.Mode.SRC_IN));
+            getThemedColor(Theme.key_glass_defaultIcon) : knobGlyphColor(), PorterDuff.Mode.SRC_IN));
         audioVideoSendButton.invalidate();
         updateFieldHint(false);
         boolean currentModeVideo = isInVideoMode;
@@ -7170,6 +7478,486 @@ public class ChatActivityEnterView extends FrameLayout implements
             send.run();
             return false;
         }
+    }
+
+    /** The console's line glyphs for the emoji and record keys, in {@link ChatActivityEnterViewAnimatedIconView.State} order. */
+    private static final int[] SKIN_GLYPHS = {
+            org.telegram.skin.R.drawable.skin_input_mic,
+            org.telegram.skin.R.drawable.skin_input_video,
+            org.telegram.skin.R.drawable.skin_input_sticker,
+            org.telegram.skin.R.drawable.skin_input_keyboard,
+            org.telegram.skin.R.drawable.skin_input_smile,
+            org.telegram.skin.R.drawable.skin_input_gif,
+    };
+
+    /**
+     * The knob's long-press options as a slab of aluminium keys over the page's
+     * fog: the key under the finger is inlaid with porcelain and lit. Called
+     * after the options set up their own selectors, which it replaces.
+     */
+    private void skinSendOptions(ItemOptions options, MessageSendPreview preview) {
+        if (!skinFrame) {
+            return;
+        }
+        final CanvasMaterials m = skinMaterials();
+        preview.setFog(Theme.multAlpha(m.page, 0.9f));
+        if (options.getLayout() instanceof ActionBarPopupWindow.ActionBarPopupWindowLayout) {
+            skinPopupKeys((ActionBarPopupWindow.ActionBarPopupWindowLayout) options.getLayout(), m);
+        }
+    }
+
+    private static final String SKIN_GROOVE = "skin_groove";
+
+    /** An engraved line between groups of keys on the options slab. */
+    private View skinOptionsGroove() {
+        final View groove = new View(getContext()) {
+            @Override
+            protected void onDraw(Canvas canvas) {
+                SkinMetal.drawGrooveAcross(canvas, dp(12), getWidth() - dp(12), getHeight() / 2f - dp(1), skinMaterials(), 1f);
+            }
+        };
+        groove.setTag(SKIN_GROOVE);
+        return groove;
+    }
+
+    /** The current choice shown at the end of an option's key, as "选择翻译语言  英语". */
+    private void skinOptionValue(ActionBarMenuSubItem item, CharSequence value) {
+        if (item == null || TextUtils.isEmpty(value)) {
+            return;
+        }
+        final TextView text = new TextView(getContext());
+        text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        text.setTextColor(skinMaterials().textSecondary);
+        text.setText(value);
+        text.setSingleLine(true);
+        item.addView(text, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 30, 0));
+    }
+
+    private void skinPopupKeys(ActionBarPopupWindow.ActionBarPopupWindowLayout layout, CanvasMaterials m) {
+        layout.setBackgroundDrawable(SkinKeys.slab(m));
+        for (int i = 0; i < layout.getItemsCount(); i++) {
+            final View item = layout.getItemAt(i);
+            if (item == null || item instanceof ActionBarPopupWindow.GapView || SKIN_GROOVE.equals(item.getTag())) {
+                continue;
+            }
+            if (item instanceof ActionBarMenuSubItem) {
+                ((ActionBarMenuSubItem) item).setColors(m.text, m.text);
+            }
+            item.setBackground(SkinKeys.key(m));
+        }
+    }
+
+    private CanvasMaterials skinMaterials() {
+        return SkinMetal.materials(getThemedColor(Theme.key_chat_messagePanelBackground));
+    }
+
+    /** Glyphs on the knob are engraved in the text colour; on Telegram's blue circle they are white. */
+    private int knobGlyphColor() {
+        return skinFrame ? skinMaterials().text : Color.WHITE;
+    }
+
+    private final RectF skinWellRect = new RectF();
+
+    private SkinRecordKeys skinRecordKeys;
+    /** The voice's recent levels for the console's meter, newest at {@code skinLevelCount - 1}. */
+    private final float[] skinLevels = new float[96];
+    private int skinLevelCount;
+
+    private void ensureSkinRecordKeys() {
+        if (!skinFrame) {
+            return;
+        }
+        if (skinRecordKeys == null) {
+            skinRecordKeys = new SkinRecordKeys(getContext());
+            messageEditTextContainer.addView(skinRecordKeys, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, DEFAULT_HEIGHT, Gravity.BOTTOM));
+        } else {
+            skinRecordKeys.bringToFront();
+        }
+    }
+
+    /**
+     * The console's own keys while a locked recording runs or a paused one is
+     * previewed, in place of the latch above the knob: the bin at the left,
+     * and before the knob the view-once seal and pause (resume once paused).
+     * While recording, the well between them shows the voice as a celadon
+     * meter. Touches outside the keys fall through to the panels below.
+     */
+    private class SkinRecordKeys extends View {
+        private static final int KEY = 38;
+        private static final int BIN = 1, PAUSE = 2, SEAL = 3;
+
+        private final AnimatedFloat shown = new AnimatedFloat(this, 0, 320, CubicBezierInterpolator.EASE_OUT_QUINT);
+        private final RectF binRect = new RectF();
+        private final RectF sealRect = new RectF();
+        private final RectF pauseRect = new RectF();
+        private final RectF tmp = new RectF();
+        private final Paint meterPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final TextPaint sealText = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final Drawable bin, pause, mic, video;
+        private final Helper helper;
+        private int pressed;
+        private float timerShift = -1;
+        private int previewMargin = -1;
+
+        SkinRecordKeys(Context context) {
+            super(context);
+            bin = glyph(org.telegram.skin.R.drawable.skin_record_trash);
+            pause = glyph(org.telegram.skin.R.drawable.skin_record_pause);
+            mic = glyph(org.telegram.skin.R.drawable.skin_input_mic);
+            video = glyph(org.telegram.skin.R.drawable.skin_input_video);
+            ringPaint.setStyle(Paint.Style.STROKE);
+            ringPaint.setStrokeWidth(dpf2(1.5f));
+            sealText.setTypeface(SkinStyle.serif());
+            sealText.setTextAlign(Paint.Align.CENTER);
+            sealText.setTextSize(dp(12));
+            helper = new Helper(this);
+            ViewCompat.setAccessibilityDelegate(this, helper);
+        }
+
+        private Drawable glyph(int res) {
+            return ContextCompat.getDrawable(getContext(), res).mutate();
+        }
+
+        private boolean active() {
+            return sendButtonVisible && controlsView != null && controlsView.getVisibility() == VISIBLE && exitTransition == 0;
+        }
+
+        private boolean paused() {
+            return transformToSeekbar > .5f;
+        }
+
+        private boolean sealShown() {
+            return delegate != null && delegate.onceVoiceAvailable();
+        }
+
+        private boolean pauseShown() {
+            return !(isInVideoMode && millisecondsRecorded >= 59_000);
+        }
+
+        float getProgress() {
+            return shown.get();
+        }
+
+        /** Room the keys before the knob take at the console's right end. */
+        int reserve() {
+            return dp(KEY) * ((sealShown() ? 1 : 0) + (pauseShown() ? 1 : 0)) + dp(2);
+        }
+
+        /** Moves Telegram's panels clear of the keys: the timer right of the bin, the preview short of the keys. */
+        private void layoutPanels(float p) {
+            final float shift = paused() ? 0 : dp(44) * p;
+            if (recordTimeContainer != null && shift != timerShift) {
+                timerShift = shift;
+                recordTimeContainer.setTranslationX(shift);
+            }
+            final int margin = p > 0 ? reserve() + dp(4) : -1;
+            if (margin != previewMargin) {
+                previewMargin = margin;
+                if (audioTimelineView != null) {
+                    final ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) audioTimelineView.getLayoutParams();
+                    lp.rightMargin = margin < 0 ? dp(4) : margin;
+                    audioTimelineView.setLayoutParams(lp);
+                }
+                if (videoTimelineView != null) {
+                    final ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) videoTimelineView.getLayoutParams();
+                    lp.rightMargin = margin < 0 ? dp(8) : margin;
+                    videoTimelineView.setLayoutParams(lp);
+                }
+            }
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            final float before = shown.get();
+            final float p = shown.set(active());
+            layoutPanels(p);
+            if (p != before && getParent() instanceof View) {
+                // The well behind is drawn by the container.
+                ((View) getParent()).invalidate();
+            }
+            if (p <= 0) {
+                binRect.setEmpty();
+                sealRect.setEmpty();
+                pauseRect.setEmpty();
+                skinLevelCount = 0;
+                return;
+            }
+            final CanvasMaterials m = skinMaterials();
+            final int w = getWidth();
+            final int h = getHeight();
+            final boolean paused = paused();
+
+            float right = w - dp(2);
+            if (pauseShown()) {
+                pauseRect.set(right - dp(KEY), 0, right, h);
+                right -= dp(KEY);
+            } else {
+                pauseRect.setEmpty();
+            }
+            if (sealShown()) {
+                sealRect.set(right - dp(KEY), 0, right, h);
+                right -= dp(KEY);
+            } else {
+                sealRect.setEmpty();
+            }
+            // Paused, Telegram's own delete key sits at the left of the preview.
+            if (paused) {
+                binRect.setEmpty();
+            } else {
+                binRect.set(0, 0, dp(44), h);
+            }
+
+            // The keys rise into the console one after another: the bin, the seal, then pause.
+            if (!binRect.isEmpty()) {
+                final float k = keyIn(p, 0);
+                canvas.save();
+                canvas.translate(0, dp(6) * (1f - k));
+                drawGlyph(canvas, bin, binRect, m.textSecondary, k * (pressed == BIN ? .6f : 1f));
+                canvas.restore();
+            }
+            if (!pauseRect.isEmpty()) {
+                final float k = keyIn(p, 2);
+                canvas.save();
+                canvas.translate(0, dp(6) * (1f - k));
+                drawGlyph(canvas, paused ? (isInVideoMode() ? video : mic) : pause, pauseRect, m.textSecondary, k * (pressed == PAUSE ? .6f : 1f));
+                canvas.restore();
+            }
+            if (!sealRect.isEmpty()) {
+                final float k = keyIn(p, 1);
+                canvas.save();
+                canvas.translate(0, dp(6) * (1f - k));
+                drawSeal(canvas, m, k * (pressed == SEAL ? .6f : 1f));
+                canvas.restore();
+            }
+            if (!paused) {
+                drawMeter(canvas, m, p, right - dp(10));
+            }
+            if (p < 1) {
+                invalidate();
+            }
+        }
+
+        private PorterDuffColorFilter glyphFilter;
+        private int glyphColor;
+
+        /** Key [index]'s share of the keys' appearance at [p]: each starts a little after the one before. */
+        private float keyIn(float p, int index) {
+            return Math.max(0f, Math.min(1f, (p - 0.12f * index) / 0.76f));
+        }
+
+        private void drawGlyph(Canvas canvas, Drawable d, RectF rect, int color, float alpha) {
+            final int size = dp(22);
+            final int l = (int) (rect.centerX() - size / 2f);
+            final int t = (int) (rect.centerY() - size / 2f);
+            // The meter redraws every frame while recording; the tint is built once per colour.
+            if (glyphFilter == null || glyphColor != color) {
+                glyphColor = color;
+                glyphFilter = new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN);
+            }
+            d.setColorFilter(glyphFilter);
+            d.setAlpha((int) (255 * alpha));
+            d.setBounds(l, t, l + size, t + size);
+            d.draw(canvas);
+        }
+
+        /** The "1" seal: an engraved ring while off, celadon porcelain while on. */
+        private void drawSeal(Canvas canvas, CanvasMaterials m, float alpha) {
+            final float r = dp(13);
+            final float cx = sealRect.centerX();
+            final float cy = sealRect.centerY();
+            tmp.set(cx - r, cy - r, cx + r, cy + r);
+            final int ink;
+            if (voiceOnce) {
+                SkinMetal.drawPorcelain(canvas, tmp, r, m, false, alpha);
+                ink = m.porcelainText;
+            } else {
+                ringPaint.setColor(m.textSecondary);
+                ringPaint.setAlpha((int) (Color.alpha(m.textSecondary) * alpha));
+                canvas.drawCircle(cx, cy, r - dpf2(0.75f), ringPaint);
+                ink = m.textSecondary;
+            }
+            sealText.setColor(ink);
+            sealText.setAlpha((int) (Color.alpha(ink) * alpha));
+            final Paint.FontMetrics fm = sealText.getFontMetrics();
+            canvas.drawText("1", cx, cy - (fm.ascent + fm.descent) / 2f, sealText);
+        }
+
+        /** The voice so far as celadon bars, newest at the right, from after the timer to before the keys. */
+        private void drawMeter(Canvas canvas, CanvasMaterials m, float alpha, float end) {
+            float start = dp(44 + 13 + 28 + 6 + 10);
+            if (recordTimeContainer != null && recordTimerView != null) {
+                start = (recordPanel != null ? recordPanel.getX() : 0) + recordTimeContainer.getX() + recordTimeContainer.getTranslationX()
+                    + recordTimerView.getX() + recordTimerView.getTextWidth() + dp(12);
+            }
+            final float step = dp(5);
+            final int count = (int) Math.min(skinLevelCount, Math.max(0, (end - start) / step));
+            if (count <= 0) {
+                return;
+            }
+            meterPaint.setColor(m.led);
+            meterPaint.setAlpha((int) (Color.alpha(m.led) * alpha));
+            final float cy = getHeight() / 2f;
+            final float maxHeight = getHeight() - dp(18);
+            for (int i = 0; i < count; i++) {
+                final float level = skinLevels[(skinLevelCount - 1 - i) % skinLevels.length];
+                final float barHeight = Math.min(maxHeight, dp(4) + (float) Math.sqrt(Math.max(0, level)) * dp(20));
+                final float x = end - (i + 1) * step;
+                tmp.set(x, cy - barHeight / 2f, x + dp(3), cy + barHeight / 2f);
+                canvas.drawRoundRect(tmp, dp(1.5f), dp(1.5f), meterPaint);
+            }
+        }
+
+        private int keyAt(float x, float y) {
+            if (binRect.contains(x, y)) {
+                return BIN;
+            } else if (pauseRect.contains(x, y)) {
+                return PAUSE;
+            } else if (sealRect.contains(x, y)) {
+                return SEAL;
+            }
+            return 0;
+        }
+
+        private void perform(int key) {
+            if (key == BIN) {
+                if (slideText != null) {
+                    slideText.onCancelButtonPressed();
+                }
+            } else if (key == PAUSE) {
+                if (controlsView != null) {
+                    controlsView.togglePause();
+                }
+            } else if (key == SEAL) {
+                if (controlsView != null) {
+                    controlsView.toggleOnce();
+                }
+            }
+            invalidate();
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (shown.get() < 1f) {
+                pressed = 0;
+                return false;
+            }
+            final int key = keyAt(event.getX(), event.getY());
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    pressed = key;
+                    invalidate();
+                    return key != 0;
+                case MotionEvent.ACTION_MOVE:
+                    if (pressed != 0 && key != pressed) {
+                        pressed = 0;
+                        invalidate();
+                    }
+                    return pressed != 0;
+                case MotionEvent.ACTION_UP:
+                    final int was = pressed;
+                    pressed = 0;
+                    if (was != 0 && was == key) {
+                        perform(was);
+                    }
+                    invalidate();
+                    return was != 0;
+                case MotionEvent.ACTION_CANCEL:
+                    pressed = 0;
+                    invalidate();
+                    return false;
+            }
+            return false;
+        }
+
+        @Override
+        protected boolean dispatchHoverEvent(MotionEvent event) {
+            return helper.dispatchHoverEvent(event) || super.dispatchHoverEvent(event);
+        }
+
+        private class Helper extends ExploreByTouchHelper {
+            private final android.graphics.Rect bounds = new android.graphics.Rect();
+
+            Helper(View host) {
+                super(host);
+            }
+
+            private RectF rectOf(int key) {
+                return key == BIN ? binRect : key == PAUSE ? pauseRect : sealRect;
+            }
+
+            @Override
+            protected int getVirtualViewAt(float x, float y) {
+                final int key = shown.get() < 1f ? 0 : keyAt(x, y);
+                return key == 0 ? HOST_ID : key;
+            }
+
+            @Override
+            protected void getVisibleVirtualViews(List<Integer> list) {
+                if (shown.get() < 1f) {
+                    return;
+                }
+                for (int key = BIN; key <= SEAL; key++) {
+                    if (!rectOf(key).isEmpty()) {
+                        list.add(key);
+                    }
+                }
+            }
+
+            @Override
+            protected void onPopulateNodeForVirtualView(int key, @NonNull AccessibilityNodeInfoCompat info) {
+                rectOf(key).round(bounds);
+                if (bounds.isEmpty()) {
+                    bounds.set(0, 0, 1, 1);
+                }
+                info.setBoundsInParent(bounds);
+                info.addAction(AccessibilityNodeInfoCompat.ACTION_CLICK);
+                info.setClassName("android.widget.Button");
+                if (key == BIN) {
+                    info.setText(getString(R.string.Delete));
+                } else if (key == PAUSE) {
+                    info.setText(getString(paused() ? R.string.AccActionResume : R.string.AccActionPause));
+                } else {
+                    info.setText(getString(voiceOnce ? R.string.AccActionOnceDeactivate : R.string.AccActionOnceActivate));
+                }
+            }
+
+            @Override
+            protected boolean onPerformActionForVirtualView(int key, int action, @Nullable Bundle args) {
+                if (action == AccessibilityNodeInfoCompat.ACTION_CLICK) {
+                    perform(key);
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+
+    /**
+     * The sunken well behind the text: from the identity key on the left
+     * (send-as or the bot's menu), when there is one, to the attach key, which
+     * stays on the metal.
+     */
+    private void drawSkinWell(Canvas canvas, ViewGroup container) {
+        float left = dp(4);
+        if (senderSelectView != null && senderSelectView.getVisibility() == VISIBLE) {
+            left = senderSelectView.getX() + senderSelectView.getWidth() + dp(4);
+        } else if (botCommandsMenuButton != null && botCommandsMenuButton.getVisibility() == VISIBLE) {
+            left = botCommandsMenuButton.getX() + botCommandsMenuButton.getWidth() + dp(4);
+        }
+        float right = container.getWidth() - dp(2);
+        if (attachButton != null && attachButton.getVisibility() == VISIBLE && attachButton.getAlpha() > 0f) {
+            right = attachButton.getX();
+        }
+        final float keys = skinRecordKeys != null ? skinRecordKeys.getProgress() : 0;
+        if (keys > 0) {
+            left = AndroidUtilities.lerp(left, dp(46), keys);
+            right = AndroidUtilities.lerp(right, container.getWidth() - skinRecordKeys.reserve() - dp(2), keys);
+        }
+        final float top = dp(3);
+        final float bottom = container.getHeight() - dp(3);
+        skinWellRect.set(left, top, right, bottom);
+        SkinMetal.drawWell(canvas, skinWellRect, Math.min(dp(19), skinWellRect.height() / 2f), skinMaterials(), 1f);
     }
 
     private void collapseKeyboardAfterSend() {
@@ -9479,6 +10267,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         recordTimeContainer.addView(recordTimerView = new TimerView(getContext()), LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_VERTICAL, 6, 0, 0, 0));
 
         recordPanel.addView(recordTimeContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_VERTICAL));
+        ensureSkinRecordKeys();
     }
 
     @Override
@@ -9706,6 +10495,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 });
                 options.addView(button);
                 options.setupSelectors();
+                skinSendOptions(options, sendPreview);
                 sendPreview.setItemOptions(options);
                 sendPreview.setSendButton(doneButton, false, v2 -> {
                     if (groupedMessages != null) {
@@ -10100,15 +10890,16 @@ public class ChatActivityEnterView extends FrameLayout implements
         if (botKeyboardView != null) {
             botKeyboardView.updateColors();
         }
-        audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ? getThemedColor(Theme.key_glass_defaultIcon) : Color.WHITE, PorterDuff.Mode.SRC_IN));
+        audioVideoSendButton.setColorFilter(new PorterDuffColorFilter(audioVideoButtonContainerForbidden ? getThemedColor(Theme.key_glass_defaultIcon) : knobGlyphColor(), PorterDuff.Mode.SRC_IN));
         emojiButton.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_glass_defaultIcon), PorterDuff.Mode.SRC_IN));
         emojiButton.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector)));
     }
 
     private void updateRecordedDeleteIconColors() {
-        int dotColor = getThemedColor(Theme.key_chat_recordedVoiceDot);
-        int background = getThemedColor(Theme.key_chat_messagePanelBackground);
-        int greyColor = getThemedColor(Theme.key_chat_messagePanelVoiceDelete);
+        final CanvasMaterials m = skinFrame ? skinMaterials() : null;
+        int dotColor = m != null ? m.danger : getThemedColor(Theme.key_chat_recordedVoiceDot);
+        int background = m != null ? m.field : getThemedColor(Theme.key_chat_messagePanelBackground);
+        int greyColor = m != null ? m.textSecondary : getThemedColor(Theme.key_chat_messagePanelVoiceDelete);
 
         if (recordDeleteImageView != null) {
             recordDeleteImageView.setLayerColor("Cup Red.**", dotColor);
@@ -10400,7 +11191,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (notifyButton != null) {
                 notifyVisible = canWriteToChannel;
                 if (notifySilentDrawable == null) {
-                    notifySilentDrawable = new CrossOutDrawable(getContext(), R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
+                    notifySilentDrawable = new CrossOutDrawable(getContext(), skinFrame ? org.telegram.skin.R.drawable.skin_input_bell : R.drawable.input_notify_on, Theme.key_glass_defaultIcon);
                 }
                 notifySilentDrawable.setCrossOut(silent, false);
                 notifyButton.setImageDrawable(notifySilentDrawable);
@@ -10673,13 +11464,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                         botButton.setVisibility(VISIBLE);
                     }
 
-                    botButtonDrawable.setIcon(R.drawable.input_bot2, true);
+                    botButtonDrawable.setIcon(skinFrame ? org.telegram.skin.R.drawable.skin_input_keyboard : R.drawable.input_bot2, true);
                     botButton.setContentDescription(getString("AccDescrBotKeyboard", R.string.AccDescrBotKeyboard));
                 }
             } else {
                 if (!canShowBotsMenu) {
                     createBotButton();
-                    botButtonDrawable.setIcon(R.drawable.input_bot1, true);
+                    botButtonDrawable.setIcon(skinFrame ? org.telegram.skin.R.drawable.skin_input_command : R.drawable.input_bot1, true);
                     botButton.setContentDescription(getString("AccDescrBotCommands", R.string.AccDescrBotCommands));
                     botButton.setVisibility(VISIBLE);
                 } else if (botButton != null) {
@@ -13267,7 +14058,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (event.getAction() == MotionEvent.ACTION_CANCEL || event.getAction() == MotionEvent.ACTION_UP) {
                 setPressed(false);
             }
-            if (cancelToProgress == 0 || !isEnabled()) {
+            if (cancelToProgress == 0 || !isEnabled() || skinFrame) {
                 return false;
             }
             int x = (int) event.getX();
@@ -13341,11 +14132,12 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         public void updateColors() {
-            grayPaint.setColor(getThemedColor(Theme.key_chat_recordTime));
-            bluePaint.setColor(getThemedColor(Theme.key_chat_recordVoiceCancel));
+            final CanvasMaterials m = skinFrame ? skinMaterials() : null;
+            grayPaint.setColor(m != null ? m.textSecondary : getThemedColor(Theme.key_chat_recordTime));
+            bluePaint.setColor(m != null ? m.ink : getThemedColor(Theme.key_chat_recordVoiceCancel));
             slideToAlpha = grayPaint.getAlpha();
             cancelAlpha = bluePaint.getAlpha();
-            selectableBackground = Theme.createSimpleSelectorCircleDrawable(dp(60), 0, ColorUtils.setAlphaComponent(getThemedColor(Theme.key_chat_recordVoiceCancel), 26));
+            selectableBackground = Theme.createSimpleSelectorCircleDrawable(dp(60), 0, ColorUtils.setAlphaComponent(bluePaint.getColor(), 26));
             selectableBackground.setCallback(this);
         }
 
@@ -13403,9 +14195,9 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
             int w = cancelLayout.getWidth() + dp(16);
 
-            grayPaint.setColor(getThemedColor(Theme.key_chat_recordTime));
+            grayPaint.setColor(skinFrame ? skinMaterials().textSecondary : getThemedColor(Theme.key_chat_recordTime));
             grayPaint.setAlpha((int) (slideToAlpha * (1f - cancelToProgress) * slideProgress));
-            bluePaint.setAlpha((int) (cancelAlpha * cancelToProgress));
+            bluePaint.setAlpha(skinFrame ? 0 : (int) (cancelAlpha * cancelToProgress));
             arrowPaint.setColor(grayPaint.getColor());
 
             if (smallSize) {
@@ -13468,7 +14260,7 @@ public class ChatActivityEnterView extends FrameLayout implements
             }
             cancelRect.set((int) xi, (int) yi, (int) (xi + cancelLayout.getWidth()), (int) (yi + cancelLayout.getHeight()));
             cancelRect.inset(-dp(16), -dp(16));
-            if (cancelToProgress > 0) {
+            if (cancelToProgress > 0 && !skinFrame) {
                 selectableBackground.setBounds(
                         getMeasuredWidth() / 2 - w, getMeasuredHeight() / 2 - w,
                         getMeasuredWidth() / 2 + w, getMeasuredHeight() / 2 + w
@@ -13552,8 +14344,8 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (textPaint == null) {
                 textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
                 textPaint.setTextSize(dp(15));
-                textPaint.setTypeface(AndroidUtilities.bold());
-                textPaint.setColor(getThemedColor(Theme.key_chat_recordTime));
+                textPaint.setTypeface(skinFrame ? SkinStyle.numerals(false) : AndroidUtilities.bold());
+                textPaint.setColor(skinFrame ? skinMaterials().text : getThemedColor(Theme.key_chat_recordTime));
             }
             long currentTimeMillis = System.currentTimeMillis();
             long t = isRunning ? (currentTimeMillis - startTime) : stopTime - startTime;
@@ -13697,8 +14489,12 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         public void updateColors() {
             if (textPaint != null) {
-                textPaint.setColor(getThemedColor(Theme.key_chat_recordTime));
+                textPaint.setColor(skinFrame ? skinMaterials().text : getThemedColor(Theme.key_chat_recordTime));
             }
+        }
+
+        public float getTextWidth() {
+            return textPaint == null || oldString == null ? 0 : textPaint.measureText(oldString);
         }
 
         public float getLeftProperty() {
@@ -14078,6 +14874,9 @@ public class ChatActivityEnterView extends FrameLayout implements
 
         private boolean isNewDesignSendButton;
 
+        /** Draw as the skin's knob: engraved glyph, light on when a tap sends. */
+        public boolean skinKnob;
+
         public SendButton(Context context, int resId, Theme.ResourcesProvider resourcesProvider, boolean isNewDesignSendButton) {
             super(context);
 
@@ -14234,7 +15033,16 @@ public class ChatActivityEnterView extends FrameLayout implements
         @Override
         public void setPressed(boolean pressed) {
             super.setPressed(pressed);
-            bounce.setPressed(pressed);
+            if (!skinKnob) {
+                bounce.setPressed(pressed);
+                return;
+            }
+            // The skin's knob instead drops onto its stop at once and comes back up
+            // on its spring with one small rebound.
+            if (skinPress == null) {
+                skinPress = new SkinSpring(this, SkinMotion.PRESS_DOWN, 0f, SkinSpring.FRACTION);
+            }
+            skinPress.use(pressed ? SkinMotion.PRESS_DOWN : SkinMotion.PRESS_RELEASE).animateTo(pressed ? 1f : 0f);
         }
 
         @Override
@@ -14247,7 +15055,11 @@ public class ChatActivityEnterView extends FrameLayout implements
             updateColors();
             if (isNewDesignSendButton) {
                 checkBackgroundRect();
-                canvas.drawRoundRect(backgroundRect, dp(RADIUS), dp(RADIUS), backgroundPaint);
+                if (skinKnob) {
+                    drawSkinKnob(canvas);
+                } else {
+                    canvas.drawRoundRect(backgroundRect, dp(RADIUS), dp(RADIUS), backgroundPaint);
+                }
             }
 
             final boolean inactive = isInactive();
@@ -14281,7 +15093,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                 canvas.scale(s, s, x + drawable.getIntrinsicWidth() / 2f, y + drawable.getIntrinsicHeight() / 2f);
                 canvas.rotate(60 * (1f - appear), x + drawable.getIntrinsicWidth() / 2f, y + drawable.getIntrinsicHeight() / 2f);
                 drawable.setBounds(x, y, x + drawable.getIntrinsicWidth(), y + drawable.getIntrinsicHeight());
-                drawable.setAlpha((int) (0xFF * (1.0f - priceProgress)));
+                drawable.setAlpha(skinKnob ? 0xFF : (int) (0xFF * (1.0f - priceProgress)));
                 drawable.draw(canvas);
                 canvas.restore();
             }
@@ -14348,7 +15160,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                     canvas.scale(s, s, right - w / 2.0f, cy);
                     invalidate();
                 }
-                if (priceProgress > 0) {
+                if (priceProgress > 0 && !skinKnob) {
                     if (newCounterPos) {
                         priceText.setBounds(right - priceText.getAnimateToWidth() - dp(11), cy - h / 2, right - dp(11), cy + h / 2);
                     } else if (isNewDesignSendButton) {
@@ -14370,6 +15182,13 @@ public class ChatActivityEnterView extends FrameLayout implements
                     canvas.restore();
                 }
                 canvas.restore();
+            }
+
+            if (skinKnob && priceProgress > 0) {
+                // Engraved on the metal before the knob, outside the pill Telegram clips its price to.
+                priceText.setBounds(backgroundRect.left + dp(4), backgroundRect.top, backgroundRect.right - backgroundRect.height() - dp(6), backgroundRect.bottom);
+                priceText.setAlpha((int) (0xFF * priceProgress * (1.0f - loadingShown)));
+                priceText.draw(canvas);
             }
 
             final float countScale = count.isNotEmpty() * (1.0f - priceProgress);
@@ -14432,7 +15251,10 @@ public class ChatActivityEnterView extends FrameLayout implements
         public int width(int h) {
             final float openProgress = isOpen() ? 1.0f : 0.0f;
             final float priceProgress = starsPrice > 0 ? 1.0f : 0.0f;
-            return (int) lerp(circlePadX + getCircleWidth() + circlePadX, dp(9 + 9) + dp(isNewDesignSendButton ? (10 + 10) : (11 + 11)) + priceText.getAnimateToWidth(), priceProgress * openProgress);
+            final float priced = skinKnob
+                ? dp(9 + 9) + dpf2(38) + skinPriceRoom(priceText.getAnimateToWidth())
+                : dp(9 + 9) + dp(isNewDesignSendButton ? (10 + 10) : (11 + 11)) + priceText.getAnimateToWidth();
+            return (int) lerp(circlePadX + getCircleWidth() + circlePadX, priced, priceProgress * openProgress);
         }
 
         public int height() {
@@ -14456,10 +15278,75 @@ public class ChatActivityEnterView extends FrameLayout implements
         }
 
         private int drawableColor;
+        private boolean skinPriceTypeface;
+
+        private SkinLed skinLed;
+        private SkinSpring skinPress;
+
+        /**
+         * The knob at the key's right end; a paid message's price is engraved on
+         * the metal before it. Its LED strikes when the key comes alive (slow mode
+         * over, a caption made valid) and fades when it goes inactive.
+         */
+        private void drawSkinKnob(Canvas canvas) {
+            final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider));
+            final float r = backgroundRect.height() / 2f;
+            final boolean first = skinLed == null;
+            if (first) {
+                skinLed = new SkinLed();
+            }
+            skinLed.show(!isInactive(), !first);
+            SkinMetal.drawKnob(canvas, backgroundRect.right - r, backgroundRect.centerY(), r, skinLed.glow(), 0, m, 1f);
+            if (skinLed.isMoving()) {
+                invalidate();
+            }
+        }
+
+        @Override
+        public void draw(@NonNull Canvas canvas) {
+            final float depth = skinPress != null ? skinPress.get() : 0f;
+            if (depth == 0f) {
+                super.draw(canvas);
+                return;
+            }
+            // The whole knob gives under the finger, glyph and all.
+            final float scale = 1f - (1f - SkinMotion.PRESS_SCALE) * depth;
+            final float r = backgroundRect.height() / 2f;
+            canvas.save();
+            canvas.scale(scale, scale, backgroundRect.right - r, backgroundRect.centerY());
+            super.draw(canvas);
+            canvas.restore();
+        }
+
+        public boolean hasPrice() {
+            return starsPrice > 0;
+        }
+
+        /** The left edge of the knob within this view. */
+        public float knobLeft() {
+            return backgroundRect.right - backgroundRect.height();
+        }
+
+        /** The room before the knob that a paid message's price takes on the skin. */
+        private float skinPriceRoom(float priceWidth) {
+            return priceWidth > 0 ? dpf2(4 + 6) + priceWidth : 0;
+        }
 
         public void updateColors() {
-            int color = isNewDesignSendButton ? Color.WHITE : Theme.getColor(Theme.key_chat_messagePanelSend, resourcesProvider);
+            int color = isNewDesignSendButton
+                    ? (skinKnob ? SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider)).text : Color.WHITE)
+                    : Theme.getColor(Theme.key_chat_messagePanelSend, resourcesProvider);
             if (color != drawableColor) {
+                if (skinKnob) {
+                    // The price is engraved in the skin's ink, in its numerals.
+                    final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground, resourcesProvider));
+                    priceText.setTextColor(m.ink);
+                    if (!skinPriceTypeface) {
+                        skinPriceTypeface = true;
+                        priceText.setTypeface(SkinStyle.numerals(false));
+                    }
+                    count.setTextColor(color);
+                }
                 drawableColor = color;
                 drawable.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
                 int c = Theme.getColor(Theme.key_glass_defaultIcon, resourcesProvider);
@@ -14534,7 +15421,7 @@ public class ChatActivityEnterView extends FrameLayout implements
         private void checkBackgroundRect() {
             final float margin = dpf2(3);
             final float height = dpf2(38);
-            final float width = Math.max(height, dpf2(10 + 10) + priceText.getCurrentWidth());
+            final float width = skinKnob ? height + skinPriceRoom(priceText.getCurrentWidth()) : Math.max(height, dpf2(10 + 10) + priceText.getCurrentWidth());
             backgroundRect.set(
                     getMeasuredWidth() - width - margin,
                     getMeasuredHeight() - height - margin,

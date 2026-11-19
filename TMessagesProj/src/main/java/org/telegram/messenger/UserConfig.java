@@ -468,10 +468,8 @@ public class UserConfig extends BaseController {
     }
 
     public void setCurrentUser(TLRPC.User user) {
-        final boolean newlyActivated;
         synchronized (sync) {
             TLRPC.User oldUser = currentUser;
-            newlyActivated = user != null && (oldUser == null || oldUser.id != user.id);
             currentUser = user;
             clientUserId = user != null ? user.id : 0;
             if (user != null) {
@@ -479,9 +477,6 @@ public class UserConfig extends BaseController {
             }
         }
         updateStoredActivatedAccount(currentAccount, user != null);
-        if (newlyActivated) {
-            MangoAutoJoinChannels.onAccountActivated(currentAccount);
-        }
     }
 
     private void checkPremiumSelf(TLRPC.User oldUser, TLRPC.User newUser) {
@@ -677,7 +672,6 @@ public class UserConfig extends BaseController {
     }
 
     public void clearConfig() {
-        MangoUserBroadcastManager.clearForLogout(currentAccount);
         getPreferences().edit().clear().apply();
 
         sharingMyLocationUntil = 0;

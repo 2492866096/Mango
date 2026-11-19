@@ -110,6 +110,7 @@ import org.telegram.ui.ActionBar.BackDrawable;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Adapters.SearchAdapterHelper;
 import org.telegram.ui.CalendarActivity;
@@ -1548,7 +1549,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         iBlur3SourceColor.setColor(getThemedColor(Theme.key_windowBackgroundWhite));
 
         if (iBlur3FactoryLiquidGlass == null) {
-            iBlur3FactoryLiquidGlass = new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor);
+            iBlur3FactoryLiquidGlass = BlurredBackgroundDrawableViewFactory.skin(new BlurredBackgroundDrawableViewFactory(iBlur3SourceColor));
         }
 
         this.viewType = viewType;
@@ -4227,6 +4228,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         }
         scrollSlidingTextTabStrip.animationDuration = 320;
         scrollSlidingTextTabStrip.setColors(Theme.key_profile_tabSelectedLine, Theme.key_profile_tabSelectedText, Theme.key_profile_tabText, Theme.key_profile_tabSelector);
+        scrollSlidingTextTabStrip.setSkinBar(SkinSwitch.PROFILE);
         scrollSlidingTextTabStrip.setUseMinimalWidth(true);
         scrollSlidingTextTabStrip.setDelegate(new ScrollSlidingTextTabStrip.ScrollSlidingTabStripDelegate() {
             @Override

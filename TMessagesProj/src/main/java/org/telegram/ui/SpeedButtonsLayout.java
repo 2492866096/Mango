@@ -13,6 +13,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaController;
 import org.telegram.messenger.R;
+import org.telegram.skin.theme.CanvasPalette;
 import org.telegram.ui.ActionBar.ActionBarMenuItem;
 import org.telegram.ui.ActionBar.ActionBarMenuSlider;
 import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
@@ -21,6 +22,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.PopupSwipeBackLayout;
 import org.telegram.ui.Components.SpeedIconDrawable;
+import org.telegram.ui.SkinSwitch;
 
 public class SpeedButtonsLayout extends LinearLayout {
 
@@ -96,7 +98,9 @@ public class SpeedButtonsLayout extends LinearLayout {
                             a == 3 && Math.abs(currentVideoSpeed - 1.5f) < 0.1f ||
                             a == 4 && Math.abs(currentVideoSpeed - 2.0f) < 0.1f
             )) {
-                speedItems[a].setColors(0xff6BB6F9, 0xff6BB6F9);
+                // The current speed lights in the skin's celadon (the player's menu is always dark).
+                final int current = SkinSwitch.CONTROLS ? CanvasPalette.of(true).led : 0xff6BB6F9;
+                speedItems[a].setColors(current, current);
             } else {
                 speedItems[a].setColors(0xfffafafa, 0xfffafafa);
             }

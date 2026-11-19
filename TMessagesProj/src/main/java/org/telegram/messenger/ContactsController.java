@@ -14,6 +14,7 @@ import android.accounts.AccountManager;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -216,7 +217,7 @@ public class ContactsController extends BaseController {
             ContactsContract.CommonDataKinds.Phone.TYPE,
             ContactsContract.CommonDataKinds.Phone.LABEL,
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-            ContactsContract.RawContacts.ACCOUNT_TYPE,
+            ContactsContract.CommonDataKinds.Phone.RAW_CONTACT_ID,
     };
     private static final String[] projectionNames = {
             ContactsContract.CommonDataKinds.StructuredName.LOOKUP_KEY,
@@ -627,6 +628,30 @@ public class ContactsController extends BaseController {
         return count > 3;
     }
 
+    // Android 17 hides account columns from the data view, so read them from raw contacts.
+    private static HashMap<Long, String> getRawContactAccountTypes(ContentResolver cr) {
+        HashMap<Long, String> types = new HashMap<>();
+        try (Cursor cursor = cr.query(ContactsContract.RawContacts.CONTENT_URI, new String[]{ContactsContract.RawContacts._ID, ContactsContract.RawContacts.ACCOUNT_TYPE}, null, null, null)) {
+            while (cursor != null && cursor.moveToNext()) {
+                types.put(cursor.getLong(0), cursor.getString(1));
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
+        return types;
+    }
+
+    public static String getRawContactAccountName(ContentResolver cr, long rawContactId) {
+        try (Cursor cursor = cr.query(ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawContactId), new String[]{ContactsContract.RawContacts.ACCOUNT_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getString(0);
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
+        return null;
+    }
+
     public HashMap<String, Contact> readContactsFromPhoneBook() {
         if (!getUserConfig().syncContacts) {
             if (BuildVars.LOGS_ENABLED) {
@@ -649,6 +674,7 @@ public class ContactsController extends BaseController {
 
             HashMap<String, Contact> shortContacts = new HashMap<>();
             ArrayList<String> idsArr = new ArrayList<>();
+            HashMap<Long, String> accountTypes = getRawContactAccountTypes(cr);
             pCur = cr.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, projectionPhones, null, null, null);
 
             long time = System.currentTimeMillis();
@@ -659,7 +685,7 @@ public class ContactsController extends BaseController {
                     contactsMap = new HashMap<>(count);
                     while (pCur.moveToNext()) {
                         String number = pCur.getString(1);
-                        String accountType = pCur.getString(5);
+                        String accountType = accountTypes.get(pCur.getLong(5));
                         if (accountType == null) {
                             accountType = "";
                         }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Search one member's messages: the person. The skin's search console glyph: 24-unit grid, round strokes,
+     drawn white so Telegram's tint colours it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M12,4.5a3.5,3.5 0,1 0,0,7a3.5,3.5 0,1 0,0,-7zM5.5,19.5a6.5,6.5 0,0 1,13,0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -1,5 +1,4 @@
-/* Copyright (c) 2013, Google Inc.
- * All rights reserved.
+/* Copyright 2013 Google LLC
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -11,7 +10,7 @@
  * copyright notice, this list of conditions and the following disclaimer
  * in the documentation and/or other materials provided with the
  * distribution.
- *     * Neither the name of Google Inc. nor the names of its
+ *     * Neither the name of Google LLC nor the names of its
  * contributors may be used to endorse or promote products derived from
  * this software without specific prior written permission.
  *
@@ -156,5 +155,21 @@ enum MDMIPSRegisterNumbers {
 #define MD_CONTEXT_MIPS_ALL               (MD_CONTEXT_MIPS_INTEGER | \
                                            MD_CONTEXT_MIPS_FLOATING_POINT \
                                            MD_CONTEXT_MIPS_DSP)
+
+/**
+ * Breakpad defines for MIPS64
+ */
+#define MD_CONTEXT_MIPS64  0x00080000
+#define MD_CONTEXT_MIPS64_INTEGER           (MD_CONTEXT_MIPS64 | 0x00000002)
+#define MD_CONTEXT_MIPS64_FLOATING_POINT    (MD_CONTEXT_MIPS64 | 0x00000004)
+#define MD_CONTEXT_MIPS64_DSP               (MD_CONTEXT_MIPS64 | 0x00000008)
+
+#define MD_CONTEXT_MIPS64_FULL              (MD_CONTEXT_MIPS64_INTEGER | \
+                                             MD_CONTEXT_MIPS64_FLOATING_POINT | \
+                                             MD_CONTEXT_MIPS64_DSP)
+
+#define MD_CONTEXT_MIPS64_ALL               (MD_CONTEXT_MIPS64_INTEGER | \
+                                             MD_CONTEXT_MIPS64_FLOATING_POINT \
+                                             MD_CONTEXT_MIPS64_DSP)
 
 #endif  // GOOGLE_BREAKPAD_COMMON_MINIDUMP_CPU_MIPS_H__

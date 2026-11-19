@@ -40,38 +40,20 @@
 #endif
 
     .text
-    .fpu neon
     .arch armv7a
     .object_arch armv4
+    .fpu neon
     .eabi_attribute 10, 0 /* suppress Tag_FP_arch */
     .eabi_attribute 12, 0 /* suppress Tag_Advanced_SIMD_arch */
     .arm
     .altmacro
     .p2align 2
 
-
-//#include "pixman-arm-asm.h"
-/* Supplementary macro for setting function attributes */
-.macro pixman_asm_function fname
-    .func fname
-    .global fname
-#ifdef __ELF__
-    .hidden fname
-    .type fname, %function
-#endif
-fname:
-.endm
-
-//#include "pixman-private.h"
-/*
- * The defines which are shared between C and assembly code
- */
-
-/* bilinear interpolation precision (must be < 8) */
-#define BILINEAR_INTERPOLATION_BITS 7
-#define BILINEAR_INTERPOLATION_RANGE (1 << BILINEAR_INTERPOLATION_BITS)
-
+#include "pixman-private.h"
+#include "pixman-arm-asm.h"
 #include "pixman-arm-neon-asm.h"
+
+    pixman_syntax_unified
 
 /* Global configuration options and preferences */
 
@@ -172,6 +154,40 @@ fname:
  *
  * But anyway, here is the code:
  */
+.macro pixman_composite_over_8888_0565_process_pixblock_head
+    /* convert 8 r5g6b5 pixel data from {d4, d5} to planar 8-bit format
+       and put data into d6 - red, d7 - green, d30 - blue */
+    vshrn.u16   d6, q2, #8
+    vshrn.u16   d7, q2, #3
+    vsli.u16    q2, q2, #5
+    vsri.u8     d6, d6, #5
+    vmvn.8      d3, d3      /* invert source alpha */
+    vsri.u8     d7, d7, #6
+    vshrn.u16   d30, q2, #2
+    /* now do alpha blending, storing results in 8-bit planar format
+       into d16 - red, d19 - green, d18 - blue */
+    vmull.u8    q10, d3, d6
+    vmull.u8    q11, d3, d7
+    vmull.u8    q12, d3, d30
+    vrshr.u16   q13, q10, #8
+    vrshr.u16   q3, q11, #8
+    vrshr.u16   q15, q12, #8
+    vraddhn.u16 d20, q10, q13
+    vraddhn.u16 d23, q11, q3
+    vraddhn.u16 d22, q12, q15
+.endm
+
+.macro pixman_composite_over_8888_0565_process_pixblock_tail
+    /* ... continue alpha blending */
+    vqadd.u8    d16, d2, d20
+    vqadd.u8    q9, q0, q11
+    /* convert the result to r5g6b5 and store it into {d28, d29} */
+    vshll.u8    q14, d16, #8
+    vshll.u8    q8, d19, #8
+    vshll.u8    q9, d18, #8
+    vsri.u16    q14, q8, #5
+    vsri.u16    q14, q9, #11
+.endm
 
 /*
  * OK, now we got almost everything that we need. Using the above two
@@ -235,6 +251,62 @@ fname:
  * macro!
  */
 
+#if 1
+
+.macro pixman_composite_over_8888_0565_process_pixblock_tail_head
+        vqadd.u8    d16, d2, d20
+    vld1.16     {d4, d5}, [DST_R, :128]!
+        vqadd.u8    q9, q0, q11
+    vshrn.u16   d6, q2, #8
+    fetch_src_pixblock
+    vshrn.u16   d7, q2, #3
+    vsli.u16    q2, q2, #5
+        vshll.u8    q14, d16, #8
+                                    PF add, PF_X, PF_X, #8
+        vshll.u8    q8, d19, #8
+                                    PF tst, PF_CTL, #0xF
+    vsri.u8     d6, d6, #5
+                                    PF addne, PF_X, PF_X, #8
+    vmvn.8      d3, d3
+                                    PF subne, PF_CTL, PF_CTL, #1
+    vsri.u8     d7, d7, #6
+    vshrn.u16   d30, q2, #2
+    vmull.u8    q10, d3, d6
+                                    PF pld, [PF_SRC, PF_X, lsl #src_bpp_shift]
+    vmull.u8    q11, d3, d7
+    vmull.u8    q12, d3, d30
+                                    PF pld, [PF_DST, PF_X, lsl #dst_bpp_shift]
+        vsri.u16    q14, q8, #5
+                                    PF cmp, PF_X, ORIG_W
+        vshll.u8    q9, d18, #8
+    vrshr.u16   q13, q10, #8
+                                    PF subge, PF_X, PF_X, ORIG_W
+    vrshr.u16   q3, q11, #8
+    vrshr.u16   q15, q12, #8
+                                    PF subsge, PF_CTL, PF_CTL, #0x10
+        vsri.u16    q14, q9, #11
+                                    PF ldrbge, DUMMY, [PF_SRC, SRC_STRIDE, lsl #src_bpp_shift]!
+    vraddhn.u16 d20, q10, q13
+    vraddhn.u16 d23, q11, q3
+                                    PF ldrbge, DUMMY, [PF_DST, DST_STRIDE, lsl #dst_bpp_shift]!
+    vraddhn.u16 d22, q12, q15
+        vst1.16     {d28, d29}, [DST_W, :128]!
+.endm
+
+#else
+
+/* If we did not care much about the performance, we would just use this... */
+.macro pixman_composite_over_8888_0565_process_pixblock_tail_head
+    pixman_composite_over_8888_0565_process_pixblock_tail
+    vst1.16     {d28, d29}, [DST_W, :128]!
+    vld1.16     {d4, d5}, [DST_R, :128]!
+    fetch_src_pixblock
+    pixman_composite_over_8888_0565_process_pixblock_head
+    cache_preload 8, 8
+.endm
+
+#endif
+
 /*
  * And now the final part. We are using 'generate_composite_function' macro
  * to put all the stuff together. We are specifying the name of the function
@@ -265,28 +337,28 @@ fname:
  * The last part is the NEON registers allocation scheme.
  */
 
-/******************************************************************************/
+/* Macros from other functions that the ones below build on. */
+.macro pixman_composite_out_reverse_8888_8888_process_pixblock_head
+    vmvn.8      d24, d3  /* get inverted alpha */
+    /* do alpha blending */
+    vmull.u8    q8, d24, d4
+    vmull.u8    q9, d24, d5
+    vmull.u8    q10, d24, d6
+    vmull.u8    q11, d24, d7
+.endm
 
-/******************************************************************************/
- .macro pixman_composite_out_reverse_8888_8888_process_pixblock_head
-     vmvn.8      d24, d3  /* get inverted alpha */
-     /* do alpha blending */
-     vmull.u8    q8, d24, d4
-     vmull.u8    q9, d24, d5
-     vmull.u8    q10, d24, d6
-     vmull.u8    q11, d24, d7
- .endm
 
- .macro pixman_composite_out_reverse_8888_8888_process_pixblock_tail
-     vrshr.u16   q14, q8, #8
-     vrshr.u16   q15, q9, #8
-     vrshr.u16   q12, q10, #8
-     vrshr.u16   q13, q11, #8
-     vraddhn.u16 d28, q14, q8
-     vraddhn.u16 d29, q15, q9
-     vraddhn.u16 d30, q12, q10
-     vraddhn.u16 d31, q13, q11
- .endm
+.macro pixman_composite_out_reverse_8888_8888_process_pixblock_tail
+    vrshr.u16   q14, q8, #8
+    vrshr.u16   q15, q9, #8
+    vrshr.u16   q12, q10, #8
+    vrshr.u16   q13, q11, #8
+    vraddhn.u16 d28, q14, q8
+    vraddhn.u16 d29, q15, q9
+    vraddhn.u16 d30, q12, q10
+    vraddhn.u16 d31, q13, q11
+.endm
+
 
 /******************************************************************************/
 
@@ -303,16 +375,16 @@ fname:
 .macro pixman_composite_over_8888_8888_process_pixblock_tail_head
     vld4.8      {d4, d5, d6, d7}, [DST_R, :128]!
         vrshr.u16   q14, q8, #8
-                                    PF add PF_X, PF_X, #8
-                                    PF tst PF_CTL, #0xF
+                                    PF add, PF_X, PF_X, #8
+                                    PF tst, PF_CTL, #0xF
         vrshr.u16   q15, q9, #8
         vrshr.u16   q12, q10, #8
         vrshr.u16   q13, q11, #8
-                                    PF addne PF_X, PF_X, #8
-                                    PF subne PF_CTL, PF_CTL, #1
+                                    PF addne, PF_X, PF_X, #8
+                                    PF subne, PF_CTL, PF_CTL, #1
         vraddhn.u16 d28, q14, q8
         vraddhn.u16 d29, q15, q9
-                                    PF cmp PF_X, ORIG_W
+                                    PF cmp, PF_X, ORIG_W
         vraddhn.u16 d30, q12, q10
         vraddhn.u16 d31, q13, q11
         vqadd.u8    q14, q0, q14
@@ -322,13 +394,13 @@ fname:
     vmvn.8      d22, d3
                                     PF pld, [PF_DST, PF_X, lsl #dst_bpp_shift]
         vst4.8      {d28, d29, d30, d31}, [DST_W, :128]!
-                                    PF subge PF_X, PF_X, ORIG_W
+                                    PF subge, PF_X, PF_X, ORIG_W
     vmull.u8    q8, d22, d4
-                                    PF subges PF_CTL, PF_CTL, #0x10
+                                    PF subsge, PF_CTL, PF_CTL, #0x10
     vmull.u8    q9, d22, d5
-                                    PF ldrgeb DUMMY, [PF_SRC, SRC_STRIDE, lsl #src_bpp_shift]!
+                                    PF ldrbge, DUMMY, [PF_SRC, SRC_STRIDE, lsl #src_bpp_shift]!
     vmull.u8    q10, d22, d6
-                                    PF ldrgeb DUMMY, [PF_DST, DST_STRIDE, lsl #dst_bpp_shift]!
+                                    PF ldrbge, DUMMY, [PF_DST, DST_STRIDE, lsl #dst_bpp_shift]!
     vmull.u8    q11, d22, d7
 .endm
 
@@ -389,20 +461,20 @@ generate_composite_function_single_scanline \
         vraddhn.u16 d31, q3, q11
     vld4.8      {d4, d5, d6, d7}, [DST_R, :128]!
         vqadd.u8    q14, q0, q14
-                                    PF add PF_X, PF_X, #8
-                                    PF tst PF_CTL, #0x0F
-                                    PF addne PF_X, PF_X, #8
-                                    PF subne PF_CTL, PF_CTL, #1
+                                    PF add, PF_X, PF_X, #8
+                                    PF tst, PF_CTL, #0x0F
+                                    PF addne, PF_X, PF_X, #8
+                                    PF subne, PF_CTL, PF_CTL, #1
         vqadd.u8    q15, q1, q15
-                                    PF cmp PF_X, ORIG_W
+                                    PF cmp, PF_X, ORIG_W
     vmull.u8    q8, d24, d4
                                     PF pld, [PF_DST, PF_X, lsl #dst_bpp_shift]
     vmull.u8    q9, d24, d5
-                                    PF subge PF_X, PF_X, ORIG_W
+                                    PF subge, PF_X, PF_X, ORIG_W
     vmull.u8    q10, d24, d6
-                                    PF subges PF_CTL, PF_CTL, #0x10
+                                    PF subsge, PF_CTL, PF_CTL, #0x10
     vmull.u8    q11, d24, d7
-                                    PF ldrgeb DUMMY, [PF_DST, DST_STRIDE, lsl #dst_bpp_shift]!
+                                    PF ldrbge, DUMMY, [PF_DST, DST_STRIDE, lsl #dst_bpp_shift]!
         vst4.8      {d28, d29, d30, d31}, [DST_W, :128]!
 .endm
 
@@ -494,4 +566,3 @@ generate_composite_function \
     0, /* src_basereg   */ \
     0  /* mask_basereg  */
 
-/******************************************************************************/

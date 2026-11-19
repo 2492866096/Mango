@@ -116,6 +116,7 @@ import org.telegram.messenger.FlagSecureReason;
 import org.telegram.messenger.GenericProvider;
 import org.telegram.messenger.GiftAuctionController;
 import org.telegram.messenger.LiteMode;
+import org.telegram.messenger.LocalNetworkAccess;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.LocationController;
 import org.telegram.messenger.MediaController;
@@ -123,7 +124,6 @@ import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessagesStorage;
-import org.telegram.messenger.MangoAnnouncementController;
 import org.telegram.messenger.MangoPerformanceMonitor;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.NotificationsController;
@@ -2802,7 +2802,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                     if (cursor != null) {
                                         if (cursor.moveToFirst()) {
                                             long userId = cursor.getLong(cursor.getColumnIndex(ContactsContract.Data.DATA4));
-                                            int accountId = Utilities.parseInt(cursor.getString(cursor.getColumnIndex(ContactsContract.RawContacts.ACCOUNT_NAME)));
+                                            int accountId = Utilities.parseInt(ContactsController.getRawContactAccountName(getContentResolver(), cursor.getLong(cursor.getColumnIndex(ContactsContract.Data.RAW_CONTACT_ID))));
                                             int[] activatedAccounts = UserConfig.getActivatedAccounts();
                                             for (int a = -1; a < activatedAccounts.length; a++) {
                                                 int i = a == -1 ? intentAccount[0] : activatedAccounts[a];
@@ -6603,7 +6603,6 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     protected void onPause() {
         super.onPause();
         isResumed = false;
-        MangoAnnouncementController.onPause(this);
         MangoPerformanceMonitor.setForeground(false);
         MangoDownloadSpeedHud.detach();
         pipActivityHandler.onPause();
@@ -6861,6 +6860,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         super.onResume();
         applyDefaultClientOverrides();
         BuiltinProxyController.refreshProxyConnection();
+        LocalNetworkAccess.onActivityResumed();
         isResumed = true;
         MangoPerformanceMonitor.setForeground(true);
         MangoDownloadSpeedHud.attach(this);
@@ -6953,7 +6953,6 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             // Re-check if the user updated their email from another client
             MessagesController.getInstance(currentAccount).checkPromoInfo(true);
         }
-        MangoAnnouncementController.onResume(this);
         //if (refreshRateController != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         //    refreshRateController.start();
         //}

@@ -97,19 +97,24 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
+import androidx.credentials.Credential;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialCancellationException;
+import androidx.credentials.exceptions.GetCredentialException;
 
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.ProductDetails;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.QueryProductDetailsParams;
-import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.safetynet.SafetyNet;
 import com.google.android.gms.tasks.Task;
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
@@ -5997,6 +6002,37 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         }
     }
 
+    private static void signInWithGoogle(Activity activity, Utilities.Callback<GoogleIdTokenCredential> onSignedIn) {
+        GetCredentialRequest request = new GetCredentialRequest.Builder()
+                .addCredentialOption(new GetSignInWithGoogleOption.Builder(BuildVars.GOOGLE_AUTH_CLIENT_ID).build())
+                .build();
+        CredentialManager.create(activity).getCredentialAsync(activity, request, null, ContextCompat.getMainExecutor(activity), new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+            @Override
+            public void onResult(GetCredentialResponse response) {
+                Credential credential = response.getCredential();
+                if (!(credential instanceof CustomCredential) || !GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
+                    FileLog.e("unexpected google sign in credential " + credential.getType());
+                    return;
+                }
+                GoogleIdTokenCredential account;
+                try {
+                    account = GoogleIdTokenCredential.createFrom(credential.getData());
+                } catch (Exception e) {
+                    FileLog.e(e);
+                    return;
+                }
+                onSignedIn.run(account);
+            }
+
+            @Override
+            public void onError(@NonNull GetCredentialException e) {
+                if (!(e instanceof GetCredentialCancellationException)) {
+                    FileLog.e(e);
+                }
+            }
+        });
+    }
+
     public class LoginActivitySetupEmail extends SlideView {
         private OutlineTextContainerView emailOutlineView;
         private EditTextBoldCursor emailField;
@@ -6013,7 +6049,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private String phone, emailPhone;
         private String requestPhone, phoneHash;
 
-        private GoogleSignInAccount googleAccount;
+        private GoogleIdTokenCredential googleAccount;
 
         public LoginActivitySetupEmail(Context context) {
             super(context);
@@ -6106,34 +6142,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             VerticalPositionAutoAnimator.attach(bottomContainer);
 
             bottomContainer.setOnClickListener(view -> {
-                NotificationCenter.getGlobalInstance().addObserver(new NotificationCenter.NotificationCenterDelegate() {
-                    @Override
-                    public void didReceivedNotification(int id, int account, Object... args) {
-                        int request = (int) args[0];
-                        int result = (int) args[1];
-                        Intent data = (Intent) args[2];
-                        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.onActivityResultReceived);
-
-                        if (request == BasePermissionsActivity.REQUEST_CODE_SIGN_IN_WITH_GOOGLE) {
-                            try {
-                                googleAccount = GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException.class);
-                                onNextPressed(null);
-                            } catch (ApiException e) {
-                                FileLog.e(e);
-                            }
-                        }
-                    }
-                }, NotificationCenter.onActivityResultReceived);
-
-                GoogleSignInClient googleClient = GoogleSignIn.getClient(getContext(), new GoogleSignInOptions.Builder()
-                        .requestIdToken(BuildVars.GOOGLE_AUTH_CLIENT_ID)
-                        .requestEmail()
-                        .build());
-                googleClient.signOut().addOnCompleteListener(command -> {
-                    if (getParentActivity() == null || getParentActivity().isFinishing()) {
-                        return;
-                    }
-                    getParentActivity().startActivityForResult(googleClient.getSignInIntent(), BasePermissionsActivity.REQUEST_CODE_SIGN_IN_WITH_GOOGLE);
+                Activity activity = getParentActivity();
+                if (activity == null || activity.isFinishing()) {
+                    return;
+                }
+                signInWithGoogle(activity, account -> {
+                    googleAccount = account;
+                    onNextPressed(null);
                 });
             });
         }
@@ -6349,7 +6364,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private boolean resetRequestPending;
         private Bundle currentParams;
         private boolean nextPressed;
-        private GoogleSignInAccount googleAccount;
+        private GoogleIdTokenCredential googleAccount;
 
         private int resetAvailablePeriod, resetPendingDate;
         private String phone, emailPhone, email;
@@ -6440,34 +6455,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             signInWithGoogleView.setText(str);
 
             signInWithGoogleView.setOnClickListener(view -> {
-                NotificationCenter.getGlobalInstance().addObserver(new NotificationCenter.NotificationCenterDelegate() {
-                    @Override
-                    public void didReceivedNotification(int id, int account, Object... args) {
-                        int request = (int) args[0];
-                        int result = (int) args[1];
-                        Intent data = (Intent) args[2];
-                        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.onActivityResultReceived);
-
-                        if (request == BasePermissionsActivity.REQUEST_CODE_SIGN_IN_WITH_GOOGLE) {
-                            try {
-                                googleAccount = GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException.class);
-                                onNextPressed(null);
-                            } catch (ApiException e) {
-                                FileLog.e(e);
-                            }
-                        }
-                    }
-                }, NotificationCenter.onActivityResultReceived);
-
-                GoogleSignInClient googleClient = GoogleSignIn.getClient(getContext(), new GoogleSignInOptions.Builder()
-                                .requestIdToken(BuildVars.GOOGLE_AUTH_CLIENT_ID)
-                                .requestEmail()
-                                .build());
-                googleClient.signOut().addOnCompleteListener(command -> {
-                    if (getParentActivity() == null) {
-                        return;
-                    }
-                    getParentActivity().startActivityForResult(googleClient.getSignInIntent(), BasePermissionsActivity.REQUEST_CODE_SIGN_IN_WITH_GOOGLE);
+                Activity activity = getParentActivity();
+                if (activity == null || activity.isFinishing()) {
+                    return;
+                }
+                signInWithGoogle(activity, account -> {
+                    googleAccount = account;
+                    onNextPressed(null);
                 });
             });
 

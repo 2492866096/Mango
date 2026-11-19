@@ -73,14 +73,14 @@ public class PinnedSearchRegression {
  static class Helper {void mergeResults(Object result,Object recent){}}
  static class Delegate {long forum;long getSearchForumDialogId(){return forum;}}
  static class Harness {
-  int currentAccount;long selfUserId;boolean searchWas;String lastSearchText,filteredRecentQuery;long forced;
+  int currentAccount;long selfUserId;boolean searchWas;String lastSearchText,filteredRecentQuery;
   ArrayList<TLRPC.Chat> pinnedSearchChannels=new ArrayList<>();
   ArrayList<RecentSearchObject> recentSearchObjects=new ArrayList<>(),filteredRecentSearchObjects=new ArrayList<>(),filtered2RecentSearchObjects=new ArrayList<>();
   Map<Long,RecentSearchObject> recentSearchObjectsById=new HashMap<>();
   ArrayList<Object> searchResult=new ArrayList<>();ArrayList<CharSequence> searchResultNames=new ArrayList<>();
   Helper searchAdapterHelper=new Helper();Delegate delegate;
   Harness(int account){currentAccount=account;selfUserId=UserConfig.getInstance(account).owner;loadPinnedSearchChannels();}
-  boolean filter(Object o){return true;}boolean isForcedRecentDialog(long id){return id==forced;}void notifyDataSetChanged(){}
+  boolean filter(Object o){return true;}void notifyDataSetChanged(){}
   void recent(TLRPC.Chat c){RecentSearchObject o=new RecentSearchObject();o.object=c;o.did=-c.id;recentSearchObjects.add(o);recentSearchObjectsById.put(o.did,o);}
   /*METHODS*/
  }
@@ -129,8 +129,6 @@ public class PinnedSearchRegression {
   for(int i=0;i<7;i++)MangoPinnedSearchChannels.setPinned(0,10,chat(200+i,"News "+i),true);
   Harness many=new Harness(0);for(int i=0;i<8;i++)many.recent(chat(300+i,"News "+i));many.filterRecent("News");
   check(many.filtered2RecentSearchObjects.size()==14,"all nine matching pins plus five recent results, no five-pin cap");
-  many.forced=-101;many.filterRecent(null);
-  check(many.filteredRecentSearchObjects.stream().noneMatch(o->o.did==-101),"forced entry remains independent without duplicate");
   many.delegate=new Delegate();many.delegate.forum=-102;many.filterRecent(null);
   check(many.filteredRecentSearchObjects.stream().noneMatch(o->o.did==-102),"forum exclusion retained");
   UserConfig.all[0].owner=99;many.filterRecent(null);

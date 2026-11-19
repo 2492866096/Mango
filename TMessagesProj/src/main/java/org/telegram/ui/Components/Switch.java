@@ -35,7 +35,10 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import androidx.annotation.Keep;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.SkinMetal;
+import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Cells.BaseCell;
 
 public class Switch extends View {
@@ -379,6 +382,11 @@ public class Switch extends View {
         int tx = x + AndroidUtilities.dp(7) + (int) (AndroidUtilities.dp(17) * progress);
         int ty = getMeasuredHeight() / 2;
 
+        if (SkinSwitch.CONTROLS && overrideColorProgress == 0) {
+            drawSkin(canvas, x, width, tx, ty);
+            return;
+        }
+
 
         int color1;
         int color2;
@@ -534,6 +542,53 @@ public class Switch extends View {
         }
         if (overrideColorProgress != 0) {
             canvas.drawBitmap(overlayBitmap[1], 0, 0, null);
+        }
+    }
+
+    private final RectF skinTrack = new RectF();
+
+    /** The skin's switch: a groove that fills with celadon glaze when on, a metal cap for the thumb, its icon in the metal's ink. */
+    private void drawSkin(Canvas canvas, int x, int width, int tx, int ty) {
+        final CanvasMaterials m = SkinMetal.materials(Theme.getColor(Theme.key_windowBackgroundWhite, resourcesProvider));
+        skinTrack.set(x, ty - AndroidUtilities.dpf2(8), x + width, ty + AndroidUtilities.dpf2(8));
+        if (rippleDrawable != null) {
+            rippleDrawable.setBounds(tx - AndroidUtilities.dp(18), ty - AndroidUtilities.dp(18), tx + AndroidUtilities.dp(18), ty + AndroidUtilities.dp(18));
+            rippleDrawable.draw(canvas);
+        }
+        SkinMetal.drawToggle(canvas, skinTrack, tx, ty, AndroidUtilities.dpf2(9), progress, m, 1f);
+
+        paint2.setColor(m.text);
+        if (iconDrawable != null) {
+            iconDrawable.setColorFilter(new PorterDuffColorFilter(m.text, PorterDuff.Mode.MULTIPLY));
+            iconDrawable.setBounds(tx - iconDrawable.getIntrinsicWidth() / 2, ty - iconDrawable.getIntrinsicHeight() / 2, tx + iconDrawable.getIntrinsicWidth() / 2, ty + iconDrawable.getIntrinsicHeight() / 2);
+            iconDrawable.draw(canvas);
+        } else if (drawIconType == 1) {
+            // Telegram's check that turns into a cross, drawn in the metal's ink.
+            int ix = tx - AndroidUtilities.dp(10.8f) + (int) (AndroidUtilities.dp(1.3f) * progress);
+            int iy = ty - AndroidUtilities.dp(8.5f) + (int) (AndroidUtilities.dp(0.5f) * progress);
+            int startX2 = (int) AndroidUtilities.dpf2(4.6f) + ix;
+            int startY2 = (int) (AndroidUtilities.dpf2(9.5f) + iy);
+            int endX2 = startX2 + AndroidUtilities.dp(2);
+            int endY2 = startY2 + AndroidUtilities.dp(2);
+            int startX = (int) AndroidUtilities.dpf2(7.5f) + ix;
+            int startY = (int) AndroidUtilities.dpf2(5.4f) + iy;
+            int endX = startX + AndroidUtilities.dp(7);
+            int endY = startY + AndroidUtilities.dp(7);
+            startX = (int) (startX + (startX2 - startX) * progress);
+            startY = (int) (startY + (startY2 - startY) * progress);
+            endX = (int) (endX + (endX2 - endX) * progress);
+            endY = (int) (endY + (endY2 - endY) * progress);
+            canvas.drawLine(startX, startY, endX, endY, paint2);
+            startX = (int) AndroidUtilities.dpf2(7.5f) + ix;
+            startY = (int) AndroidUtilities.dpf2(12.5f) + iy;
+            canvas.drawLine(startX, startY, startX + AndroidUtilities.dp(7), startY - AndroidUtilities.dp(7), paint2);
+        } else if (drawIconType == 2 || iconAnimator != null) {
+            paint2.setAlpha((int) (255 * (1.0f - iconProgress)));
+            canvas.drawLine(tx, ty, tx, ty - AndroidUtilities.dp(5), paint2);
+            canvas.save();
+            canvas.rotate(-90 * iconProgress, tx, ty);
+            canvas.drawLine(tx, ty, tx + AndroidUtilities.dp(4), ty, paint2);
+            canvas.restore();
         }
     }
 

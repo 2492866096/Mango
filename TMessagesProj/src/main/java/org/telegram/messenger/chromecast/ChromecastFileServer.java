@@ -18,6 +18,7 @@ import com.google.android.gms.common.images.WebImage;
 
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.LocalNetworkAccess;
 import org.telegram.messenger.secretmedia.ExtendedDefaultDataSourceFactory;
 
 import java.io.BufferedInputStream;
@@ -114,6 +115,7 @@ public class ChromecastFileServer extends NanoHTTPD {
         } else {
             if (!started) {
                 try {
+                    LocalNetworkAccess.requestFromAnyThread();
                     start(NanoHTTPD.SOCKET_READ_TIMEOUT, true);
                     started = true;
                 } catch (IOException e) {

@@ -8,11 +8,6 @@ import org.json.JSONObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_stories;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -22,19 +17,10 @@ public class KeywordMessageFilterManager {
 
     private static final String PREF_ENABLED = "keyword_filter_enabled";
     private static final String PREF_KEYWORDS = "keyword_filter_keywords";
-    private static final String PREF_REMOTE_KEYWORDS = "keyword_filter_remote_keywords";
-    private static final String PREF_REMOTE_KEYWORDS_TIME = "keyword_filter_remote_keywords_time";
-    private static final String PREF_REMOTE_KEYWORDS_ENABLED = "keyword_filter_remote_updates_enabled";
-    private static final String PREF_DELETED_REMOTE_KEYWORDS = "keyword_filter_deleted_remote_keywords";
-    private static final String PREF_REMOTE_BLOCKED_USERNAMES = "keyword_filter_remote_blocked_usernames";
-    private static final String PREF_REMOTE_BLOCKED_USERNAMES_TIME = "keyword_filter_remote_blocked_usernames_time";
     private static final String PREF_CUSTOM_BLOCKED_USERS = "keyword_filter_custom_blocked_users";
     private static final String PREF_WHITELIST = "keyword_filter_whitelist";
     private static final String PREF_LOGS = "keyword_filter_logs";
 
-    private static final String REMOTE_KEYWORDS_URL = "https://1812652903.v.123pan.cn/1812652903/GY/%E5%B9%BF%E5%91%8A%E9%93%BE%E6%8E%A5%E5%B1%8F%E8%94%BD%E8%AF%8D.txt";
-    private static final String REMOTE_BLOCKED_USERNAMES_URL = "https://1812652903.v.123pan.cn/1812652903/GY/%E7%94%A8%E6%88%B7%E5%B1%8F%E8%94%BD.txt";
-    private static final long REMOTE_REFRESH_INTERVAL_MS = 60 * 60 * 1000L;
     private static final long LOG_RETENTION_SECONDS = 3 * 60 * 60;
     private static final int MAX_LOGS = 100;
 
@@ -92,16 +78,10 @@ public class KeywordMessageFilterManager {
 
     private boolean loaded;
     private boolean enabled;
-    private boolean remoteUpdatesEnabled;
     private final ArrayList<String> keywords = new ArrayList<>();
-    private final ArrayList<String> remoteKeywords = new ArrayList<>();
-    private final ArrayList<String> deletedRemoteKeywords = new ArrayList<>();
-    private final ArrayList<String> remoteBlockedUsernames = new ArrayList<>();
     private final ArrayList<String> customBlockedUsers = new ArrayList<>();
     private final ArrayList<WhitelistDialog> whitelistDialogs = new ArrayList<>();
     private final ArrayList<LogEntry> logs = new ArrayList<>();
-    private boolean remoteKeywordsLoading;
-    private boolean remoteBlockedUsernamesLoading;
 
     private KeywordMessageFilterManager(int account) {
         currentAccount = account;
@@ -115,17 +95,12 @@ public class KeywordMessageFilterManager {
 
     public synchronized int getKeywordsCount() {
         ensureLoaded();
-        return getKeywordsLocked().size();
+        return keywords.size();
     }
 
     public synchronized int getWhitelistCount() {
         ensureLoaded();
         return whitelistDialogs.size();
-    }
-
-    public synchronized int getBlockedUsernamesCount() {
-        ensureLoaded();
-        return remoteUpdatesEnabled ? remoteBlockedUsernames.size() : 0;
     }
 
     public synchronized int getCustomBlockedUsersCount() {
@@ -135,12 +110,7 @@ public class KeywordMessageFilterManager {
 
     public synchronized ArrayList<String> getKeywords() {
         ensureLoaded();
-        return getKeywordsLocked();
-    }
-
-    public synchronized ArrayList<String> getBlockedUsernames() {
-        ensureLoaded();
-        return remoteUpdatesEnabled ? new ArrayList<>(remoteBlockedUsernames) : new ArrayList<>();
+        return new ArrayList<>(keywords);
     }
 
     public synchronized String getCustomBlockedUsersText() {
@@ -153,40 +123,6 @@ public class KeywordMessageFilterManager {
             builder.append(customBlockedUsers.get(i));
         }
         return builder.toString();
-    }
-
-    private ArrayList<String> getKeywordsLocked() {
-        ArrayList<String> result = new ArrayList<>(keywords.size() + remoteKeywords.size());
-        result.addAll(keywords);
-        if (remoteUpdatesEnabled) {
-            for (int i = 0; i < remoteKeywords.size(); i++) {
-                String keyword = remoteKeywords.get(i);
-                if (!containsIgnoreCase(deletedRemoteKeywords, keyword) && !containsIgnoreCase(result, keyword)) {
-                    result.add(keyword);
-                }
-            }
-        }
-        return result;
-    }
-
-    public synchronized boolean isRemoteUpdatesEnabled() {
-        ensureLoaded();
-        return remoteUpdatesEnabled;
-    }
-
-    public synchronized void setRemoteUpdatesEnabled(boolean value) {
-        ensureLoaded();
-        if (remoteUpdatesEnabled == value) {
-            return;
-        }
-        remoteUpdatesEnabled = value;
-        preferences.edit().putBoolean(PREF_REMOTE_KEYWORDS_ENABLED, value).apply();
-        if (value) {
-            preferences.edit().putLong(PREF_REMOTE_KEYWORDS_TIME, 0L).putLong(PREF_REMOTE_BLOCKED_USERNAMES_TIME, 0L).apply();
-            maybeRefreshRemoteKeywordsLocked();
-            maybeRefreshRemoteBlockedUsernamesLocked();
-        }
-        notifySettingsChanged();
     }
 
     public synchronized ArrayList<WhitelistDialog> getWhitelistDialogs() {
@@ -251,16 +187,12 @@ public class KeywordMessageFilterManager {
     public synchronized boolean updateKeyword(String oldValue, String newValue) {
         ensureLoaded();
         int oldIndex = findKeywordIndexLocked(oldValue);
-        boolean remoteKeyword = remoteUpdatesEnabled && containsIgnoreCase(remoteKeywords, normalizeKeyword(oldValue));
-        if (oldIndex < 0 && !remoteKeyword) {
+        if (oldIndex < 0) {
             return false;
         }
         String normalized = normalizeKeyword(newValue);
         if (TextUtils.isEmpty(normalized)) {
-            if (oldIndex >= 0) {
-                keywords.remove(oldIndex);
-            }
-            addDeletedRemoteKeywordLocked(oldValue);
+            keywords.remove(oldIndex);
             saveSettingsLocked(true);
             return true;
         }
@@ -268,15 +200,10 @@ public class KeywordMessageFilterManager {
         if (duplicateIndex >= 0 && duplicateIndex != oldIndex) {
             return false;
         }
-        if (oldIndex >= 0 && normalized.equals(keywords.get(oldIndex))) {
+        if (normalized.equals(keywords.get(oldIndex))) {
             return false;
         }
-        if (oldIndex >= 0) {
-            keywords.set(oldIndex, normalized);
-        } else {
-            keywords.add(normalized);
-        }
-        addDeletedRemoteKeywordLocked(oldValue);
+        keywords.set(oldIndex, normalized);
         saveSettingsLocked(true);
         return true;
     }
@@ -284,14 +211,10 @@ public class KeywordMessageFilterManager {
     public synchronized boolean removeKeyword(String value) {
         ensureLoaded();
         int index = findKeywordIndexLocked(value);
-        boolean remoteKeyword = containsIgnoreCase(remoteKeywords, normalizeKeyword(value));
-        if (index < 0 && !remoteKeyword) {
+        if (index < 0) {
             return false;
         }
-        if (index >= 0) {
-            keywords.remove(index);
-        }
-        addDeletedRemoteKeywordLocked(value);
+        keywords.remove(index);
         saveSettingsLocked(true);
         return true;
     }
@@ -307,9 +230,6 @@ public class KeywordMessageFilterManager {
             if (index >= 0) {
                 keywords.remove(index);
                 changed = true;
-            }
-            if (containsIgnoreCase(remoteKeywords, normalizeKeyword(value))) {
-                changed |= addDeletedRemoteKeywordLocked(value);
             }
         }
         if (changed) {
@@ -406,7 +326,7 @@ public class KeywordMessageFilterManager {
             matchedKeyword = findMatchingBlockedUsernameLocked(messageObject);
             if (matchedKeyword != null) {
                 matchedKeyword = isLong(matchedKeyword) ? matchedKeyword : "@" + matchedKeyword;
-            } else if (!enabled || keywords.isEmpty() && (!remoteUpdatesEnabled || remoteKeywords.isEmpty())) {
+            } else if (!enabled || keywords.isEmpty()) {
                 return null;
             } else if (TextUtils.isEmpty(sourceText)) {
                 return null;
@@ -433,28 +353,16 @@ public class KeywordMessageFilterManager {
 
     private synchronized void ensureLoaded() {
         if (loaded) {
-            if (remoteUpdatesEnabled) {
-                maybeRefreshRemoteKeywordsLocked();
-                maybeRefreshRemoteBlockedUsernamesLocked();
-            }
             return;
         }
         loaded = true;
         enabled = preferences.getBoolean(PREF_ENABLED, true);
-        remoteUpdatesEnabled = preferences.getBoolean(PREF_REMOTE_KEYWORDS_ENABLED, true);
         loadKeywordsLocked();
-        loadRemoteKeywordsLocked();
-        loadDeletedRemoteKeywordsLocked();
-        loadRemoteBlockedUsernamesLocked();
         loadCustomBlockedUsersLocked();
         loadWhitelistLocked();
         loadLogsLocked();
         if (purgeExpiredLogsLocked()) {
             saveLogsLocked();
-        }
-        if (remoteUpdatesEnabled) {
-            maybeRefreshRemoteKeywordsLocked();
-            maybeRefreshRemoteBlockedUsernamesLocked();
         }
     }
 
@@ -466,51 +374,6 @@ public class KeywordMessageFilterManager {
                 String keyword = normalizeKeyword(array.optString(i, null));
                 if (!TextUtils.isEmpty(keyword) && findKeywordIndexLocked(keyword) < 0) {
                     keywords.add(keyword);
-                }
-            }
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-    }
-
-    private void loadRemoteKeywordsLocked() {
-        remoteKeywords.clear();
-        try {
-            JSONArray array = new JSONArray(preferences.getString(PREF_REMOTE_KEYWORDS, "[]"));
-            for (int i = 0; i < array.length(); i++) {
-                String keyword = normalizeKeyword(array.optString(i, null));
-                if (!TextUtils.isEmpty(keyword) && !containsIgnoreCase(remoteKeywords, keyword)) {
-                    remoteKeywords.add(keyword);
-                }
-            }
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-    }
-
-    private void loadDeletedRemoteKeywordsLocked() {
-        deletedRemoteKeywords.clear();
-        try {
-            JSONArray array = new JSONArray(preferences.getString(PREF_DELETED_REMOTE_KEYWORDS, "[]"));
-            for (int i = 0; i < array.length(); i++) {
-                String keyword = normalizeKeyword(array.optString(i, null));
-                if (!TextUtils.isEmpty(keyword) && !containsIgnoreCase(deletedRemoteKeywords, keyword)) {
-                    deletedRemoteKeywords.add(keyword);
-                }
-            }
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-    }
-
-    private void loadRemoteBlockedUsernamesLocked() {
-        remoteBlockedUsernames.clear();
-        try {
-            JSONArray array = new JSONArray(preferences.getString(PREF_REMOTE_BLOCKED_USERNAMES, "[]"));
-            for (int i = 0; i < array.length(); i++) {
-                String username = normalizeUsername(array.optString(i, null));
-                if (!TextUtils.isEmpty(username) && !containsIgnoreCase(remoteBlockedUsernames, username)) {
-                    remoteBlockedUsernames.add(username);
                 }
             }
         } catch (Exception e) {
@@ -531,128 +394,6 @@ public class KeywordMessageFilterManager {
         } catch (Exception e) {
             FileLog.e(e);
         }
-    }
-
-    private void maybeRefreshRemoteKeywordsLocked() {
-        if (!remoteUpdatesEnabled) {
-            return;
-        }
-        long lastRefreshTime = preferences.getLong(PREF_REMOTE_KEYWORDS_TIME, 0);
-        if (remoteKeywordsLoading || System.currentTimeMillis() - lastRefreshTime < REMOTE_REFRESH_INTERVAL_MS) {
-            return;
-        }
-        remoteKeywordsLoading = true;
-        Utilities.globalQueue.postRunnable(() -> {
-            ArrayList<String> fetched = fetchRemoteKeywords();
-            synchronized (KeywordMessageFilterManager.this) {
-                remoteKeywordsLoading = false;
-                if (!remoteUpdatesEnabled) {
-                    return;
-                }
-                long now = System.currentTimeMillis();
-                try {
-                    SharedPreferences.Editor editor = preferences.edit().putLong(PREF_REMOTE_KEYWORDS_TIME, now);
-                    if (fetched != null) {
-                        remoteKeywords.clear();
-                        remoteKeywords.addAll(fetched);
-                        editor.putString(PREF_REMOTE_KEYWORDS, serializeRemoteKeywordsLocked().toString());
-                    }
-                    editor.apply();
-                } catch (Exception e) {
-                    FileLog.e(e);
-                }
-                if (fetched == null) {
-                    return;
-                }
-            }
-            notifySettingsChanged();
-        });
-    }
-
-    private void maybeRefreshRemoteBlockedUsernamesLocked() {
-        if (!remoteUpdatesEnabled) {
-            return;
-        }
-        long lastRefreshTime = preferences.getLong(PREF_REMOTE_BLOCKED_USERNAMES_TIME, 0);
-        if (remoteBlockedUsernamesLoading || System.currentTimeMillis() - lastRefreshTime < REMOTE_REFRESH_INTERVAL_MS) {
-            return;
-        }
-        remoteBlockedUsernamesLoading = true;
-        Utilities.globalQueue.postRunnable(() -> {
-            ArrayList<String> fetched = fetchRemoteBlockedUsernames();
-            synchronized (KeywordMessageFilterManager.this) {
-                remoteBlockedUsernamesLoading = false;
-                if (!remoteUpdatesEnabled) {
-                    return;
-                }
-                long now = System.currentTimeMillis();
-                try {
-                    SharedPreferences.Editor editor = preferences.edit().putLong(PREF_REMOTE_BLOCKED_USERNAMES_TIME, now);
-                    if (fetched != null) {
-                        remoteBlockedUsernames.clear();
-                        remoteBlockedUsernames.addAll(fetched);
-                        editor.putString(PREF_REMOTE_BLOCKED_USERNAMES, serializeRemoteBlockedUsernamesLocked().toString());
-                    }
-                    editor.apply();
-                } catch (Exception e) {
-                    FileLog.e(e);
-                }
-                if (fetched == null) {
-                    return;
-                }
-            }
-            notifySettingsChanged();
-        });
-    }
-
-    private ArrayList<String> fetchRemoteKeywords() {
-        return fetchRemoteList(REMOTE_KEYWORDS_URL, false);
-    }
-
-    private ArrayList<String> fetchRemoteBlockedUsernames() {
-        return fetchRemoteList(REMOTE_BLOCKED_USERNAMES_URL, true);
-    }
-
-    private ArrayList<String> fetchRemoteList(String url, boolean usernames) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(15000);
-            connection.setUseCaches(false);
-            connection.setRequestProperty("User-Agent", "TelegramAndroid");
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                return null;
-            }
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            BufferedInputStream inputStream = new BufferedInputStream(connection.getInputStream());
-            byte[] buffer = new byte[16 * 1024];
-            int read;
-            while ((read = inputStream.read(buffer)) >= 0) {
-                outputStream.write(buffer, 0, read);
-                if (outputStream.size() > 2 * 1024 * 1024) {
-                    break;
-                }
-            }
-            inputStream.close();
-            String body = outputStream.toString(StandardCharsets.UTF_8.name());
-            ArrayList<String> fetched = new ArrayList<>();
-            String[] lines = body.split("\\r?\\n");
-            for (int i = 0; i < lines.length; i++) {
-                String keyword = usernames ? normalizeUsername(lines[i]) : normalizeKeyword(lines[i]);
-                if (!TextUtils.isEmpty(keyword) && !containsIgnoreCase(fetched, keyword)) {
-                    fetched.add(keyword);
-                }
-            }
-            return fetched;
-        } catch (Exception e) {
-            FileLog.e(e);
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-        return null;
     }
 
     private void loadWhitelistLocked() {
@@ -713,10 +454,7 @@ public class KeywordMessageFilterManager {
         try {
             SharedPreferences.Editor editor = preferences.edit();
             editor.putBoolean(PREF_ENABLED, enabled);
-            editor.putBoolean(PREF_REMOTE_KEYWORDS_ENABLED, remoteUpdatesEnabled);
             editor.putString(PREF_KEYWORDS, serializeKeywordsLocked().toString());
-            editor.putString(PREF_REMOTE_KEYWORDS, serializeRemoteKeywordsLocked().toString());
-            editor.putString(PREF_DELETED_REMOTE_KEYWORDS, serializeDeletedRemoteKeywordsLocked().toString());
             editor.putString(PREF_CUSTOM_BLOCKED_USERS, serializeCustomBlockedUsersLocked().toString());
             editor.putString(PREF_WHITELIST, serializeWhitelistLocked().toString());
             editor.putString(PREF_LOGS, serializeLogsLocked().toString());
@@ -741,30 +479,6 @@ public class KeywordMessageFilterManager {
         JSONArray array = new JSONArray();
         for (int i = 0; i < keywords.size(); i++) {
             array.put(keywords.get(i));
-        }
-        return array;
-    }
-
-    private JSONArray serializeRemoteKeywordsLocked() {
-        JSONArray array = new JSONArray();
-        for (int i = 0; i < remoteKeywords.size(); i++) {
-            array.put(remoteKeywords.get(i));
-        }
-        return array;
-    }
-
-    private JSONArray serializeDeletedRemoteKeywordsLocked() {
-        JSONArray array = new JSONArray();
-        for (int i = 0; i < deletedRemoteKeywords.size(); i++) {
-            array.put(deletedRemoteKeywords.get(i));
-        }
-        return array;
-    }
-
-    private JSONArray serializeRemoteBlockedUsernamesLocked() {
-        JSONArray array = new JSONArray();
-        for (int i = 0; i < remoteBlockedUsernames.size(); i++) {
-            array.put(remoteBlockedUsernames.get(i));
         }
         return array;
     }
@@ -865,32 +579,17 @@ public class KeywordMessageFilterManager {
                 return keyword;
             }
         }
-        if (remoteUpdatesEnabled) {
-            for (int i = 0; i < remoteKeywords.size(); i++) {
-                String keyword = remoteKeywords.get(i);
-                if (!containsIgnoreCase(deletedRemoteKeywords, keyword) && normalizedSource.contains(keyword.toLowerCase(Locale.ROOT))) {
-                    return keyword;
-                }
-            }
-        }
         return null;
     }
 
     private String findMatchingBlockedUsernameLocked(MessageObject messageObject) {
-        if ((!remoteUpdatesEnabled || remoteBlockedUsernames.isEmpty()) && customBlockedUsers.isEmpty() || messageObject == null || messageObject.messageOwner == null) {
+        if (customBlockedUsers.isEmpty() || messageObject == null || messageObject.messageOwner == null) {
             return null;
         }
         TLRPC.Peer fromPeer = messageObject.messageOwner.from_id;
         if (fromPeer instanceof TLRPC.TL_peerUser || fromPeer instanceof TLRPC.TL_peerUser_layer131) {
             TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(fromPeer.user_id);
             String username = findMatchingUserUsernameLocked(user);
-            if (username != null) {
-                return username;
-            }
-        }
-        if (fromPeer instanceof TLRPC.TL_peerChannel || fromPeer instanceof TLRPC.TL_peerChannel_layer131) {
-            TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(fromPeer.channel_id);
-            String username = findMatchingChatUsernameLocked(chat);
             if (username != null) {
                 return username;
             }
@@ -914,7 +613,7 @@ public class KeywordMessageFilterManager {
             return String.valueOf(user.id);
         }
         String username = normalizeUsername(user.username);
-        if (!TextUtils.isEmpty(username) && containsBlockedUsernameLocked(username, true)) {
+        if (!TextUtils.isEmpty(username) && containsIgnoreCase(customBlockedUsers, username)) {
             return username;
         }
         if (user.usernames != null) {
@@ -924,42 +623,12 @@ public class KeywordMessageFilterManager {
                     continue;
                 }
                 username = normalizeUsername(extraUsername.username);
-                if (!TextUtils.isEmpty(username) && containsBlockedUsernameLocked(username, true)) {
+                if (!TextUtils.isEmpty(username) && containsIgnoreCase(customBlockedUsers, username)) {
                     return username;
                 }
             }
         }
         return null;
-    }
-
-    private String findMatchingChatUsernameLocked(TLRPC.Chat chat) {
-        if (chat == null) {
-            return null;
-        }
-        String username = normalizeUsername(chat.username);
-        if (!TextUtils.isEmpty(username) && containsBlockedUsernameLocked(username, false)) {
-            return username;
-        }
-        if (chat.usernames != null) {
-            for (int i = 0; i < chat.usernames.size(); i++) {
-                TLRPC.TL_username extraUsername = chat.usernames.get(i);
-                if (extraUsername == null || !extraUsername.active) {
-                    continue;
-                }
-                username = normalizeUsername(extraUsername.username);
-                if (!TextUtils.isEmpty(username) && containsBlockedUsernameLocked(username, false)) {
-                    return username;
-                }
-            }
-        }
-        return null;
-    }
-
-    private boolean containsBlockedUsernameLocked(String username, boolean includeCustom) {
-        if (remoteUpdatesEnabled && containsIgnoreCase(remoteBlockedUsernames, username)) {
-            return true;
-        }
-        return includeCustom && containsIgnoreCase(customBlockedUsers, username);
     }
 
     private boolean containsCustomBlockedUserIdLocked(long userId) {
@@ -973,15 +642,6 @@ public class KeywordMessageFilterManager {
             }
         }
         return false;
-    }
-
-    private boolean addDeletedRemoteKeywordLocked(String value) {
-        String normalized = normalizeKeyword(value);
-        if (TextUtils.isEmpty(normalized) || containsIgnoreCase(deletedRemoteKeywords, normalized)) {
-            return false;
-        }
-        deletedRemoteKeywords.add(normalized);
-        return true;
     }
 
     private void addLog(MessageObject messageObject, String keyword, String sourceText) {

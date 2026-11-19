@@ -150,6 +150,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import org.telegram.ui.SkinCrackleWallpaper;
+import org.telegram.ui.SkinStyle;
+import org.telegram.ui.SkinSwitch;
 
 public class Theme {
 
@@ -878,6 +881,9 @@ public class Theme {
 
         private void generatePath(Path path, Rect bounds, int padding, int rad, int smallRad, int nearRad, int top, boolean drawFullBottom, boolean drawFullTop, boolean customPaint) {
             path.rewind();
+            // The skin's text bubbles have no tail: the corner it hung from is rounded like the rest,
+            // and the bubble keeps its inset on that side so the cell's layout is unchanged.
+            final boolean tailless = SkinSwitch.CHAT_FRAME && currentType != TYPE_MEDIA;
             int heightHalf = (bounds.height() - padding) >> 1;
             if (rad > heightHalf) {
                 rad = heightHalf;
@@ -888,6 +894,8 @@ public class Theme {
                     int radToUse = botButtonsBottom ? nearRad : rad;
                     if (currentType == TYPE_MEDIA) {
                         path.moveTo(bounds.right - dp(8) - radToUse, bounds.bottom - padding);
+                    } else if (tailless) {
+                        path.moveTo(bounds.right - dp(8) - rad, bounds.bottom - padding);
                     } else {
                         path.moveTo(bounds.right - dp(2.6f), bounds.bottom - padding);
                     }
@@ -937,7 +945,11 @@ public class Theme {
                         path.lineTo(bounds.right - padding, top - topY + currentBackgroundHeight);
                     }
                 } else {
-                    if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
+                    if (tailless && (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom)) {
+                        path.lineTo(bounds.right - dp(8), bounds.bottom - padding - rad);
+                        rect.set(bounds.right - dp(8) - rad * 2, bounds.bottom - padding - rad * 2, bounds.right - dp(8), bounds.bottom - padding);
+                        path.arcTo(rect, 0, 90, false);
+                    } else if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
                         path.lineTo(bounds.right - dp(8), bounds.bottom - padding - smallRad - dp(3));
                         rect.set(bounds.right - dp(8), bounds.bottom - padding - smallRad * 2 - dp(9), bounds.right - dp(7) + smallRad * 2, bounds.bottom - padding - dp(1));
                         path.arcTo(rect, 180, -83, false);
@@ -951,6 +963,8 @@ public class Theme {
 
                     if (currentType == TYPE_MEDIA) {
                         path.moveTo(bounds.left + dp(8) + radToUse, bounds.bottom - padding);
+                    } else if (tailless) {
+                        path.moveTo(bounds.left + dp(8) + rad, bounds.bottom - padding);
                     } else {
                         path.moveTo(bounds.left + dp(2.6f), bounds.bottom - padding);
                     }
@@ -994,7 +1008,11 @@ public class Theme {
                         path.lineTo(bounds.left + padding, top - topY + currentBackgroundHeight);
                     }
                 } else {
-                    if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
+                    if (tailless && (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom)) {
+                        path.lineTo(bounds.left + dp(8), bounds.bottom - padding - rad);
+                        rect.set(bounds.left + dp(8), bounds.bottom - padding - rad * 2, bounds.left + dp(8) + rad * 2, bounds.bottom - padding);
+                        path.arcTo(rect, 180, -90, false);
+                    } else if (drawFullBubble || currentType == TYPE_PREVIEW || customPaint || drawFullBottom) {
                         path.lineTo(bounds.left + dp(8), bounds.bottom - padding - smallRad - dp(3));
                         rect.set(bounds.left + dp(7) - smallRad * 2, bounds.bottom - padding - smallRad * 2 - dp(9), bounds.left + dp(8), bounds.bottom - padding - dp(1));
                         path.arcTo(rect, 0, 83, false);
@@ -2411,6 +2429,10 @@ public class Theme {
                 return getString(R.string.ThemeDay);
             } else if ("Night".equals(name)) {
                 return getString(R.string.ThemeNight);
+            } else if ("Frost".equals(name)) {
+                return getString(R.string.SkinThemeFrost);
+            } else if ("Frost Night".equals(name)) {
+                return getString(R.string.SkinThemeFrostNight);
             }
             return info != null ? info.title : name;
         }
@@ -2527,9 +2549,9 @@ public class Theme {
             if (isDark != UNKNOWN) {
                 return isDark == DARK;
             }
-            if ("Dark Blue".equals(name) || "Night".equals(name)) {
+            if ("Dark Blue".equals(name) || "Night".equals(name) || "Frost Night".equals(name)) {
                 isDark = DARK;
-            } else if ("Blue".equals(name) || "Arctic Blue".equals(name) || "Day".equals(name)) {
+            } else if ("Blue".equals(name) || "Arctic Blue".equals(name) || "Day".equals(name) || "Frost".equals(name)) {
                 isDark = LIGHT;
             }
             if (isDark == UNKNOWN) {
@@ -4763,6 +4785,30 @@ public class Theme {
         sortAccents(themeInfo);
         themes.add(themeInfo);
         themesDict.put("Night", themeInfo);
+
+        // The redesign's own pair, generated from its design tokens in
+        // TMessagesProj_Skin. They are the defaults for day and night.
+        themeInfo = new ThemeInfo();
+        themeInfo.name = "Frost";
+        themeInfo.assetName = "skin_frost.attheme";
+        themeInfo.previewBackgroundColor = 0xffeef2f3;
+        themeInfo.previewInColor = 0xffffffff;
+        themeInfo.previewOutColor = 0xff20272b;
+        themeInfo.sortIndex = -2;
+        themes.add(currentDayTheme = defaultTheme = themeInfo);
+        themesDict.put("Frost", themeInfo);
+
+        themeInfo = new ThemeInfo();
+        themeInfo.name = "Frost Night";
+        themeInfo.assetName = "skin_frost_night.attheme";
+        themeInfo.previewBackgroundColor = 0xff121618;
+        themeInfo.previewInColor = 0xff1f2529;
+        themeInfo.previewOutColor = 0xff2a4843;
+        themeInfo.sortIndex = -1;
+        themes.add(themeInfo);
+        themesDict.put("Frost Night", currentNightTheme = themeInfo);
+        // Qualified: the static block runs above these constants' declarations.
+        applySkinBubbleStyle(themeConfig.getInt(Theme.SKIN_BUBBLE_STYLE_KEY, Theme.SKIN_BUBBLES_FOLLOW));
 
         String themesString = themeConfig.getString("themes2", null);
 
@@ -8392,7 +8438,11 @@ public class Theme {
             dialogs_countTextPaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
             dialogs_countTextPaint.setTypeface(AndroidUtilities.bold());
             dialogs_countTextPaint2 = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
-            dialogs_countTextPaint2.setTypeface(AndroidUtilities.bold());
+            if (SkinStyle.chatList()) {
+                SkinStyle.useNumerals(dialogs_countTextPaint2, true);
+            } else {
+                dialogs_countTextPaint2.setTypeface(AndroidUtilities.bold());
+            }
             dialogs_countPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             dialogs_reactionsCountPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             dialogs_onlineCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -8428,6 +8478,9 @@ public class Theme {
             dialogs_messageNamePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
             dialogs_messageNamePaint.setTypeface(AndroidUtilities.bold());
             dialogs_timePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
+            if (SkinStyle.chatList()) {
+                SkinStyle.useNumerals(dialogs_timePaint, false);
+            }
             dialogs_timePaintBold = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
             dialogs_timePaintBoldAccent = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
             dialogs_archiveTextPaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
@@ -8454,7 +8507,7 @@ public class Theme {
             dialogs_clockDrawable = new MsgClockDrawable();
             dialogs_errorDrawable = resources.getDrawable(R.drawable.list_warning_sign);
             dialogs_reorderDrawable = resources.getDrawable(R.drawable.list_reorder).mutate();
-            dialogs_muteDrawable = resources.getDrawable(R.drawable.list_mute).mutate();
+            dialogs_muteDrawable = resources.getDrawable(SkinStyle.chatList() ? org.telegram.skin.R.drawable.skin_list_mute : R.drawable.list_mute).mutate();
             dialogs_unmuteDrawable = resources.getDrawable(R.drawable.list_unmute).mutate();
             dialogs_verifiedDrawable = resources.getDrawable(R.drawable.verified_area).mutate();
             dialogs_scamDrawable = new ScamDrawable(11, 0);
@@ -8602,6 +8655,9 @@ public class Theme {
                 chat_forwardNamePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
                 chat_adminPaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
                 chat_timePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
+                if (SkinSwitch.CHAT_FRAME) {
+                    SkinStyle.useNumerals(chat_timePaint, false);
+                }
                 chat_msgTextCodePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
                 chat_msgTextCodePaint.setTypeface(Typeface.MONOSPACE);
                 chat_msgTextCode2Paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -8684,6 +8740,10 @@ public class Theme {
             chat_gamePaint.setTypeface(AndroidUtilities.bold());
             chat_shipmentPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
             chat_timePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
+            if (SkinSwitch.CHAT_FRAME) {
+                // Message times in the skin's numerals, a size smaller to match its figures elsewhere.
+                SkinStyle.useNumerals(chat_timePaint, false);
+            }
             chat_adminPaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
             chat_namePaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
             chat_namePaint.setTypeface(AndroidUtilities.bold());
@@ -8987,7 +9047,7 @@ public class Theme {
             chat_forwardNamePaint.setTextSize(dp(smallerDp));
             chat_adminPaint.setTextSize(dp(smallerDp - 1));
             float timeDp = 2 * (SharedConfig.fontSize - 16) / 3f + 12;
-            chat_timePaint.setTextSize(dp(12));
+            chat_timePaint.setTextSize(dp(SkinSwitch.CHAT_FRAME ? 11 : 12));
             chat_gamePaint.setTextSize(dp(13));
             chat_shipmentPaint.setTextSize(dp(13));
             chat_instantViewPaint.setTextSize(dp(13));
@@ -9796,6 +9856,44 @@ public class Theme {
         return !TextUtils.isEmpty(themedWallpaperLink);
     }
 
+    /** 气泡风格: the skin themes' outgoing bubble follows day and night (graphite by day, celadon at night), or is always one of them. */
+    public static final int SKIN_BUBBLES_FOLLOW = 0;
+    public static final int SKIN_BUBBLES_GRAPHITE = 1;
+    public static final int SKIN_BUBBLES_CELADON = 2;
+    private static final String SKIN_BUBBLE_STYLE_KEY = "skinBubbleStyle";
+
+    public static int getSkinBubbleStyle() {
+        return ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).getInt(SKIN_BUBBLE_STYLE_KEY, SKIN_BUBBLES_FOLLOW);
+    }
+
+    /** Saves the style and reapplies the current theme, recolouring the app as a theme switch does. */
+    public static void setSkinBubbleStyle(int style) {
+        ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).edit().putInt(SKIN_BUBBLE_STYLE_KEY, style).apply();
+        applySkinBubbleStyle(style);
+        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, currentTheme, isCurrentThemeNight(), null, -1);
+    }
+
+    /** Points each skin theme at the file generated with the chosen outgoing bubble. */
+    private static void applySkinBubbleStyle(int style) {
+        final ThemeInfo day = themesDict.get("Frost");
+        if (day != null) {
+            final boolean celadon = style == SKIN_BUBBLES_CELADON;
+            day.assetName = celadon ? "skin_frost_celadon.attheme" : "skin_frost.attheme";
+            day.previewOutColor = celadon ? 0xffcde2db : 0xff20272b;
+        }
+        final ThemeInfo night = themesDict.get("Frost Night");
+        if (night != null) {
+            final boolean graphite = style == SKIN_BUBBLES_GRAPHITE;
+            night.assetName = graphite ? "skin_frost_night_graphite.attheme" : "skin_frost_night.attheme";
+            night.previewOutColor = graphite ? 0xffdce3e6 : 0xff2a4843;
+        }
+    }
+
+    /** One of the redesign's own themes, whose plain ground the chat screen draws with the celadon crazing. */
+    private static boolean isSkinTheme(ThemeInfo theme) {
+        return SkinSwitch.CHAT_FRAME && theme != null && theme.assetName != null && theme.assetName.startsWith("skin_frost");
+    }
+
     public static boolean hasWallpaperFromTheme() {
         if (currentTheme.firstAccentIsDefault && currentTheme.currentAccentId == DEFALT_THEME_ACCENT_ID) {
             return false;
@@ -10042,7 +10140,7 @@ public class Theme {
                     motionBackgroundDrawable.setPhase(previousPhase);
                     settings.wallpaper = motionBackgroundDrawable;
                 } else if (gradientToColor1 == 0 || gradientToColor1 == backgroundColor) {
-                    settings.wallpaper = new ColorDrawable(backgroundColor);
+                    settings.wallpaper = isSkinTheme(currentTheme) ? new SkinCrackleWallpaper(backgroundColor) : new ColorDrawable(backgroundColor);
                 } else {
                     final int[] colors = {backgroundColor, gradientToColor1};
                     final BackgroundGradientDrawable.Orientation orientation = BackgroundGradientDrawable.getGradientOrientation(rotation);

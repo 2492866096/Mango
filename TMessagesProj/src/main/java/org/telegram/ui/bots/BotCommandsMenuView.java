@@ -32,7 +32,9 @@ import org.telegram.messenger.R;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_bots;
 import org.telegram.ui.ActionBar.MenuDrawable;
+import org.telegram.skin.theme.CanvasMaterials;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.SkinMetal;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RLottieDrawable;
@@ -116,9 +118,22 @@ public class BotCommandsMenuView extends View {
         invalidate();
     }
 
+    private boolean skin;
+
+    /** The bot's Menu key as the skin's porcelain, its label and icon in the porcelain's ink. */
+    public void setSkin(boolean skin) {
+        this.skin = skin;
+        updateColors();
+        invalidate();
+    }
+
+    private CanvasMaterials skinMaterials() {
+        return SkinMetal.materials(Theme.getColor(Theme.key_chat_messagePanelBackground));
+    }
+
     private void updateColors() {
         paint.setColor(Theme.getColor(Theme.key_chat_messagePanelVoiceBackground));
-        int textColor = Theme.getColor(Theme.key_chat_messagePanelVoiceDuration);
+        int textColor = skin ? skinMaterials().porcelainText : Theme.getColor(Theme.key_chat_messagePanelVoiceDuration);
         backDrawable.setBackColor(textColor);
         backDrawable.setIconColor(textColor);
         if (webViewAnimation != null) {
@@ -179,7 +194,11 @@ public class BotCommandsMenuView extends View {
 
             if (drawBackgroundDrawable) {
                 rectTmp.set(0, 0, AndroidUtilities.dp(40) + (menuTextWidth + AndroidUtilities.dp(4)) * expandProgress, getMeasuredHeight());
-                canvas.drawRoundRect(rectTmp, AndroidUtilities.dp(16), AndroidUtilities.dp(16), paint);
+                if (skin) {
+                    SkinMetal.drawPorcelain(canvas, rectTmp, AndroidUtilities.dp(12), skinMaterials(), false, 1f);
+                } else {
+                    canvas.drawRoundRect(rectTmp, AndroidUtilities.dp(16), AndroidUtilities.dp(16), paint);
+                }
                 backgroundDrawable.setBounds((int) rectTmp.left, (int) rectTmp.top, (int) rectTmp.right, (int) rectTmp.bottom);
                 backgroundDrawable.draw(canvas);
             }

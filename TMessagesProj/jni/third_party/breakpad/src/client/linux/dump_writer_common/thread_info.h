@@ -1,5 +1,4 @@
-// Copyright (c) 2014, Google Inc.
-// All rights reserved.
+// Copyright 2014 Google LLC
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -11,7 +10,7 @@
 // copyright notice, this list of conditions and the following disclaimer
 // in the documentation and/or other materials provided with the
 // distribution.
-//     * Neither the name of Google Inc. nor the names of its
+//     * Neither the name of Google LLC nor the names of its
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -34,7 +33,7 @@
 #include <sys/user.h>
 
 #include "client/linux/dump_writer_common/raw_context_cpu.h"
-#include "common/memory.h"
+#include "common/memory_allocator.h"
 #include "google_breakpad/common/minidump_format.h"
 
 namespace google_breakpad {
@@ -65,10 +64,10 @@ struct ThreadInfo {
   struct user_regs regs;
   struct user_fpregs fpregs;
 #elif defined(__aarch64__)
-  // Use the structures defined in <asm/ptrace.h>
-  struct user_pt_regs regs;
-  struct user_fpsimd_state fpregs;
-#elif defined(__mips__)
+  // Use the structures defined in <sys/user.h>
+  struct user_regs_struct regs;
+  struct user_fpsimd_struct fpregs;
+#elif defined(__mips__) || defined(__riscv)
   // Use the structure defined in <sys/ucontext.h>.
   mcontext_t mcontext;
 #endif

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Back to the keyboard, and the bot keyboard. The skin's input console glyph: 24-unit grid, round strokes,
+     drawn white so Telegram's tint (SRC_IN or MULTIPLY) colours it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M6,6h12a2.5,2.5 0,0 1,2.5,2.5v7a2.5,2.5 0,0 1,-2.5,2.5h-12a2.5,2.5 0,0 1,-2.5,-2.5v-7a2.5,2.5 0,0 1,2.5,-2.5zM7,10h1M11,10h2M16,10h1M7,14h10"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -661,6 +661,16 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
             prevPositionToWidth.put(positionToWidth.keyAt(i), positionToWidth.valueAt(i));
     }
 
+    private boolean skinBar;
+    private final RectF skinBarRect = new RectF();
+    private final Paint skinBarPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    /** Marks the current tab with the skin's short celadon bar, as the chat list's folders do, instead of a pill behind it. */
+    public void setSkinBar(boolean skinBar) {
+        this.skinBar = skinBar;
+        invalidate();
+    }
+
     public void setColors(int line, int active, int unactive, int selector) {
         tabLineColorKey = line;
         activeTextColorKey = active;
@@ -767,6 +777,15 @@ public class ScrollSlidingTextTabStrip extends HorizontalScrollView implements T
             if (reordering && current != null) {
                 l += current.getTranslationX();
                 r += current.getTranslationX();
+            }
+            if (skinBar) {
+                final float centerX = getPaddingLeft() + (l + r) / 2f;
+                final float bottom = height - getPaddingBottom() - dp(1);
+                skinBarRect.set(centerX - dp(9), bottom - dp(3), centerX + dp(9), bottom);
+                skinBarPaint.setColor(processColor(Theme.getColor(tabLineColorKey, resourcesProvider)));
+                skinBarPaint.setAlpha((int) (skinBarPaint.getAlpha() * tabsContainer.getAlpha()));
+                canvas.drawRoundRect(skinBarRect, dp(1.5f), dp(1.5f), skinBarPaint);
+                return result;
             }
             int wasAlpha = selectorDrawable.getAlpha();
             selectorDrawable.setAlpha((int) (wasAlpha * tabsContainer.getAlpha()));

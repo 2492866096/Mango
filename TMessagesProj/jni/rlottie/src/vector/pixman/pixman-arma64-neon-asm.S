@@ -41,20 +41,12 @@
 
 .text
 .arch armv8-a
+
 .altmacro
 .p2align 2
 
-/* Supplementary macro for setting function attributes */
-.macro pixman_asm_function fname
-.func fname
-.global fname
-#ifdef __ELF__
-.hidden fname
-.type fname, %function
-#endif
-fname:
-.endm
-
+#include "pixman-private.h"
+#include "pixman-arm-asm.h"
 #include "pixman-arma64-neon-asm.h"
 
 /* Global configuration options and preferences */
@@ -157,6 +149,220 @@ fname:
  * But anyway, here is the code:
  */
 
+.macro pixman_composite_over_8888_0565_process_pixblock_head
+    /* convert 8 r5g6b5 pixel data from {v4} to planar 8-bit format
+       and put data into v6 - red, v7 - green, v30 - blue */
+    mov         v4.d[1], v5.d[0]
+    shrn        v6.8b, v4.8h, #8
+    shrn        v7.8b, v4.8h, #3
+    sli         v4.8h, v4.8h, #5
+    sri         v6.8b, v6.8b, #5
+    mvn         v3.8b, v3.8b      /* invert source alpha */
+    sri         v7.8b, v7.8b, #6
+    shrn        v30.8b, v4.8h, #2
+    /* now do alpha blending, storing results in 8-bit planar format
+       into v20 - red, v23 - green, v22 - blue */
+    umull       v10.8h, v3.8b, v6.8b
+    umull       v11.8h, v3.8b, v7.8b
+    umull       v12.8h, v3.8b, v30.8b
+    urshr       v17.8h, v10.8h, #8
+    urshr       v18.8h, v11.8h, #8
+    urshr       v19.8h, v12.8h, #8
+    raddhn      v20.8b, v10.8h, v17.8h
+    raddhn      v23.8b, v11.8h, v18.8h
+    raddhn      v22.8b, v12.8h, v19.8h
+.endm
+
+.macro pixman_composite_over_8888_0565_process_pixblock_tail
+    /* ... continue alpha blending */
+    uqadd       v17.8b, v2.8b, v20.8b
+    uqadd       v18.8b, v0.8b, v22.8b
+    uqadd       v19.8b, v1.8b, v23.8b
+    /* convert the result to r5g6b5 and store it into {v14} */
+    ushll       v14.8h, v17.8b, #7
+    sli         v14.8h, v14.8h, #1
+    ushll       v8.8h, v19.8b, #7
+    sli         v8.8h, v8.8h, #1
+    ushll       v9.8h, v18.8b, #7
+    sli         v9.8h, v9.8h, #1
+    sri         v14.8h, v8.8h, #5
+    sri         v14.8h, v9.8h, #11
+    mov         v28.d[0], v14.d[0]
+    mov         v29.d[0], v14.d[1]
+.endm
+
+/*
+ * OK, now we got almost everything that we need. Using the above two
+ * macros, the work can be done right. But now we want to optimize
+ * it a bit. ARM Cortex-A8 is an in-order core, and benefits really
+ * a lot from good code scheduling and software pipelining.
+ *
+ * Let's construct some code, which will run in the core main loop.
+ * Some pseudo-code of the main loop will look like this:
+ *   head
+ *   while (...) {
+ *     tail
+ *     head
+ *   }
+ *   tail
+ *
+ * It may look a bit weird, but this setup allows to hide instruction
+ * latencies better and also utilize dual-issue capability more
+ * efficiently (make pairs of load-store and ALU instructions).
+ *
+ * So what we need now is a '*_tail_head' macro, which will be used
+ * in the core main loop. A trivial straightforward implementation
+ * of this macro would look like this:
+ *
+ *   pixman_composite_over_8888_0565_process_pixblock_tail
+ *   st1         {v28.4h, v29.4h}, [DST_W], #32
+ *   ld1         {v4.4h, v5.4h}, [DST_R], #16
+ *   ld4         {v0.2s, v1.2s, v2.2s, v3.2s}, [SRC], #32
+ *   pixman_composite_over_8888_0565_process_pixblock_head
+ *   cache_preload 8, 8
+ *
+ * Now it also got some VLD/VST instructions. We simply can't move from
+ * processing one block of pixels to the other one with just arithmetics.
+ * The previously processed data needs to be written to memory and new
+ * data needs to be fetched. Fortunately, this main loop does not deal
+ * with partial leading/trailing pixels and can load/store a full block
+ * of pixels in a bulk. Additionally, destination buffer is already
+ * 16 bytes aligned here (which is good for performance).
+ *
+ * New things here are DST_R, DST_W, SRC and MASK identifiers. These
+ * are the aliases for ARM registers which are used as pointers for
+ * accessing data. We maintain separate pointers for reading and writing
+ * destination buffer (DST_R and DST_W).
+ *
+ * Another new thing is 'cache_preload' macro. It is used for prefetching
+ * data into CPU L2 cache and improve performance when dealing with large
+ * images which are far larger than cache size. It uses one argument
+ * (actually two, but they need to be the same here) - number of pixels
+ * in a block. Looking into 'pixman-arm-neon-asm.h' can provide some
+ * details about this macro. Moreover, if good performance is needed
+ * the code from this macro needs to be copied into '*_tail_head' macro
+ * and mixed with the rest of code for optimal instructions scheduling.
+ * We are actually doing it below.
+ *
+ * Now after all the explanations, here is the optimized code.
+ * Different instruction streams (originaling from '*_head', '*_tail'
+ * and 'cache_preload' macro) use different indentation levels for
+ * better readability. Actually taking the code from one of these
+ * indentation levels and ignoring a few LD/ST instructions would
+ * result in exactly the code from '*_head', '*_tail' or 'cache_preload'
+ * macro!
+ */
+
+#if 1
+
+.macro pixman_composite_over_8888_0565_process_pixblock_tail_head
+        uqadd       v17.8b, v2.8b, v20.8b
+    ld1         {v4.4h, v5.4h}, [DST_R], #16
+    mov         v4.d[1], v5.d[0]
+        uqadd       v18.8b, v0.8b, v22.8b
+        uqadd       v19.8b, v1.8b, v23.8b
+    shrn        v6.8b, v4.8h, #8
+    fetch_src_pixblock
+    shrn        v7.8b, v4.8h, #3
+    sli         v4.8h, v4.8h, #5
+        ushll       v14.8h, v17.8b, #7
+        sli         v14.8h, v14.8h, #1
+                                    PF add, PF_X, PF_X, #8
+        ushll       v8.8h, v19.8b, #7
+        sli         v8.8h, v8.8h,  #1
+                                    PF tst, PF_CTL, #0xF
+    sri         v6.8b, v6.8b, #5
+                                    PF beq, 10f
+                                    PF add, PF_X, PF_X, #8
+10:
+    mvn         v3.8b, v3.8b
+                                    PF beq, 10f
+                                    PF sub, PF_CTL, PF_CTL, #1
+10:
+    sri         v7.8b, v7.8b, #6
+    shrn        v30.8b, v4.8h, #2
+    umull       v10.8h, v3.8b, v6.8b
+                                    PF lsl, DUMMY, PF_X, #src_bpp_shift
+                                    PF prfm, PREFETCH_MODE, [PF_SRC, DUMMY]
+    umull       v11.8h, v3.8b, v7.8b
+    umull       v12.8h, v3.8b, v30.8b
+                                    PF lsl, DUMMY, PF_X, #dst_bpp_shift
+                                    PF prfm, PREFETCH_MODE, [PF_DST, DUMMY]
+        sri         v14.8h, v8.8h, #5
+                                    PF cmp, PF_X, ORIG_W
+        ushll       v9.8h, v18.8b, #7
+        sli         v9.8h, v9.8h, #1
+    urshr       v17.8h, v10.8h, #8
+                                    PF ble, 10f
+                                    PF sub, PF_X, PF_X, ORIG_W
+10:
+    urshr       v19.8h, v11.8h, #8
+    urshr       v18.8h, v12.8h, #8
+                                    PF ble, 10f
+                                    PF subs, PF_CTL, PF_CTL, #0x10
+10:
+        sri         v14.8h, v9.8h, #11
+        mov         v28.d[0], v14.d[0]
+        mov         v29.d[0], v14.d[1]
+                                    PF ble, 10f
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
+10:
+    raddhn      v20.8b, v10.8h, v17.8h
+    raddhn      v23.8b, v11.8h, v19.8h
+                                    PF ble, 10f
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
+10:
+    raddhn      v22.8b, v12.8h, v18.8h
+        st1         {v14.8h}, [DST_W], #16
+.endm
+
+#else
+
+/* If we did not care much about the performance, we would just use this... */
+.macro pixman_composite_over_8888_0565_process_pixblock_tail_head
+    pixman_composite_over_8888_0565_process_pixblock_tail
+    st1         {v14.8h}, [DST_W], #16
+    ld1         {v4.4h, v4.5h}, [DST_R], #16
+    fetch_src_pixblock
+    pixman_composite_over_8888_0565_process_pixblock_head
+    cache_preload 8, 8
+.endm
+
+#endif
+
+/*
+ * And now the final part. We are using 'generate_composite_function' macro
+ * to put all the stuff together. We are specifying the name of the function
+ * which we want to get, number of bits per pixel for the source, mask and
+ * destination (0 if unused, like mask in this case). Next come some bit
+ * flags:
+ *   FLAG_DST_READWRITE      - tells that the destination buffer is both read
+ *                             and written, for write-only buffer we would use
+ *                             FLAG_DST_WRITEONLY flag instead
+ *   FLAG_DEINTERLEAVE_32BPP - tells that we prefer to work with planar data
+ *                             and separate color channels for 32bpp format.
+ * The next things are:
+ *  - the number of pixels processed per iteration (8 in this case, because
+ *    that's the maximum what can fit into four 64-bit NEON registers).
+ *  - prefetch distance, measured in pixel blocks. In this case it is 5 times
+ *    by 8 pixels. That would be 40 pixels, or up to 160 bytes. Optimal
+ *    prefetch distance can be selected by running some benchmarks.
+ *
+ * After that we specify some macros, these are 'default_init',
+ * 'default_cleanup' here which are empty (but it is possible to have custom
+ * init/cleanup macros to be able to save/restore some extra NEON registers
+ * like d8-d15 or do anything else) followed by
+ * 'pixman_composite_over_8888_0565_process_pixblock_head',
+ * 'pixman_composite_over_8888_0565_process_pixblock_tail' and
+ * 'pixman_composite_over_8888_0565_process_pixblock_tail_head'
+ * which we got implemented above.
+ *
+ * The last part is the NEON registers allocation scheme.
+ */
+
+/* Macros from other functions that the ones below build on. */
 .macro pixman_composite_out_reverse_8888_8888_process_pixblock_head
     mvn         v24.8b, v3.8b  /* get inverted alpha */
     /* do alpha blending */
@@ -165,6 +371,7 @@ fname:
     umull       v10.8h, v24.8b, v6.8b
     umull       v11.8h, v24.8b, v7.8b
 .endm
+
 
 .macro pixman_composite_out_reverse_8888_8888_process_pixblock_tail
     urshr       v14.8h, v8.8h, #8
@@ -176,6 +383,7 @@ fname:
     raddhn      v30.8b, v16.8h, v10.8h
     raddhn      v31.8b, v17.8h, v11.8h
 .endm
+
 
 /******************************************************************************/
 
@@ -194,18 +402,18 @@ fname:
 .macro pixman_composite_over_8888_8888_process_pixblock_tail_head
      ld4        {v4.8b, v5.8b, v6.8b, v7.8b}, [DST_R], #32
         urshr       v14.8h, v8.8h, #8
-                                    PF add PF_X, PF_X, #8
-                                    PF tst PF_CTL, #0xF
+                                    PF add, PF_X, PF_X, #8
+                                    PF tst, PF_CTL, #0xF
         urshr       v15.8h, v9.8h, #8
         urshr       v16.8h, v10.8h, #8
         urshr       v17.8h, v11.8h, #8
-                                    PF beq 10f
-                                    PF add PF_X, PF_X, #8
-                                    PF sub PF_CTL, PF_CTL, #1
+                                    PF beq, 10f
+                                    PF add, PF_X, PF_X, #8
+                                    PF sub, PF_CTL, PF_CTL, #1
 10:
         raddhn      v28.8b, v14.8h, v8.8h
         raddhn      v29.8b, v15.8h, v9.8h
-                                    PF cmp PF_X, ORIG_W
+                                    PF cmp, PF_X, ORIG_W
         raddhn      v30.8b, v16.8h, v10.8h
         raddhn      v31.8b, v17.8h, v11.8h
         uqadd       v28.8b, v0.8b, v28.8b
@@ -213,30 +421,28 @@ fname:
         uqadd       v30.8b, v2.8b, v30.8b
         uqadd       v31.8b, v3.8b, v31.8b
     fetch_src_pixblock
-                                    PF lsl DUMMY, PF_X, #src_bpp_shift
-                                    PF prfm PREFETCH_MODE, [PF_SRC, DUMMY]
+                                    PF lsl, DUMMY, PF_X, #src_bpp_shift
+                                    PF prfm, PREFETCH_MODE, [PF_SRC, DUMMY]
     mvn        v22.8b, v3.8b
-                                    PF lsl DUMMY, PF_X, #dst_bpp_shift
-                                    PF prfm PREFETCH_MODE, [PF_DST, DUMMY]
+                                    PF lsl, DUMMY, PF_X, #dst_bpp_shift
+                                    PF prfm, PREFETCH_MODE, [PF_DST, DUMMY]
          st4        {v28.8b, v29.8b, v30.8b, v31.8b}, [DST_W], #32
-                                    PF ble 10f
-                                    PF sub PF_X, PF_X, ORIG_W
+                                    PF ble, 10f
+                                    PF sub, PF_X, PF_X, ORIG_W
 10:
     umull      v8.8h, v22.8b, v4.8b
-                                    PF ble 10f
-                                    PF subs PF_CTL, PF_CTL, #0x10
+                                    PF ble, 10f
+                                    PF subs, PF_CTL, PF_CTL, #0x10
 10:
     umull      v9.8h, v22.8b, v5.8b
-                                    PF ble 10f
-                                    PF lsl DUMMY, SRC_STRIDE, #src_bpp_shift
-                                    PF ldrsb DUMMY, [PF_SRC, DUMMY]
-                                    PF add PF_SRC, PF_SRC, #1
+                                    PF ble, 10f
+                                    PF add, PF_SRC, PF_SRC, SRC_STRIDE, lsl #src_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_SRC]
 10:
     umull      v10.8h, v22.8b, v6.8b
-                                    PF ble 10f
-                                    PF lsl DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb DUMMY, [PF_DST, DUMMY]
-                                    PF add PF_DST, PF_DST, #1
+                                    PF ble, 10f
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
     umull      v11.8h, v22.8b, v7.8b
 .endm
@@ -300,30 +506,29 @@ generate_composite_function_single_scanline \
         raddhn      v31.8b, v17.8h, v11.8h
     ld4         {v4.8b, v5.8b, v6.8b, v7.8b}, [DST_R], #32
         uqadd       v28.8b, v0.8b, v28.8b
-                                    PF add PF_X, PF_X, #8
-                                    PF tst PF_CTL, #0x0F
-                                    PF beq 10f
-                                    PF add PF_X, PF_X, #8
-                                    PF sub PF_CTL, PF_CTL, #1
+                                    PF add, PF_X, PF_X, #8
+                                    PF tst, PF_CTL, #0x0F
+                                    PF beq, 10f
+                                    PF add, PF_X, PF_X, #8
+                                    PF sub, PF_CTL, PF_CTL, #1
 10:
         uqadd       v29.8b, v1.8b, v29.8b
         uqadd       v30.8b, v2.8b, v30.8b
         uqadd       v31.8b, v3.8b, v31.8b
-                                    PF cmp PF_X, ORIG_W
+                                    PF cmp, PF_X, ORIG_W
     umull       v8.8h, v24.8b, v4.8b
-                                    PF lsl DUMMY, PF_X, #dst_bpp_shift
-                                    PF prfm PREFETCH_MODE, [PF_DST, DUMMY]
+                                    PF lsl, DUMMY, PF_X, #dst_bpp_shift
+                                    PF prfm, PREFETCH_MODE, [PF_DST, DUMMY]
     umull       v9.8h, v24.8b, v5.8b
-                                    PF ble 10f
-                                    PF sub PF_X, PF_X, ORIG_W
+                                    PF ble, 10f
+                                    PF sub, PF_X, PF_X, ORIG_W
 10:
     umull       v10.8h, v24.8b, v6.8b
-                                    PF subs PF_CTL, PF_CTL, #0x10
+                                    PF subs, PF_CTL, PF_CTL, #0x10
     umull       v11.8h, v24.8b, v7.8b
-                                    PF ble 10f
-                                    PF lsl DUMMY, DST_STRIDE, #dst_bpp_shift
-                                    PF ldrsb DUMMY, [PF_DST, DUMMY]
-                                    PF add PF_DST, PF_DST, #1
+                                    PF ble, 10f
+                                    PF add, PF_DST, PF_DST, DST_STRIDE, lsl #dst_bpp_shift
+                                    PF ldrsb, DUMMY, [PF_DST]
 10:
         st4         {v28.8b, v29.8b, v30.8b, v31.8b}, [DST_W], #32
 .endm
@@ -415,4 +620,3 @@ generate_composite_function \
     0, /* src_basereg   */ \
     0  /* mask_basereg  */
 
-/******************************************************************************/

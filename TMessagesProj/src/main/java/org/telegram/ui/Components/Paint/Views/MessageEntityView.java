@@ -1354,20 +1354,20 @@ public class MessageEntityView extends EntityView {
         }
 
         SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-        String dayThemeName = preferences.getString("lastDayTheme", "Blue");
+        String dayThemeName = preferences.getString("lastDayTheme", "Frost");
         if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-            dayThemeName = "Blue";
+            dayThemeName = "Frost";
         }
-        String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
+        String nightThemeName = preferences.getString("lastDarkTheme", "Frost Night");
         if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-            nightThemeName = "Dark Blue";
+            nightThemeName = "Frost Night";
         }
         Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
         if (dayThemeName.equals(nightThemeName)) {
             if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                dayThemeName = "Blue";
+                dayThemeName = "Frost";
             } else {
-                nightThemeName = "Dark Blue";
+                nightThemeName = "Frost Night";
             }
         }
         if (this.isDark = entry.isDark) {

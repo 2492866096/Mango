@@ -5,8 +5,8 @@
     <PreferenceScreen android:key="account_settings"
         android:title="@string/AccountSettings"
         android:summary="">
-        <intent android:action="app.mango.im.OPEN_ACCOUNT"
-            android:targetPackage="app.mango.im"
+        <intent android:action="r.xs.rp.OPEN_ACCOUNT"
+            android:targetPackage="r.xs.rp"
             android:targetClass="org.telegram.ui.LaunchActivity"/>
     </PreferenceScreen>
 </PreferenceScreen>

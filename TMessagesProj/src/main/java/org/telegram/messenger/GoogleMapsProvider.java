@@ -16,6 +16,7 @@ import androidx.core.util.Consumer;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMapOptions;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.Projection;
@@ -26,6 +27,7 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.Dash;
 import com.google.android.gms.maps.model.Gap;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MapColorScheme;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -538,7 +540,8 @@ public class GoogleMapsProvider implements IMapsProvider {
         private GLSurfaceView glSurfaceView;
 
         private GoogleMapView(Context context) {
-            mapView = new MapView(context) {
+            // Maps 20.1 follows the system theme by default; night mode comes from our own map style.
+            mapView = new MapView(context, new GoogleMapOptions().mapColorScheme(MapColorScheme.LIGHT)) {
                 @Override
                 public boolean dispatchTouchEvent(MotionEvent ev) {
                     if (dispatchInterceptor != null) {

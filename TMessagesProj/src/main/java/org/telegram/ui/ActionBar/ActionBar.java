@@ -56,6 +56,8 @@ import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.ui.Adapters.FiltersView;
+import org.telegram.ui.SkinStyle;
+import org.telegram.ui.SkinSwitch;
 import org.telegram.ui.Components.AnimatedEmojiDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
@@ -430,7 +432,7 @@ public class ActionBar extends FrameLayout implements Theme.Colorable {
             titleTextView[i].setTextColor(getThemedColor(Theme.key_actionBarDefaultTitle));
         }
         titleTextView[i].setEmojiColor(titleTextView[i].getTextColor());
-        titleTextView[i].setTypeface(AndroidUtilities.bold());
+        titleTextView[i].setTypeface(SkinSwitch.TITLES ? SkinStyle.serif() : AndroidUtilities.bold());
         titleTextView[i].setDrawablePadding(dp(4));
         titleTextView[i].setPadding(0, dp(8), 0, dp(8));
         titleTextView[i].setRightDrawableTopPadding(-dp(1));
@@ -451,6 +453,16 @@ public class ActionBar extends FrameLayout implements Theme.Colorable {
                     titleTextView[a].setGravity(Gravity.CENTER);
                 }
             }
+        }
+    }
+
+    private int titleTextSizeOverride;
+
+    /** A title size in sp for this bar alone (the skin's chat list); 0 goes back to the bar's own sizing. */
+    public void setTitleTextSizeOverride(int sp) {
+        if (titleTextSizeOverride != sp) {
+            titleTextSizeOverride = sp;
+            requestLayout();
         }
     }
 
@@ -1337,8 +1349,12 @@ public class ActionBar extends FrameLayout implements Theme.Colorable {
                     }
                 }
 
+                if (titleTextSizeOverride > 0 && titleTextView[i] != null) {
+                    titleTextView[i].setTextSize(titleTextSizeOverride);
+                }
                 if (titleTextView[i] != null && titleTextView[i].getVisibility() != GONE) {
-                    titleTextView[i].measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(dp(24) + titleTextView[i].getPaddingTop() + titleTextView[i].getPaddingBottom(), MeasureSpec.AT_MOST));
+                    final int titleHeight = titleTextSizeOverride > 0 ? Math.max(dp(24), dp(titleTextSizeOverride * 1.4f)) : dp(24);
+                    titleTextView[i].measure(MeasureSpec.makeMeasureSpec(availableWidth, MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(titleHeight + titleTextView[i].getPaddingTop() + titleTextView[i].getPaddingBottom(), MeasureSpec.AT_MOST));
                     if (centerScale) {
                         CharSequence text = titleTextView[i].getText();
                         titleTextView[i].setPivotX(titleTextView[i].getTextPaint().measureText(text, 0, text.length()) / 2f);

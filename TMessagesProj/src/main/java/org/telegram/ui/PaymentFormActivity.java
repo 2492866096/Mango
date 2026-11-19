@@ -66,6 +66,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.ComponentActivity;
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -73,15 +75,16 @@ import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
 
-import com.google.android.gms.common.api.Status;
+import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.tasks.Task;
-import com.google.android.gms.wallet.AutoResolveHelper;
 import com.google.android.gms.wallet.IsReadyToPayRequest;
 import com.google.android.gms.wallet.PaymentData;
 import com.google.android.gms.wallet.PaymentDataRequest;
 import com.google.android.gms.wallet.PaymentsClient;
 import com.google.android.gms.wallet.Wallet;
 import com.google.android.gms.wallet.WalletConstants;
+import com.google.android.gms.wallet.contract.ApiTaskResult;
+import com.google.android.gms.wallet.contract.TaskResultContracts;
 import com.stripe.android.Stripe;
 import com.stripe.android.TokenCallback;
 import com.stripe.android.exception.APIConnectionException;
@@ -218,6 +221,7 @@ public class PaymentFormActivity extends BaseFragment implements NotificationCen
     private HashMap<String, String> phoneFormatMap = new HashMap<>();
 
     private PaymentsClient paymentsClient;
+    private ActivityResultLauncher<Task<PaymentData>> googlePayLauncher;
 
     private EditTextBoldCursor[] inputFields;
     private RadioCell[] radioCells;
@@ -330,8 +334,6 @@ public class PaymentFormActivity extends BaseFragment implements NotificationCen
     private TLRPC.InputInvoice invoiceInput;
 
     private final static int done_button = 1;
-
-    private static final int LOAD_PAYMENT_DATA_REQUEST_CODE = 991;
 
     public enum InvoiceStatus {
         PAID,
@@ -2996,7 +2998,7 @@ public class PaymentFormActivity extends BaseFragment implements NotificationCen
 
                 PaymentDataRequest request = PaymentDataRequest.fromJson(paymentDataRequest.toString());
                 if (request != null) {
-                    AutoResolveHelper.resolveTask(paymentsClient.loadPaymentData(request), getParentActivity(), LOAD_PAYMENT_DATA_REQUEST_CODE);
+                    requestGooglePayData(paymentsClient.loadPaymentData(request));
                 }
             } catch (JSONException e) {
                 FileLog.e(e);
@@ -3267,6 +3269,10 @@ public class PaymentFormActivity extends BaseFragment implements NotificationCen
         if (delegate != null) {
             delegate.onFragmentDestroyed();
         }
+        if (googlePayLauncher != null) {
+            googlePayLauncher.unregister();
+            googlePayLauncher = null;
+        }
         AndroidUtilities.checkAndroidTheme(getContext(), false);
         if (!paymentStatusSent) {
             invoiceStatus = InvoiceStatus.CANCELLED;
@@ -3366,58 +3372,64 @@ public class PaymentFormActivity extends BaseFragment implements NotificationCen
         }
     }
 
-    @Override
-    public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
-        if (requestCode == LOAD_PAYMENT_DATA_REQUEST_CODE) {
-            AndroidUtilities.runOnUIThread(() -> {
-                if (resultCode == Activity.RESULT_OK) {
-                    PaymentData paymentData = PaymentData.getFromIntent(data);
-                    if (paymentData == null) {
-                        return;
-                    }
-                    final String paymentInfo = paymentData.toJson();
-                    if (paymentInfo == null) {
-                        return;
-                    }
-                    try {
-                        JSONObject paymentMethodData = new JSONObject(paymentInfo).getJSONObject("paymentMethodData");
-                        final JSONObject tokenizationData = paymentMethodData.getJSONObject("tokenizationData");
-                        final String tokenizationType = tokenizationData.getString("type");
-                        final String token = tokenizationData.getString("token");
-
-                        if (googlePayPublicKey != null || googlePayParameters != null) {
-                            googlePayCredentials = new TLRPC.TL_inputPaymentCredentialsGooglePay();
-                            googlePayCredentials.payment_token = new TLRPC.TL_dataJSON();
-                            googlePayCredentials.payment_token.data = tokenizationData.toString();
-                            String descriptions = paymentMethodData.optString("description");
-                            if (!TextUtils.isEmpty(descriptions)) {
-                                cardName = descriptions;
-                            } else {
-                                cardName = "Android Pay";
-                            }
-                        } else {
-                            Token t = TokenParser.parseToken(token);
-                            paymentJson = String.format(Locale.US, "{\"type\":\"%1$s\", \"id\":\"%2$s\"}", t.getType(), t.getId());
-                            Card card = t.getCard();
-                            cardName = card.getBrand() + " *" + card.getLast4();
-                        }
-                        goToNextStep();
-                    } catch (JSONException e) {
-                        FileLog.e(e);
-                    }
-                } else {
-                    if (resultCode == AutoResolveHelper.RESULT_ERROR) {
-                        Status status = AutoResolveHelper.getStatusFromIntent(data);
-                        FileLog.e("android pay error " + (status != null ? status.getStatusMessage() : ""));
-                    }
-                }
-                showEditDoneProgress(true, false);
-                setDonePressed(false);
-                if (googlePayButton != null) {
-                    googlePayButton.setClickable(true);
-                }
-            });
+    private void requestGooglePayData(Task<PaymentData> task) {
+        if (!(getParentActivity() instanceof ComponentActivity)) {
+            return;
         }
+        if (googlePayLauncher == null) {
+            googlePayLauncher = ((ComponentActivity) getParentActivity()).getActivityResultRegistry()
+                    .register("PaymentFormActivity.googlePay." + classGuid, new TaskResultContracts.GetPaymentDataResult(), this::onGooglePayResult);
+        }
+        task.addOnCompleteListener(googlePayLauncher::launch);
+    }
+
+    private void onGooglePayResult(ApiTaskResult<PaymentData> result) {
+        int statusCode = result.getStatus().getStatusCode();
+        AndroidUtilities.runOnUIThread(() -> {
+            if (statusCode == CommonStatusCodes.SUCCESS) {
+                PaymentData paymentData = result.getResult();
+                if (paymentData == null) {
+                    return;
+                }
+                final String paymentInfo = paymentData.toJson();
+                if (paymentInfo == null) {
+                    return;
+                }
+                try {
+                    JSONObject paymentMethodData = new JSONObject(paymentInfo).getJSONObject("paymentMethodData");
+                    final JSONObject tokenizationData = paymentMethodData.getJSONObject("tokenizationData");
+                    final String tokenizationType = tokenizationData.getString("type");
+                    final String token = tokenizationData.getString("token");
+
+                    if (googlePayPublicKey != null || googlePayParameters != null) {
+                        googlePayCredentials = new TLRPC.TL_inputPaymentCredentialsGooglePay();
+                        googlePayCredentials.payment_token = new TLRPC.TL_dataJSON();
+                        googlePayCredentials.payment_token.data = tokenizationData.toString();
+                        String descriptions = paymentMethodData.optString("description");
+                        if (!TextUtils.isEmpty(descriptions)) {
+                            cardName = descriptions;
+                        } else {
+                            cardName = "Android Pay";
+                        }
+                    } else {
+                        Token t = TokenParser.parseToken(token);
+                        paymentJson = String.format(Locale.US, "{\"type\":\"%1$s\", \"id\":\"%2$s\"}", t.getType(), t.getId());
+                        Card card = t.getCard();
+                        cardName = card.getBrand() + " *" + card.getLast4();
+                    }
+                    goToNextStep();
+                } catch (JSONException e) {
+                    FileLog.e(e);
+                }
+            } else if (statusCode != CommonStatusCodes.CANCELED) {
+                FileLog.e("android pay error " + result.getStatus().getStatusMessage());
+            }
+            showEditDoneProgress(true, false);
+            setDonePressed(false);
+            if (googlePayButton != null) {
+                googlePayButton.setClickable(true);
+            }
+        });
     }
 
     private void goToNextStep() {

@@ -79,7 +79,8 @@ public class NativeLoader {
 
             destLocalFile.setReadable(true, false);
             destLocalFile.setExecutable(true, false);
-            destLocalFile.setWritable(true);
+            // Android 17 refuses to System.load() a writable file.
+            destLocalFile.setReadOnly();
 
             try {
                 System.load(destLocalFile.getAbsolutePath());

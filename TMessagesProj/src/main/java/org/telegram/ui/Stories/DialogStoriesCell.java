@@ -94,6 +94,7 @@ import java.util.Objects;
 import me.vkryl.android.animator.BoolAnimator;
 import me.vkryl.android.animator.FactorAnimator;
 import me.vkryl.android.animator.ReplaceAnimator;
+import org.telegram.ui.SkinStyle;
 
 @SuppressLint("ViewConstructor")
 public class DialogStoriesCell extends FrameLayout implements NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target {
@@ -1635,7 +1636,9 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
             params.originalAvatarRect.set(x, y, x + finalSize, y + finalSize);
             params.additionalInset = dpf2(1.33f) * progressToCollapsed;
             avatarImage.setAlpha(1f);
-            avatarImage.setRoundRadius((int) radius);
+            // Rounded squares in the row, rounding off to circles as they tuck into the header.
+            params.squircle = SkinStyle.chatList() && progressToCollapsed < 0.5f;
+            avatarImage.setRoundRadius((int) (SkinStyle.chatList() ? AndroidUtilities.lerp(finalSize * SkinStyle.AVATAR_CORNER, radius, progressToCollapsed) : radius));
 
             cx = x + radius;
             cy = y + radius;

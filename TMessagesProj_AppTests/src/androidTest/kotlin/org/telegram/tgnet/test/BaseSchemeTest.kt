@@ -5,7 +5,6 @@ import com.appmattus.kotlinfixture.config.Configuration
 import com.appmattus.kotlinfixture.config.ConfigurationBuilder
 import com.appmattus.kotlinfixture.decorator.nullability.AlwaysNullStrategy
 import com.appmattus.kotlinfixture.decorator.nullability.NeverNullStrategy
-import com.appmattus.kotlinfixture.decorator.nullability.NullabilityStrategy
 import com.appmattus.kotlinfixture.decorator.nullability.RandomlyNullStrategy
 import com.appmattus.kotlinfixture.decorator.nullability.nullabilityStrategy
 import com.appmattus.kotlinfixture.decorator.recursion.RecursionStrategy
@@ -109,15 +108,15 @@ open class BaseSchemeTest {
                 return null
             }
 
-            val strategies = fixture.fixtureConfiguration.strategies.toMutableMap()
-            strategies[RecursionStrategy::class] = this
-            strategies[NullabilityStrategy::class] = AlwaysNullStrategy
+            val configuration = ConfigurationBuilder(fixture.fixtureConfiguration).let {
+                it.recursionStrategy(this)
+                it.nullabilityStrategy(AlwaysNullStrategy)
+                it.repeatCount { 0 }
+                it.build()
+            }
 
             @Suppress("DEPRECATION_ERROR")
-            return fixture.create(type, fixture.fixtureConfiguration.copy(
-                strategies = strategies,
-                repeatCount = { 0 },
-            ))
+            return fixture.create(type, configuration)
         }
     }
 
@@ -171,12 +170,12 @@ open class BaseSchemeTest {
 
         @Suppress("DEPRECATION_ERROR")
         nullableFields.forEach { field ->
-            result.add(alwaysNull.copy(
-                properties = mapOf(clazz to mapOf(field.name to { fixture.create(field.returnType, neverNull) }))
-            ))
-            result.add(randomNull.copy(
-                properties = mapOf(clazz to mapOf(field.name to { fixture.create(field.returnType, neverNull) }))
-            ))
+            for (base in listOf(alwaysNull, randomNull)) {
+                result.add(ConfigurationBuilder(base).let {
+                    it.property(clazz, field.name) { fixture.create(field.returnType, neverNull) }
+                    it.build()
+                })
+            }
         }
         
         repeat(maxOf(25 - nullableFields.size, 1)) {
